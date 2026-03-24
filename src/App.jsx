@@ -1,9 +1,9 @@
-import Login from './pages/authentication/login'
+import Register2 from './pages/authentication/register2'
 
 function App() {
 
   return (
-    <Login />
+    <Register2 />
   )
 }
 
