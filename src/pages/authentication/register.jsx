@@ -1,7 +1,6 @@
 import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
-import Button from '../../components/ui/Button'
-import RegisterForm from '../../components/ui/RegisterForm'
+import RegisterForm from '../../components/forms/RegisterForm'
 
 function Register() {
   return (
@@ -25,13 +24,6 @@ function Register() {
               contenido.
             </p>
             <RegisterForm />
-            <div className="w-full flex items-center justify-center gap-3">
-              <Button text="Cancelar" className="bg-gray-500 text-white" />
-              <Button
-                text="Siguiente"
-                className=" text-lg px-8 py-4 font-montserrat font-semibold"
-              />
-            </div>
             <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100">
               ¿Ya tienes cuenta?
               <a href="/login" className="text-[#D9982F] underline">

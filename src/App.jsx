@@ -1,10 +1,8 @@
-import Register2 from './pages/authentication/register2'
+import AppRoutes from "./routes"
 
 function App() {
 
-  return (
-    <Register2 />
-  )
+  return <AppRoutes />
 }
 
 export default App
