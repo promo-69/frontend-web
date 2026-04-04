@@ -42,3 +42,7 @@ Crear y moverse a la nueva rama para trabajar
 git checkout -b feature/nombre-de-tu-feature
 ```
 
+## Estandarizacion en nombre de archivos:
+ 
+- camelCase -> paginas y rutas (minuscula)
+- PascalCase -> componentes (primera en mayuscula)

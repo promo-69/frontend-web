@@ -1,0 +1,25 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches: [development]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repo
+        uses: actions/checkout@v3
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn 4
+        run: corepack prepare yarn@4.13.0 --activate
+
+      - name: Instalar dependencias
+        run: yarn install 
+
+      - name: Ejecutar tests
+        run: yarn test
