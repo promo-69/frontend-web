@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
-import { validateID, validateBirthdate, validatePassword } from '../../validators/authValidators'
+import {
+  validateID,
+  validateBirthdate,
+  validatePassword,
+} from '../../validators/authValidators'
 import Button from '../ui/Button'
 
 function RegisterForm2() {
@@ -10,9 +14,9 @@ function RegisterForm2() {
     register,
     handleSubmit,
     getValues,
-    formState: { errors }
+    formState: { errors },
   } = useForm({
-    mode: 'onBlur'
+    mode: 'onSubmit',
   })
 
   const onSubmit = (values) => {
@@ -32,8 +36,12 @@ function RegisterForm2() {
               {...register('idPrefix')}
               className="bg-transparent border-b border-white text-white py-2 pl-2 pr-10 focus:outline-none appearance-none"
             >
-              <option className="text-black" value="V">V</option>
-              <option className="text-black" value="E">E</option>
+              <option className="text-black" value="V">
+                V
+              </option>
+              <option className="text-black" value="E">
+                E
+              </option>
             </select>
             <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/20 border border-white rounded-md p-1 pointer-events-none">
               <span className="text-white text-sm">▼</span>
@@ -47,23 +55,30 @@ function RegisterForm2() {
                 const prefix = getValues('idPrefix')
                 const fullId = prefix + value
                 return validateID(fullId) === true || validateID(fullId)
-              }
+              },
             })}
             className="flex-1 bg-transparent border-b border-white text-white py-2 focus:outline-none"
           />
         </div>
         {errors.idNumber && (
-          <p className="text-red-500 text-sm w-full">{errors.idNumber.message}</p>
+          <p className="text-red-500 text-sm w-full">
+            {errors.idNumber.message}
+          </p>
         )}
 
         <div className="w-full flex flex-col">
-          <label className="text-white font-montserrat mb-1">
+          <label
+            htmlFor="birthdate"
+            className="text-white font-montserrat mb-1"
+          >
             Fecha de nacimiento
           </label>
           <input
+            id="birthdate"
             type="date"
             {...register('birthdate', {
-              validate: (value) => validateBirthdate(value) === true || validateBirthdate(value)
+              validate: (value) =>
+                validateBirthdate(value) === true || validateBirthdate(value),
             })}
             className="w-full bg-transparent border-b border-white text-white [color-scheme:dark] py-2 focus:outline-none"
           />
@@ -77,7 +92,8 @@ function RegisterForm2() {
             type={showPassword ? 'text' : 'password'}
             placeholder="Contraseña"
             {...register('password', {
-              validate: (value) => validatePassword(value) === true || validatePassword(value)
+              validate: (value) =>
+                validatePassword(value) === true || validatePassword(value),
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
           />
@@ -106,7 +122,7 @@ function RegisterForm2() {
                 if (!value) return 'Confirmación requerida'
                 if (value !== password) return 'Las contraseñas no coinciden'
                 return true
-              }
+              },
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
           />
@@ -121,7 +137,9 @@ function RegisterForm2() {
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
           {errors.confirmPassword && (
-            <p className="text-red-500 text-sm">{errors.confirmPassword.message}</p>
+            <p className="text-red-500 text-sm">
+              {errors.confirmPassword.message}
+            </p>
           )}
         </div>
       </div>

@@ -26,9 +26,13 @@ export const validateBirthdate = (value) => {
   if (!value) return 'Fecha de nacimiento requerida'
   const birthDate = new Date(value)
   const today = new Date()
-  const age = today.getFullYear() - birthDate.getFullYear()
+  let age = today.getFullYear() - birthDate.getFullYear()
   const monthDiff = today.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()))
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1
+  }
+
   if (age < 18) return 'Debes ser mayor de 18 años'
   return true
 }

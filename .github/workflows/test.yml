@@ -12,13 +12,14 @@ jobs:
       - name: Clonar repo
         uses: actions/checkout@v3
 
-      - name: Instalar Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22'
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn 4
+        run: corepack prepare yarn@4.13.0 --activate
 
       - name: Instalar dependencias
-        run: yarn install
+        run: yarn install --inmutable
 
       - name: Ejecutar tests
         run: yarn test

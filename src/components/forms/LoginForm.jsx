@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
-import { validateEmail, validatePassword } from '../../validators/authValidators'
+import {
+  validateEmail,
+  validatePassword,
+} from '../../validators/authValidators'
 import Button from '../ui/Button'
 
 function LoginForm() {
@@ -10,13 +13,13 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   const onSubmit = (data) => {
     const payload = {
       email: data.email.trim(),
-      password: data.password
+      password: data.password,
     }
     console.log('Iniciando sesión con:', payload)
     // lógica de autenticación (fetch, API, etc.)
@@ -33,7 +36,8 @@ function LoginForm() {
             type="email"
             placeholder="Correo"
             {...register('email', {
-              validate: (value) => validateEmail(value) === true || validateEmail(value)
+              validate: (value) =>
+                validateEmail(value) === true || validateEmail(value),
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat"
           />
@@ -47,7 +51,8 @@ function LoginForm() {
             type={showPassword ? 'text' : 'password'}
             placeholder="Contraseña"
             {...register('password', {
-              validate: (value) => validatePassword(value) === true || validatePassword(value)
+              validate: (value) =>
+                validatePassword(value) === true || validatePassword(value),
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
           />
@@ -62,11 +67,16 @@ function LoginForm() {
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
           {errors.password && (
-            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+            <p className="text-red-500 text-sm mt-1">
+              {errors.password.message}
+            </p>
           )}
         </div>
 
-        <a href="/forgot-password" className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
+        <a
+          href="/forgot-password"
+          className="text-[#D9982F] text-sm opacity-80 hover:opacity-100"
+        >
           ¿Olvidaste tu contraseña?
         </a>
 

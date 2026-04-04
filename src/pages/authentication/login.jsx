@@ -1,3 +1,4 @@
+import React from 'react'
 import loginImage from '../../assets/images/1login.PNG'
 import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
@@ -33,6 +34,5 @@ function Login() {
     </>
   )
 }
-
 
 export default Login
