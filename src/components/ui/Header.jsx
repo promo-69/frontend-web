@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { FiShoppingCart, FiMenu, FiX } from "react-icons/fi"; 
 import { motion, AnimatePresence } from "framer-motion"; // Importación necesaria
+import { useNavigate } from 'react-router-dom'
+
 
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png';
 import { LoginIcon, LocationIcon } from "../ui/Icons";
 
 function Header({ isLoggedIn = false, userName = "Yessica" }) {
+  const navigate = useNavigate()
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState("Barquisimeto");
@@ -30,7 +34,7 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
           />
         </div>
 
-        {/* Navegación Desktop */}
+        {/* Navegación */}
         <nav className="hidden lg:flex gap-5 text-m font-medium">
           <a href="#" className="hover:text-[#F6AD38] transition-colors">Cartelera</a>
           <a href="#" className="hover:text-[#F6AD38] transition-colors">Estrenos</a>
@@ -46,7 +50,7 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
             <div className="relative font-['Montserrat']">
             <button 
               onClick={() => setIsCityOpen(!isCityOpen)}
-              className="flex items-center justify-between w-[130px] md:w-[160px] bg-[#7B1A82] hover:bg-[#7B1A82]/60 px-3 py-1.5 rounded-full transition-all duration-300"
+              className="flex items-center justify-between w-[130px] md:w-[160px] bg-[#7B1A82] hover:bg-[#DD29EA]/60 px-3 py-1.5 rounded-full transition-all duration-300"
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 <LocationIcon className="w-5 h-5 text-[#F6AD38] shrink-0" /> 
@@ -107,9 +111,9 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <button className="
+              <button onClick={() => navigate('/login')}  className="
                 flex items-center gap-2 border border-[#F6AD38] text-[#F6AD38] px-5 py-1.5
-                rounded-full font-['Montserrat'] font-semibold text-sm hover:bg-[#F6AD38] hover:text-[#2A154B] 
+                rounded-full font-['Montserrat'] font-semibold text-18 hover:bg-[#F6AD38] hover:text-[#2A154B] 
                 transition-all duration-300 group"
               >
                 <span>Ingresar</span>
