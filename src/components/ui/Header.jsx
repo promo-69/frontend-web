@@ -26,7 +26,7 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
           <img 
             src={logoCineflix} 
             alt="Logo" 
-            className="h-12 md:h-20 w-auto object-contain transition-all"
+            className="h-28 md:h-28 w-auto object-contain transition-all"
           />
         </div>
 
@@ -43,15 +43,20 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
         <div className="flex items-center gap-2 md:gap-4">
           
           {/* Selector de Ciudad (Combo Box con Animación) */}
-          <div className="relative font-['Montserrat']">
+            <div className="relative font-['Montserrat']">
             <button 
               onClick={() => setIsCityOpen(!isCityOpen)}
-              className="flex items-center gap-2 bg-[#7B1A82] hover:bg-[#7B1A82]/60 px-3 py-1.5 rounded-full transition-all duration-300"
+              className="flex items-center justify-between w-[130px] md:w-[160px] bg-[#7B1A82] hover:bg-[#7B1A82]/60 px-3 py-1.5 rounded-full transition-all duration-300"
             >
-              <LocationIcon className="w-5 h-5 text-[#F6AD38]" /> 
-              <span className="text-[11px] md:text-xs font-medium">{selectedCity}</span>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <LocationIcon className="w-5 h-5 text-[#F6AD38] shrink-0" /> 
+                {/* truncate evita que nombres largos como "Aragua de Barcelona" empujen el resto */}
+                <span className="text-[10px] md:text-xs font-medium truncate">
+                  {selectedCity}
+                </span>
+              </div>
               
-              <div className={`ml-1 transition-transform duration-300 ${isCityOpen ? 'rotate-180' : ''}`}>
+              <div className={`ml-1 shrink-0 transition-transform duration-300 ${isCityOpen ? 'rotate-180' : ''}`}>
                 <svg width="10" height="7.5" viewBox="0 0 10 7" fill="none">
                   <path d="M5 7L0.669873 0.25L9.33013 0.25L5 7Z" fill="#F6A638"/>
                 </svg>
@@ -77,8 +82,8 @@ function Header({ isLoggedIn = false, userName = "Yessica" }) {
                       }}
                       className={`
                         px-4 py-2.5 text-xs cursor-pointer transition-colors border-b border-[#7B1A82]/10 last:border-none
-                        hover:bg-[#F6AD38]/20
-                        ${selectedCity === city.name ? 'bg-[#F6AD38]/10 text-[#F6AD38]' : 'text-white'}
+                        hover:bg-[#231640]/40
+                        ${selectedCity === city.name ? 'bg-[#231640]/40 text-[#F6AD38]' : 'text-white'}
                       `}
                     >
                       <span className="font-semibold">{city.state}</span>
