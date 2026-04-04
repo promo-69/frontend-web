@@ -19,7 +19,7 @@ jobs:
         run: corepack prepare yarn@4.13.0 --activate
 
       - name: Instalar dependencias
-        run: yarn install --inmutable
+        run: yarn install --inmutable-cache
 
       - name: Ejecutar tests
         run: yarn test
