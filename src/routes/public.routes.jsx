@@ -3,6 +3,7 @@ import Header from '../components/ui/Header';
 import Home from '../pages/public/Home';
 import Login from '../pages/authentication/login';
 import Register from '../pages/authentication/register';
+import Profile from '../pages/private/user/profile';
 
 // 1. Un pequeño Layout que solo tiene el Header y el contenido (Outlet)
 const PublicLayout = () => {
@@ -21,7 +22,8 @@ export const publicRoutes = (
   <>
     {/* Grupo de rutas CON Header */}
     <Route element={<PublicLayout />}>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Profile />} />
+      <Route path="/home" element={<Home />} />
     </Route>
 
     {/* Rutas SIN Header */}
