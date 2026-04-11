@@ -1,34 +1,40 @@
-import { useState } from 'react';
-import { EditIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from '../ui/IconosProyect';
+import { useState, useEffect } from 'react';
+import { EditIcon, EyeIcon, EyeOffIcon } from '../ui/IconosProyect';
 
 function FormEditProfile({ userData, step, setStep, onSave }) {
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Estados para controlar los valores y errores
   const [email, setEmail] = useState(userData.email);
   const [password, setPassword] = useState(userData.password);
-  const [phone, setPhone] = useState(userData.cellphone);
+  const [phoneBody, setPhoneBody] = useState(""); 
+  const [prefix, setPrefix] = useState("+58"); 
   const [errors, setErrors] = useState({ email: '', password: '' });
 
   const isEditing = step === 'editing';
 
+  useEffect(() => {
+    setEmail(userData.email);
+    setPassword(userData.password);
+    if (userData.cellphone?.startsWith('+')) {
+      setPrefix(userData.cellphone.substring(0, 3));
+      setPhoneBody(userData.cellphone.substring(3));
+    } else {
+      setPhoneBody(userData.cellphone || "");
+    }
+    setShowPassword(false);
+  }, [userData, step]);
+
   const validate = () => {
     let newErrors = { email: '', password: '' };
     let isValid = true;
-
-    // Validación de correo: debe contener @
     if (!email.includes('@')) {
-      newErrors.email = 'El correo debe contener un "@"';
+      newErrors.email = 'Correo inválido';
       isValid = false;
     }
-
-    // Validación de contraseña: 8-20 caracteres, letras, números y especiales
     const passRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,20}$/;
     if (!passRegex.test(password)) {
-      newErrors.password = 'Debe tener 8-20 caracteres (letras, números y caracteres especiales)';
+      newErrors.password = 'Clave no cumple requisitos';
       isValid = false;
     }
-
     setErrors(newErrors);
     return isValid;
   };
@@ -36,111 +42,110 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isEditing && validate()) {
-      onSave({ email, password, phone });
+      onSave({ email, password, cellphone: `${prefix}${phoneBody}` });
     }
   };
 
-  const fieldContainerClass = (fieldName) => 
-    `border-b pb-1 flex flex-col ${isEditing ? (errors[fieldName] ? 'border-red-500' : 'border-[#D9982F]') : 'border-gray-400'}`;
+  const containerClass = (field) => 
+    `border-b flex flex-col ${isEditing ? (errors[field] ? 'border-red-500' : 'border-[#D9982F]') : 'border-gray-500'}`;
 
   return (
-    <div className="w-full bg-white/5 p-6 rounded-3xl backdrop-blur-md border border-white/10 shadow-2xl">
+    /* Ajuste de escala: max-w-sm (384px) es el punto medio ideal para pantallas grandes */
+    <div className="w-full max-w-[360px] bg-white/5 p-5 rounded-3xl backdrop-blur-md border border-white/10 shadow-xl">
       <form className="space-y-4 text-white" onSubmit={handleSubmit}>
         
-        {/* Nombre / Apellido / Cédula / Fecha (Sin cambios) */}
-        <div className="grid grid-cols-2 gap-6 opacity-80">
-          <div className="border-b border-gray-400 pb-1">
-            <label className="text-[11px] font-bold text-gray-300 uppercase">Nombre:</label>
-            <p className="text-sm py-1">{userData.name}</p>
+        {/* Datos Fijos - Ligero aumento de gap y texto */}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-3 opacity-80">
+          <div className="border-b border-gray-500 pb-1">
+            <label className="text-[9px] font-bold text-gray-400 uppercase">Nombre</label>
+            <p className="text-sm font-medium truncate">{userData.name}</p>
           </div>
-          <div className="border-b border-gray-400 pb-1">
-            <label className="text-[11px] font-bold text-gray-300 uppercase">Apellido:</label>
-            <p className="text-sm py-1">{userData.lastname}</p>
+          <div className="border-b border-gray-500 pb-1">
+            <label className="text-[9px] font-bold text-gray-400 uppercase">Apellido</label>
+            <p className="text-sm font-medium truncate">{userData.lastname}</p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 opacity-80">
-          <div className="border-b border-gray-400 pb-1">
-            <label className="text-[11px] font-bold text-gray-300 uppercase">Cedula:</label>
-            <p className="text-sm py-1">{userData.id}</p>
+          <div className="border-b border-gray-500 pb-1">
+            <label className="text-[9px] font-bold text-gray-400 uppercase">Cédula</label>
+            <p className="text-sm font-medium truncate">{userData.id}</p>
           </div>
-          <div className="border-b border-gray-400 pb-1">
-            <label className="text-[11px] font-bold text-gray-300 uppercase">Fecha de Nacimiento:</label>
-            <p className="text-sm py-1">{userData.birth}</p>
+          <div className="border-b border-gray-500 pb-1">
+            <label className="text-[9px] font-bold text-gray-400 uppercase">Nacimiento</label>
+            <p className="text-sm font-medium truncate">{userData.birth}</p>
           </div>
         </div>
 
-        {/* Correo con Validación */}
-        <div className={fieldContainerClass('email')}>
-          <label className="text-[11px] font-bold text-gray-300 uppercase">Correo:</label>
+        {/* Correo */}
+        <div className={containerClass('email')}>
+          <label className="text-[9px] font-bold text-gray-400 uppercase">Correo</label>
           <div className="flex items-center justify-between gap-2">
             <input
               type="text"
               readOnly={!isEditing}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-transparent w-full outline-none text-sm py-1 text-white"
+              className="bg-transparent w-full outline-none text-sm py-1"
             />
-            {isEditing && <EditIcon className="w-4 h-4 text-white opacity-80" />}
+            {isEditing && <EditIcon className="w-4 h-4 opacity-70" />}
           </div>
-          {isEditing && errors.email && <span className="text-[10px] text-red-500 mt-1">{errors.email}</span>}
+          {isEditing && errors.email && <span className="text-[9px] text-red-400 italic">{errors.email}</span>}
         </div>
 
         {/* Teléfono */}
-        <div className={`border-b pb-1 flex flex-col ${isEditing ? 'border-[#D9982F]' : 'border-gray-400'}`}>
-          <label className="text-[11px] font-bold text-gray-300 uppercase">Teléfono:</label>
+        <div className={`border-b flex flex-col ${isEditing ? 'border-[#D9982F]' : 'border-gray-500'}`}>
+          <label className="text-[9px] font-bold text-gray-400 uppercase">Teléfono</label>
           <div className="flex items-center gap-2 py-1">
-             <div className="bg-white/5 border border-white/20 rounded px-2 py-0.5 text-[11px]">
-               +58
-             </div>
+            <select
+              disabled={!isEditing}
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              className="bg-white/10 border border-white/20 rounded px-1.5 py-0.5 text-[10px] text-white outline-none cursor-pointer"
+            >
+              <option value="+58" className="bg-[#231640]">VE +58</option>
+              <option value="+57" className="bg-[#231640]">CO +57</option>
+            </select>
             <input
               type="text"
               readOnly={!isEditing}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="bg-transparent w-full outline-none text-sm text-white"
+              value={phoneBody}
+              onChange={(e) => setPhoneBody(e.target.value)}
+              className="bg-transparent w-full outline-none text-sm"
             />
-            {isEditing && <EditIcon className="w-4 h-4 text-white opacity-80" />}
           </div>
         </div>
 
-        {/* Contraseña con Validación */}
-        <div className={fieldContainerClass('password')}>
-          <label className="text-[11px] font-bold text-gray-300 uppercase">Contraseña:</label>
-          <div className="flex items-center justify-between gap-2 py-1 relative">
+        {/* Contraseña */}
+        <div className={containerClass('password')}>
+          <label className="text-[9px] font-bold text-gray-400 uppercase">Contraseña</label>
+          <div className="flex items-center justify-between gap-2 py-1">
             <input
-              type={showPassword ? "text" : "password"}
+              type={isEditing && showPassword ? "text" : "password"}
               readOnly={!isEditing}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-transparent w-full outline-none text-sm text-white"
+              className="bg-transparent w-full outline-none text-sm"
             />
             {isEditing && (
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOffIcon className="w-4 h-4 text-gray-400" /> : <EyeIcon className="w-4 h-4 text-gray-400" />}
-                </button>
-                <EditIcon className="w-4 h-4 text-white opacity-80" />
-              </div>
+              <button type="button" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+              </button>
             )}
           </div>
-          {isEditing && errors.password && <span className="text-[10px] text-red-500 mt-1">{errors.password}</span>}
+          {isEditing && errors.password && <span className="text-[9px] text-red-400 italic leading-tight">{errors.password}</span>}
         </div>
 
-        {/* Botones */}
-        <div className="flex gap-4 pt-4">
+        {/* Botones - Aumento sutil de tamaño */}
+        <div className="flex gap-4 pt-3">
           <button 
             type="button" 
             onClick={() => setStep('view')}
-            className="flex-1 border-2 border-white rounded-full py-2 font-bold text-xs uppercase hover:bg-white/10 transition-colors"
+            className="flex-1 border-2 border-white rounded-full py-2 font-bold text-[10px] uppercase hover:bg-white/5 transition-all"
           >
             Volver
           </button>
-          
           <button 
             type={isEditing ? "submit" : "button"}
             onClick={() => !isEditing && setStep('confirming')}
-            className="flex-1 bg-[#D9982F] text-[#231640] font-bold rounded-full py-2 text-xs uppercase hover:bg-[#c48928] transition-colors"
+            className="flex-1 bg-[#D9982F] text-[#231640] font-bold rounded-full py-2 text-[10px] uppercase transition-all active:scale-95 shadow-lg"
           >
             {isEditing ? 'Guardar' : 'Editar'}
           </button>
