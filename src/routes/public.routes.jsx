@@ -9,9 +9,9 @@ import Profile from '../pages/private/user/profile';
 const PublicLayout = () => {
   return (
     <>
-      <Header isLoggedIn={false} />
+      <Header isLoggedIn={false} userName="Yessea"/>
       <main>
-        <Outlet /> {/* Aquí se renderizará el Home o cualquier ruta hija */}
+        <Outlet />
       </main>
     </>
   );
@@ -20,13 +20,13 @@ const PublicLayout = () => {
 // 2. Exportas las rutas organizadas
 export const publicRoutes = (
   <>
-    {/* Grupo de rutas CON Header */}
+    {/* Grupo de rutas conHeader */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Profile />} />
       <Route path="/home" element={<Home />} />
     </Route>
 
-    {/* Rutas SIN Header */}
+    {/* Rutas sin Header */}
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
   </>

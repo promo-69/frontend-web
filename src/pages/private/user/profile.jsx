@@ -38,7 +38,7 @@ function Profile() {
         <div className="flex flex-col items-center w-full max-w-sm lg:max-w-md pt-8">
           <div className="text-center mb-4">
             <h1 className="text-[#D9982F] text-3xl md:text-5xl font-bold tracking-tight">Perfil</h1>
-            <p className="text-white text-s font-light">Gestiona tu información personal</p>
+            <p className="text-white text-s font-bold">Gestiona tu información personal</p>
           </div>
           
           <FormEditProfile 

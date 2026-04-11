@@ -138,14 +138,14 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
           <button 
             type="button" 
             onClick={() => setStep('view')}
-            className="flex-1 border-2 border-white rounded-full py-2 font-bold text-[10px] uppercase hover:bg-white/5 transition-all"
+            className="flex-1 border-2 border-white rounded-full py-2 font-bold text-[12px] uppercase hover:bg-white/5 transition-all"
           >
             Volver
           </button>
           <button 
             type={isEditing ? "submit" : "button"}
             onClick={() => !isEditing && setStep('confirming')}
-            className="flex-1 bg-[#D9982F] text-[#231640] font-bold rounded-full py-2 text-[10px] uppercase transition-all active:scale-95 shadow-lg"
+            className="flex-1 bg-[#D9982F] text-[#231640] font-bold rounded-full py-2 text-[13px] uppercase transition-all active:scale-95 shadow-lg"
           >
             {isEditing ? 'Guardar' : 'Editar'}
           </button>
