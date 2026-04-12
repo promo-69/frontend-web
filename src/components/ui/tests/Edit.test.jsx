@@ -1,15 +1,18 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest'; // 1. Importar vi
 import Edit from '../Edit';
 
 describe('Componente Edit (Confirmación de Contraseña)', () => {
-  const mockOnConfirm = jest.fn();
-  const mockOnCancel = jest.fn();
+  // 2. Cambiar jest.fn() por vi.fn()
+  const mockOnConfirm = vi.fn();
+  const mockOnCancel = vi.fn();
   const correctPassword = 'password123';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    // 3. Cambiar jest.clearAllMocks() por vi.clearAllMocks()
+    vi.clearAllMocks();
   });
 
   it('debe mostrar error si la contraseña es incorrecta', async () => {

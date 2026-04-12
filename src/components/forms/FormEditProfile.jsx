@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { EditIcon, EyeIcon, EyeOffIcon } from '../ui/IconosProyect';
 
@@ -50,11 +51,10 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
     `border-b flex flex-col ${isEditing ? (errors[field] ? 'border-red-500' : 'border-[#D9982F]') : 'border-gray-500'}`;
 
   return (
-    /* Ajuste de escala: max-w-sm (384px) es el punto medio ideal para pantallas grandes */
     <div className="w-full max-w-[360px] bg-white/5 p-5 rounded-3xl backdrop-blur-md border border-white/10 shadow-xl">
       <form className="space-y-4 text-white" onSubmit={handleSubmit}>
         
-        {/* Datos Fijos - Ligero aumento de gap y texto */}
+        {/* Datos Fijos */}
         <div className="grid grid-cols-2 gap-x-5 gap-y-3 opacity-80">
           <div className="border-b border-gray-500 pb-1">
             <label className="text-[9px] font-bold text-gray-400 uppercase">Nombre</label>
@@ -74,11 +74,14 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
           </div>
         </div>
 
-        {/* Correo */}
+        {/* Correo - Conectado para Testing */}
         <div className={containerClass('email')}>
-          <label className="text-[9px] font-bold text-gray-400 uppercase">Correo</label>
+          <label htmlFor="email-field" className="text-[9px] font-bold text-gray-400 uppercase cursor-pointer">
+            Correo
+          </label>
           <div className="flex items-center justify-between gap-2">
             <input
+              id="email-field"
               type="text"
               readOnly={!isEditing}
               value={email}
@@ -90,11 +93,14 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
           {isEditing && errors.email && <span className="text-[9px] text-red-400 italic">{errors.email}</span>}
         </div>
 
-        {/* Teléfono */}
+        {/* Teléfono - Conectado para Testing */}
         <div className={`border-b flex flex-col ${isEditing ? 'border-[#D9982F]' : 'border-gray-500'}`}>
-          <label className="text-[9px] font-bold text-gray-400 uppercase">Teléfono</label>
+          <label htmlFor="phone-field" className="text-[9px] font-bold text-gray-400 uppercase cursor-pointer">
+            Teléfono
+          </label>
           <div className="flex items-center gap-2 py-1">
             <select
+              aria-label="Prefijo de teléfono"
               disabled={!isEditing}
               value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
@@ -104,6 +110,7 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
               <option value="+57" className="bg-[#231640]">CO +57</option>
             </select>
             <input
+              id="phone-field"
               type="text"
               readOnly={!isEditing}
               value={phoneBody}
@@ -113,11 +120,14 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
           </div>
         </div>
 
-        {/* Contraseña */}
+        {/* Contraseña - Conectado para Testing */}
         <div className={containerClass('password')}>
-          <label className="text-[9px] font-bold text-gray-400 uppercase">Contraseña</label>
+          <label htmlFor="password-field" className="text-[9px] font-bold text-gray-400 uppercase cursor-pointer">
+            Contraseña
+          </label>
           <div className="flex items-center justify-between gap-2 py-1">
             <input
+              id="password-field"
               type={isEditing && showPassword ? "text" : "password"}
               readOnly={!isEditing}
               value={password}
@@ -125,15 +135,21 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
               className="bg-transparent w-full outline-none text-sm"
             />
             {isEditing && (
-              <button type="button" onClick={() => setShowPassword(!showPassword)}>
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
                 {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
               </button>
             )}
           </div>
-          {isEditing && errors.password && <span className="text-[9px] text-red-400 italic leading-tight">{errors.password}</span>}
+          {isEditing && errors.password && (
+            <span className="text-[9px] text-red-400 italic leading-tight">{errors.password}</span>
+          )}
         </div>
 
-        {/* Botones - Aumento sutil de tamaño */}
+        {/* Botones */}
         <div className="flex gap-4 pt-3">
           <button 
             type="button" 

@@ -2,14 +2,16 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import Header from '../Header';
 
-// Mock de useNavigate para verificar navegación
-const mockedUsedNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockedUsedNavigate,
-}));
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(), 
+  };
+});
 
 // Helper para renderizar con Router
 const renderWithRouter = (ui) => {
@@ -17,27 +19,31 @@ const renderWithRouter = (ui) => {
 };
 
 describe('Componente Header', () => {
+  
+  // Limpiar mocks antes de cada test por si acaso
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('debe mostrar el botón de INGRESAR si no está logueado', () => {
     renderWithRouter(<Header isLoggedIn={false} />);
     expect(screen.getByRole('button', { name: /INGRESAR/i })).toBeInTheDocument();
   });
 
   it('debe mostrar el saludo y el carrito si está logueado', () => {
-    const user = "Mary";
+    const user = "Mary Sofia";
     renderWithRouter(<Header isLoggedIn={true} userName={user} />);
     
     expect(screen.getByText(`¡Hola ${user}!`)).toBeInTheDocument();
-    // El badge del carrito con el número 2
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('debe abrir el menú de usuario al hacer clic en el perfil', async () => {
-    renderWithRouter(<Header isLoggedIn={true} userName="Mary" />);
+    renderWithRouter(<Header isLoggedIn={true} userName="Mary Sofia" />);
     
-    const profileButton = screen.getByRole('button', { name: /¡Hola Mary!/i });
+    const profileButton = screen.getByRole('button', { name: /¡Hola Mary Sofia!/i });
     await userEvent.click(profileButton);
 
-    // Verificar que aparezcan opciones del menú desplegable
     expect(screen.getByText(/Historial de Compra/i)).toBeInTheDocument();
     expect(screen.getByText(/Cerrar Sesión/i)).toBeInTheDocument();
   });
@@ -45,15 +51,16 @@ describe('Componente Header', () => {
   it('debe cambiar la ciudad seleccionada al usar el dropdown de ciudades', async () => {
     renderWithRouter(<Header />);
     
-    // El botón inicial dice Barquisimeto por defecto
+    // Abrir dropdown
     const cityButton = screen.getByText(/Barquisimeto/i);
     await userEvent.click(cityButton);
 
-    // Seleccionamos Valencia
+    // Seleccionar opción
     const valenciaOption = screen.getByText(/Valencia/i);
     await userEvent.click(valenciaOption);
 
-    // Ahora el botón principal debería mostrar Valencia
-    expect(screen.getAllByText(/Valencia/i)[0]).toBeInTheDocument();
+    // En Vitest, verificamos que el texto esté presente en el botón actualizado
+    const updatedButtons = screen.getAllByText(/Valencia/i);
+    expect(updatedButtons.length).toBeGreaterThan(0);
   });
 });
