@@ -33,7 +33,7 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
     }
     const passRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,20}$/;
     if (!passRegex.test(password)) {
-      newErrors.password = 'Clave no cumple requisitos';
+      newErrors.password = 'La clave no cumple requisitos (8-20 chars, letras, números y símbolos)';
       isValid = false;
     }
     setErrors(newErrors);
@@ -93,7 +93,7 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
           {isEditing && errors.email && <span className="text-[9px] text-red-400 italic">{errors.email}</span>}
         </div>
 
-        {/* Teléfono - Conectado para Testing */}
+        {/* Teléfono*/}
         <div className={`border-b flex flex-col ${isEditing ? 'border-[#D9982F]' : 'border-gray-500'}`}>
           <label htmlFor="phone-field" className="text-[9px] font-bold text-gray-400 uppercase cursor-pointer">
             Teléfono
@@ -117,10 +117,11 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
               onChange={(e) => setPhoneBody(e.target.value)}
               className="bg-transparent w-full outline-none text-sm"
             />
+            {isEditing && <EditIcon className="w-6 h-6 opacity-70" />}
           </div>
         </div>
 
-        {/* Contraseña - Conectado para Testing */}
+{/* Contraseña - Conectado para Testing y con Icono de Edición a la derecha */}
         <div className={containerClass('password')}>
           <label htmlFor="password-field" className="text-[9px] font-bold text-gray-400 uppercase cursor-pointer">
             Contraseña
@@ -134,18 +135,28 @@ function FormEditProfile({ userData, step, setStep, onSave }) {
               onChange={(e) => setPassword(e.target.value)}
               className="bg-transparent w-full outline-none text-sm"
             />
+
             {isEditing && (
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Botón del ojo a la izquierda */}
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Ocultar password" : "Mostrar password"}
+                  className="hover:text-[#D9982F] transition-colors"
+                >
+                  {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                </button>
+                {/* Icono de edición a la derecha */}
+                <EditIcon className="w-4 h-4 opacity-70" />
+              </div>
             )}
           </div>
+
           {isEditing && errors.password && (
-            <span className="text-[9px] text-red-400 italic leading-tight">{errors.password}</span>
+            <span className="text-[9px] text-red-400 italic leading-tight">
+              {errors.password}
+            </span>
           )}
         </div>
 

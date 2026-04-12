@@ -9,7 +9,7 @@ import Profile from '../pages/private/user/profile';
 const PublicLayout = () => {
   return (
     <>
-      <Header isLoggedIn={false} userName="Yessea"/>
+      <Header isLoggedIn={true} userName="Yessea"/>
       <main>
         <Outlet />
       </main>
