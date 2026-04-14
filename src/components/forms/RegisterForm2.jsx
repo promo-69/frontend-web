@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
@@ -7,21 +7,41 @@ import {
   validatePassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
+import { RegisterContext } from '../../context/RegisterContext'
+import { useNavigate } from 'react-router-dom'
 
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
+  const { step1Data, registerCustomer } = useContext(RegisterContext)
+  const navigate = useNavigate()
+
   const {
     register,
     handleSubmit,
     getValues,
     formState: { errors },
-  } = useForm({
-    mode: 'onSubmit',
-  })
+  } = useForm({ mode: 'onSubmit' })
 
-  const onSubmit = (values) => {
-    console.log('Registro válido:', values)
-    // Lógica de envío (fetch/API)
+  const onSubmit = async (values) => {
+    const payload = {
+      firstName: step1Data.name,
+      lastName: step1Data.lastname,
+      email: step1Data.email,
+      phoneNumber: step1Data.phone,
+      documentNumber: values.idPrefix + values.idNumber,
+      birthDate: values.birthdate,
+      password: values.password,
+      gender: 1,
+    }
+
+    const res = await registerCustomer(payload)
+
+    if (!res.success) {
+      alert(res.message)
+    } else {
+      alert('Registro exitoso')
+      navigate('/login')
+    }
   }
 
   return (
@@ -30,6 +50,7 @@ function RegisterForm2() {
       className="flex flex-col items-center justify-center gap-4"
     >
       <div className="flex flex-col gap-6 items-center w-80">
+        {/* Cédula */}
         <div className="flex items-center gap-2 w-full">
           <div className="relative">
             <select
@@ -47,6 +68,7 @@ function RegisterForm2() {
               <span className="text-white text-sm">▼</span>
             </div>
           </div>
+
           <input
             type="text"
             placeholder="Cédula"
@@ -66,6 +88,7 @@ function RegisterForm2() {
           </p>
         )}
 
+        {/* Fecha */}
         <div className="w-full flex flex-col">
           <label
             htmlFor="birthdate"
@@ -80,13 +103,14 @@ function RegisterForm2() {
               validate: (value) =>
                 validateBirthdate(value) === true || validateBirthdate(value),
             })}
-            className="w-full bg-transparent border-b border-white text-white [color-scheme:dark] py-2 focus:outline-none"
+            className="w-full bg-transparent border-b border-white text-white py-2 focus:outline-none"
           />
           {errors.birthdate && (
             <p className="text-red-500 text-sm">{errors.birthdate.message}</p>
           )}
         </div>
 
+        {/* Contraseña */}
         <div className="relative w-full">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -95,15 +119,12 @@ function RegisterForm2() {
               validate: (value) =>
                 validatePassword(value) === true || validatePassword(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
+            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            aria-label={
-              showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-            }
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
@@ -112,6 +133,7 @@ function RegisterForm2() {
           )}
         </div>
 
+        {/* Confirmación */}
         <div className="relative w-full">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -124,15 +146,12 @@ function RegisterForm2() {
                 return true
               },
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
+            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            aria-label={
-              showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-            }
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>

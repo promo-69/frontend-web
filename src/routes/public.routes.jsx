@@ -9,7 +9,7 @@ import Profile from '../pages/private/user/profile';
 const PublicLayout = () => {
   return (
     <>
-      <Header isLoggedIn={true} userName="Yessea"/>
+      <Header isLoggedIn={false} userName="Yessea"/>
       <main>
         <Outlet />
       </main>
@@ -22,8 +22,8 @@ export const publicRoutes = (
   <>
     {/* Grupo de rutas conHeader */}
     <Route element={<PublicLayout />}>
-      <Route path="/" element={<Profile />} />
-      <Route path="/home" element={<Home />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/profile" element={<Profile />} />
     </Route>
 
     {/* Rutas sin Header */}
