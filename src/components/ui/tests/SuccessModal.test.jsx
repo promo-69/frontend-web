@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import SuccessModal from '../SuccessModal'; 
 
-vi.mock('./IconosProyect', () => ({
-  IconCheck: ({ className }) => <span data-testid="icon-check" className={className} />
+vi.mock('../IconosProyect', () => ({
+  IconCheck: ({ className }) => (
+    <span data-testid="icon-check" className={className} />
+  )
 }));
 
 describe('Componente SuccessModal', () => {

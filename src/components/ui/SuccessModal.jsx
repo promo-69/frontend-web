@@ -1,3 +1,4 @@
+import React from "react";
 import { IconCheck } from './IconosProyect';
 
 const SuccessModal = ({ message, onClose }) => {
