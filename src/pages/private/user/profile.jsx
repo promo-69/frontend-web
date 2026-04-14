@@ -2,9 +2,11 @@ import { useState } from 'react';
 import profileImage from '../../../assets/images/Profile.png'; 
 import Edit from '../../../components/ui/Edit'; 
 import FormEditProfile from '../../../components/forms/FormEditProfile';
+import SuccessModal from '../../../components/ui/SuccessModal'; // Importar el nuevo componente
 
 function Profile() {
   const [step, setStep] = useState('view'); 
+  const [showSuccess, setShowSuccess] = useState(false); // Estado para el modal
   const [user, setUser] = useState({
     name: "Yessea",
     lastname: "Parra",
@@ -18,13 +20,13 @@ function Profile() {
   const handleUpdate = (updatedData) => {
     setUser(prev => ({ ...prev, ...updatedData }));
     setStep('view');
-    alert("¡Perfil actualizado con éxito!");
+    setShowSuccess(true); // En lugar del alert, mostramos nuestro componente
   };
 
   return (
     <div className="bg-[#231640] h-[calc(100vh-80px)] w-full flex flex-col md:flex-row font-montserrat relative mt-[80px] overflow-hidden">
       
-      {/* Imagen pegada al header y al borde izquierdo */}
+      {/* Imagen */}
       <div className="hidden md:block md:w-1/2 h-full">
         <img 
           src={profileImage} 
@@ -33,7 +35,7 @@ function Profile() {
         />
       </div>
 
-      {/* Formulario con el título desplazado hacia abajo */}
+      {/* Formulario */}
       <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-center p-6 md:p-12 z-10 bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)]">
         <div className="flex flex-col items-center w-full max-w-sm lg:max-w-md pt-8">
           <div className="text-center mb-4">
@@ -50,11 +52,20 @@ function Profile() {
         </div>
       </div>
 
+      {/* Modal de Confirmación de Password */}
       {step === 'confirming' && (
         <Edit 
           correctPassword={user.password} 
           onConfirm={() => setStep('editing')} 
           onCancel={() => setStep('view')} 
+        />
+      )}
+
+      {/* Modal de Éxito*/}
+      {showSuccess && (
+        <SuccessModal 
+          message="Tu información ha sido actualizada." 
+          onClose={() => setShowSuccess(false)} 
         />
       )}
     </div>
