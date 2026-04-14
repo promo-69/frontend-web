@@ -1,34 +1,49 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { RegisterContext } from '../../../context/RegisterContext'
 import RegisterForm from '../RegisterForm'
+import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 
 describe('RegisterForm', () => {
   it('debe mostrar error si el teléfono es muy corto y aceptar datos válidos', async () => {
-    render(<RegisterForm />)
+    const mockSaveStep1 = vi.fn()
+    const user = userEvent.setup()
 
-    const nameInput = screen.getByPlaceholderText(/Nombre/i)
-    const lastnameInput = screen.getByPlaceholderText(/Apellido/i)
-    const emailInput = screen.getByPlaceholderText(/Correo/i)
-    const phoneInput = screen.getByPlaceholderText(/Teléfono/i)
-    const submitButton = screen.getByRole('button', { name: /Siguiente/i })
+    render(
+      <MemoryRouter>
+        <RegisterContext.Provider value={{ saveStep1: mockSaveStep1 }}>
+          <RegisterForm />
+        </RegisterContext.Provider>
+      </MemoryRouter>,
+    )
 
-    await userEvent.type(nameInput, 'Juan')
-    await userEvent.type(lastnameInput, 'Pérez')
-    await userEvent.type(emailInput, 'juan@dominio.com')
-    await userEvent.type(phoneInput, '123')
+    const nameInput = screen.getByPlaceholderText(/nombre/i)
+    const lastnameInput = screen.getByPlaceholderText(/apellido/i)
+    const emailInput = screen.getByPlaceholderText(/correo/i)
+    const phoneInput = screen.getByPlaceholderText(/teléfono/i)
+    const submitButton = screen.getByRole('button', { name: /siguiente/i })
 
-    await userEvent.click(submitButton)
+    await user.type(nameInput, 'Juan')
+    await user.type(lastnameInput, 'Pérez')
+    await user.type(emailInput, 'juan@dominio.com')
+    await user.type(phoneInput, '123')
+
+    await user.click(submitButton)
+
     expect(
-      screen.getByText(/Teléfono debe tener entre 7 y 15 dígitos/i),
+      screen.getByText(/teléfono debe tener entre 7 y 15 dígitos/i),
     ).toBeInTheDocument()
 
-    await userEvent.clear(phoneInput)
-    await userEvent.type(phoneInput, '04141234567')
-    await userEvent.click(submitButton)
+    await user.clear(phoneInput)
+    await user.type(phoneInput, '04141234567')
+    await user.click(submitButton)
 
     expect(
-      screen.queryByText(/Teléfono debe tener entre 7 y 15 dígitos/i),
+      screen.queryByText(/teléfono debe tener entre 7 y 15 dígitos/i),
     ).not.toBeInTheDocument()
+
+    expect(mockSaveStep1).toHaveBeenCalled()
   })
 })

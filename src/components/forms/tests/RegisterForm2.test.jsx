@@ -1,12 +1,34 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { RegisterContext } from '../../../context/RegisterContext'
 import RegisterForm2 from '../RegisterForm2'
+import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 
 describe('RegisterForm2', () => {
   it('debe validar cédula, fecha, contraseña y confirmación', async () => {
     const user = userEvent.setup()
-    render(<RegisterForm2 />)
+
+    const mockRegisterCustomer = vi.fn().mockResolvedValue({ success: true })
+
+    render(
+      <MemoryRouter>
+        <RegisterContext.Provider
+          value={{
+            registerCustomer: mockRegisterCustomer,
+            step1Data: {
+              name: 'Juan',
+              lastname: 'Pérez',
+              email: 'juan@test.com',
+              phone: '04141234567',
+            },
+          }}
+        >
+          <RegisterForm2 />
+        </RegisterContext.Provider>
+      </MemoryRouter>,
+    )
 
     const idPrefix = screen.getByDisplayValue(/V/i)
     const idInput = screen.getByPlaceholderText(/Cédula/i)
@@ -15,17 +37,14 @@ describe('RegisterForm2', () => {
     const confirmInput = screen.getByPlaceholderText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    // --- VALIDACIÓN DE CÉDULA ---
     await user.clear(idInput)
     await user.type(idInput, '123')
-
     await user.click(submitButton)
 
     await waitFor(() => {
       expect(screen.getByText(/Formato inválido/i)).toBeInTheDocument()
     })
 
-    // --- VALIDACIÓN DE CONTRASEÑAS ---
     await user.selectOptions(idPrefix, 'V')
     await user.clear(idInput)
     await user.type(idInput, '12345678')
@@ -39,7 +58,6 @@ describe('RegisterForm2', () => {
       screen.getByText(/Las contraseñas no coinciden/i),
     ).toBeInTheDocument()
 
-    
     await user.clear(confirmInput)
     await user.type(confirmInput, 'Password123')
     await user.click(submitButton)
@@ -47,5 +65,7 @@ describe('RegisterForm2', () => {
     expect(
       screen.queryByText(/Las contraseñas no coinciden/i),
     ).not.toBeInTheDocument()
+
+    expect(mockRegisterCustomer).toHaveBeenCalled()
   })
 })
