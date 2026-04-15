@@ -17,7 +17,7 @@ function NewPasswordForm({ email }) {
   } = useForm({ mode: 'onBlur' })
 
   const onSubmit = async (data) => {
-    await resetPassword(email, data.password.trim())
+    await resetPassword({ email, newPassword: data.password.trim(), code })
     alert('Contraseña actualizada exitosamente')
   }
 

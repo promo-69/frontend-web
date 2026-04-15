@@ -67,8 +67,8 @@ export function AuthProvider({ children }) {
   // ---------------------------------------------------------
   // RECOVERY: Paso 3 — Guardar nueva contraseña
   // ---------------------------------------------------------
-  const resetPassword = async (email, newPassword) => {
-    const response = await resetPasswordRequest(email, newPassword)
+  const resetPassword = async ({ email, newPassword, code }) => {
+    const response = await resetPasswordRequest({ email, newPassword, code })
     return response.data
   }
 
