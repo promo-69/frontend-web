@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import profileImage from '../../../assets/images/Profile.png'
+import profileImage from '../../../assets/images/profile.png'
 import Edit from '../../../components/ui/Edit'
 import FormEditProfile from '../../../components/forms/FormEditProfile'
 import SuccessModal from '../../../components/ui/SuccessModal' // Importar el nuevo componente
