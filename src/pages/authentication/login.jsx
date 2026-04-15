@@ -1,10 +1,9 @@
 import React from 'react'
-import loginImage from '../../assets/images/1login.PNG'
+import loginImage from '../../assets/images/1login.png'
 import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 
 function Login() {
-
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)] min-h-screen flex">
