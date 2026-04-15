@@ -2,10 +2,9 @@ import React, { useContext } from 'react'
 import { useForm } from 'react-hook-form'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
-import { validateEmail } from '../../../validators/authValidators'
 
-function SendMailForm({ onNext }) {
-  const { sendRecoveryEmail } = useContext(AuthContext)
+function SendCode({ email, onNext }) {
+  const { verifyRecoveryCode } = useContext(AuthContext)
 
   const {
     register,
@@ -14,8 +13,8 @@ function SendMailForm({ onNext }) {
   } = useForm({ mode: 'onBlur' })
 
   const onSubmit = async (data) => {
-    await sendRecoveryEmail(data.email.trim())
-    onNext(email) // avanzar al paso 2
+    await verifyRecoveryCode(email, data.code.trim())
+    onNext() // avanzar al paso 3
   }
 
   return (
@@ -25,24 +24,25 @@ function SendMailForm({ onNext }) {
     >
       <div className="flex flex-col gap-12 items-center">
         <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
-          ¿Olvidaste tu contraseña?
+          Revisa tu bandeja
         </h1>
         <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
-          Ingresa tu correo electrónico para enviarte un código de recuperación.
+          Hemos enviado un código de recuperación a tu correo. Ingresa el código
+          para continuar.
         </p>
 
         <div className="w-80 flex flex-col gap-2">
           <input
-            type="email"
-            placeholder="Correo"
-            {...register('email', {
-              validate: (value) =>
-                validateEmail(value) === true || validateEmail(value),
+            type="text"
+            placeholder="Código de verificación"
+            {...register('code', {
+              required: 'El código es obligatorio',
+              minLength: { value: 4, message: 'Código inválido' },
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none font-montserrat"
           />
-          {errors.email && (
-            <p className="text-red-500 text-sm">{errors.email.message}</p>
+          {errors.code && (
+            <p className="text-red-500 text-sm">{errors.code.message}</p>
           )}
         </div>
 
@@ -54,7 +54,7 @@ function SendMailForm({ onNext }) {
             onClick={() => window.history.back()}
           />
           <Button
-            text="Enviar correo"
+            text="Validar"
             type="submit"
             className="text-lg font-montserrat font-semibold"
           />
@@ -64,4 +64,4 @@ function SendMailForm({ onNext }) {
   )
 }
 
-export default SendMailForm
+export default SendCode
