@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-  assetsInclude: ['**/*.PNG'],
+  assetsInclude: ['**/*.png'],
   test: {
     environment: 'jsdom',
     globals: true,

@@ -1,14 +1,15 @@
-import registerImage from '../../assets/images/register.png'
+import passwordimage from '../../assets/images/password.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
-import RegisterForm from '../../components/forms/RegisterForm'
+import SendMailForm from '../../components/forms/forgotPassword/SendMailForm'
 
-function Register() {
+
+function ForgotPassword() {
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)] min-h-screen flex">
         <div className="w-1/2 flex items-center justify-center">
           <img
-            src={registerImage}
+            src={passwordimage}
             className="w-full h-full object-cover"
             alt="register imagen"
           />
@@ -17,20 +18,14 @@ function Register() {
           <div className="flex flex-col items-center space-y-6">
             <img src={logotipo} className="w-60 h-auto" alt="logotipo" />
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
-              Registro
+              ¿Olvidaste tu contraseña?
             </h1>
             <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
-              Crea tu cuenta para acceder a todas las funciones y el mejor
-              contenido.
+              Ingresa tu correo electrónico para enviarte un correo 
             </p>
-            <RegisterForm />
-            <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100">
-              ¿Ya tienes cuenta?
-              <a href="/login" className="text-[#D9982F] underline">
-                Inicia sesión
-              </a>
-            </p>
-            <p>2026. Todos los derechos reservados</p>
+            <SendMailForm />
+            
+            <p>2026. Todos los derechos reservados. Compañia anonima Cineflix</p>
           </div>
         </div>
       </div>
@@ -38,4 +33,5 @@ function Register() {
   )
 }
 
-export default Register
+
+export default ForgotPassword
