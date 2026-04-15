@@ -1,5 +1,5 @@
 import { createContext, useState } from 'react'
-import { registerRequest } from '../services/register.service'
+import { registerRequest } from '../services/auth.service'
 
 const API_URL = 'http://localhost:3000/api/customers'
 
