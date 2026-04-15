@@ -5,6 +5,7 @@ import Login from '../pages/authentication/login';
 import Register from '../pages/authentication/register';
 import Profile from '../pages/private/user/profile';
 import ForgotPassword from '../pages/authentication/forgotPassword';
+import Register2 from '../pages/authentication/register2';
 
 // 1. Un pequeño Layout que solo tiene el Header y el contenido (Outlet)
 const PublicLayout = () => {
@@ -30,6 +31,7 @@ export const publicRoutes = (
     {/* Rutas sin Header */}
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
+    <Route path="/register2" element={<Register2 />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
   </>
 )

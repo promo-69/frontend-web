@@ -22,15 +22,10 @@ function ForgotPassword() {
       </div>
 
       {/* Contenido derecha */}
-      <div className="w-1/2 flex items-start justify-center pt-8">
+      <div className="w-1/2 flex items-center justify-center pt-8">
         <div className="flex flex-col items-center space-y-10">
           {/* Logo */}
           <img src={logotipo} className="w-60 h-auto" alt="logotipo" />
-
-          {/* Título */}
-          <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
-            ¿Olvidaste tu contraseña?
-          </h1>
 
           {/* Render dinámico del paso */}
           {step === 1 && (
