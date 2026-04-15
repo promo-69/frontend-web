@@ -1,11 +1,20 @@
 import { createContext, useState } from 'react'
-import { loginRequest } from '../services/auth.service'
+import {
+  loginRequest,
+  registerRequest,
+  sendRecoveryEmailRequest,
+  verifyRecoveryCodeRequest,
+  resetPasswordRequest,
+} from '../services/auth.service'
 
 export const AuthContext = createContext()
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
 
+  // ---------------------------------------------------------
+  // LOGIN
+  // ---------------------------------------------------------
   const login = async (credentials) => {
     try {
       const data = await loginRequest(credentials)
@@ -24,8 +33,57 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  // ---------------------------------------------------------
+  // REGISTER
+  // ---------------------------------------------------------
+  const register = async (finalData) => {
+    try {
+      const res = await registerRequest(finalData)
+      return { success: true, data: res }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al registrar usuario',
+      }
+    }
+  }
+
+  // ---------------------------------------------------------
+  // RECOVERY: Paso 1 — Enviar correo
+  // ---------------------------------------------------------
+  const sendRecoveryEmail = async (email) => {
+    const response = await sendRecoveryEmailRequest(email)
+    return response.data
+  }
+
+  // ---------------------------------------------------------
+  // RECOVERY: Paso 2 — Validar código
+  // ---------------------------------------------------------
+  const verifyRecoveryCode = async (email, code) => {
+    const response = await verifyRecoveryCodeRequest(email, code)
+    return response.data
+  }
+
+  // ---------------------------------------------------------
+  // RECOVERY: Paso 3 — Guardar nueva contraseña
+  // ---------------------------------------------------------
+  const resetPassword = async (email, newPassword) => {
+    const response = await resetPasswordRequest(email, newPassword)
+    return response.data
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        login,
+        register,
+        sendRecoveryEmail,
+        verifyRecoveryCode,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
