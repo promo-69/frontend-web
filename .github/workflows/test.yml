@@ -3,6 +3,8 @@ name: Run Tests
 on:
   pull_request:
     branches: [development]
+  push:
+    branches: [development, feature/*]
 
 jobs:
   test:
@@ -10,7 +12,12 @@ jobs:
 
     steps:
       - name: Clonar repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Enable Corepack
         run: corepack enable
@@ -19,7 +26,7 @@ jobs:
         run: corepack prepare yarn@4.13.0 --activate
 
       - name: Instalar dependencias
-        run: yarn install 
+        run: yarn install
 
       - name: Ejecutar tests
         run: yarn test
