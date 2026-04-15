@@ -3,8 +3,15 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+import { AuthProvider } from './context/AuthContext'
+import { RegisterProvider } from './context/RegisterContext'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <RegisterProvider>
+        <App />
+      </RegisterProvider>
+    </AuthProvider>
   </StrictMode>,
 )

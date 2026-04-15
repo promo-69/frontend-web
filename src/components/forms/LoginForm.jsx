@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
@@ -6,9 +6,11 @@ import {
   validatePassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
+import { AuthContext } from '../../context/AuthContext'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const { login } = useContext(AuthContext)
 
   const {
     register,
@@ -16,13 +18,21 @@ function LoginForm() {
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const payload = {
       email: data.email.trim(),
       password: data.password,
     }
-    console.log('Iniciando sesión con:', payload)
-    // lógica de autenticación (fetch, API, etc.)
+
+    const res = await login(payload)
+
+    if (!res.success) {
+      alert(res.message)
+    } else {
+      console.log('Login exitoso')
+      // Aquí puedes redirigir si quieres:
+      // navigate('/dashboard')
+    }
   }
 
   return (
@@ -31,6 +41,7 @@ function LoginForm() {
       className="flex flex-col items-center justify-center gap-6"
     >
       <div className="flex flex-col gap-8 items-center">
+        {/* EMAIL */}
         <div className="w-80">
           <input
             type="email"
@@ -46,6 +57,7 @@ function LoginForm() {
           )}
         </div>
 
+        {/* PASSWORD */}
         <div className="relative w-80">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -56,6 +68,8 @@ function LoginForm() {
             })}
             className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
           />
+
+          {/* Botón mostrar/ocultar */}
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
@@ -66,6 +80,7 @@ function LoginForm() {
           >
             {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
           </button>
+
           {errors.password && (
             <p className="text-red-500 text-sm mt-1">
               {errors.password.message}
@@ -73,6 +88,7 @@ function LoginForm() {
           )}
         </div>
 
+        {/* LINK OLVIDASTE CONTRASEÑA */}
         <a
           href="/forgot-password"
           className="text-[#D9982F] text-sm opacity-80 hover:opacity-100"
@@ -80,6 +96,7 @@ function LoginForm() {
           ¿Olvidaste tu contraseña?
         </a>
 
+        {/* BOTONES */}
         <div className="w-full flex items-center justify-center gap-3 pt-4">
           <Button
             text="Cancelar"
