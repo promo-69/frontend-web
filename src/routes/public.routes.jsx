@@ -4,6 +4,7 @@ import Home from '../pages/public/Home';
 import Login from '../pages/authentication/login';
 import Register from '../pages/authentication/register';
 import Profile from '../pages/private/user/profile';
+import ForgotPassword from '../pages/authentication/forgotPassword';
 
 // 1. Un pequeño Layout que solo tiene el Header y el contenido (Outlet)
 const PublicLayout = () => {
@@ -29,5 +30,6 @@ export const publicRoutes = (
     {/* Rutas sin Header */}
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
   </>
-);
+)

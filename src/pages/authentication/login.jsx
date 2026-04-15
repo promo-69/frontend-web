@@ -1,5 +1,5 @@
 import React from 'react'
-import loginImage from '../../assets/images/1login.png'
+import loginImage from '../../assets/images/LoginHD.jpg'
 import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 
