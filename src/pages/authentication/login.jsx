@@ -10,8 +10,8 @@ function Login() {
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
-        <div className="w-1/2 flex items-center justify-center pt-16">
-          <div className="flex flex-col items-center space-y-6">
+        <div className="w-full lg:w-1/2 min-h-screen flex items-center justify-center py-12 px-6 lg:px-0 order-2 lg:order-1">
+          <div className="flex flex-col items-center space-y-6 w-full max-w-md">
             <img
               src={logotipo}
               className="w-60 h-auto"
@@ -37,7 +37,7 @@ function Login() {
             </p>
           </div>
         </div>
-        <div className="w-1/2 h-screen sticky top-0 overflow-hidden">
+        <div className="hidden lg:block lg:w-1/2 lg:h-screen lg:sticky lg:top-0 overflow-hidden order-1 lg:order-2">
           <img
             src={loginImage}
             className="w-full h-full object-cover"
