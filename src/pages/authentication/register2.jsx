@@ -1,8 +1,10 @@
 import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm2 from '../../components/forms/RegisterForm2'
+import { useNavigate } from 'react-router-dom'
 
 function Register2() {
+  const navigate = useNavigate()
   console.log(123123)
   return (
     <>
@@ -16,7 +18,12 @@ function Register2() {
         </div>
         <div className="w-1/2 flex items-center justify-center pt-8">
           <div className="flex flex-col items-center space-y-6">
-            <img src={logotipo} className="w-60 h-auto" alt="logotipo" />
+            <img
+              src={logotipo}
+              className="w-48 md:w-60 h-auto cursor-pointer hover:scale-105 transition-transform"
+              alt="logotipo"
+              onClick={() => navigate('/')}
+            />
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
               Registro
             </h1>

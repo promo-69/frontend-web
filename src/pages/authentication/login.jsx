@@ -14,7 +14,7 @@ function Login() {
           <div className="flex flex-col items-center space-y-6 w-full max-w-md">
             <img
               src={logotipo}
-              className="w-60 h-auto"
+              className="w-48 md:w-60 h-auto cursor-pointer hover:scale-105 transition-transform"
               alt="logotipo"
               onClick={() => navigate('/')}
             />

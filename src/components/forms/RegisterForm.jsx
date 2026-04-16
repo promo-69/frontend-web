@@ -17,8 +17,14 @@ function RegisterForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
+
+  const nameValue = watch('name')
+  const lastnameValue = watch('lastname')
+  const emailValue = watch('email')
+  const phoneValue = watch('phone')
 
   const onSubmit = (values) => {
     saveStep1(values)
@@ -32,58 +38,85 @@ function RegisterForm() {
     >
       <div className="flex flex-col gap-6 items-center w-80">
         {/* Nombre */}
-        <div className="w-full">
+        <div className="relative w-full">
           <input
             type="text"
-            placeholder="Nombre"
+            id="name"
             {...register('name', {
               validate: (value) =>
                 validateName(value) === true || validateName(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="name"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${nameValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Nombre
+          </label>
           {errors.name && (
             <p className="text-red-500 text-sm">{errors.name.message}</p>
           )}
         </div>
 
         {/* Apellido */}
-        <div className="w-full">
+        <div className="relative w-full">
           <input
             type="text"
-            placeholder="Apellido"
+            id="lastname"
             {...register('lastname', {
               validate: (value) =>
                 validateName(value) === true || validateName(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="lastname"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${lastnameValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Apellido
+          </label>
           {errors.lastname && (
             <p className="text-red-500 text-sm">{errors.lastname.message}</p>
           )}
         </div>
 
         {/* Email */}
-        <div className="w-full">
+        <div className="relative w-full">
           <input
             type="email"
-            placeholder="Correo"
+            id="email"
             {...register('email', {
               validate: (value) =>
                 validateEmail(value) === true || validateEmail(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="email"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${emailValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Correo
+          </label>
           {errors.email && (
             <p className="text-red-500 text-sm">{errors.email.message}</p>
           )}
         </div>
 
         {/* Teléfono */}
-        <div className="w-full">
+        <div className="relative w-full">
           <input
             type="tel"
-            placeholder="Teléfono"
+            id="phone"
             {...register('phone', {
               validate: (value) => {
                 const cleaned = cleanNumber(value)
@@ -94,8 +127,17 @@ function RegisterForm() {
                 return true
               },
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="phone"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${phoneValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Teléfono
+          </label>
           {errors.phone && (
             <p className="text-red-500 text-sm">{errors.phone.message}</p>
           )}
