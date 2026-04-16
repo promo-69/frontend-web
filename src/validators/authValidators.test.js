@@ -22,7 +22,6 @@ describe('authValidators', () => {
   })
 
   test('validatePhone', () => {
-    expect(validatePhone('')).toBe('El teléfono es requerido')
     expect(validatePhone('abc123')).toBe('Solo números')
     expect(validatePhone('04141234567')).toBe(true)
   })

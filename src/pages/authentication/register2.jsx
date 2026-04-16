@@ -9,15 +9,15 @@ function Register2() {
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
-        <div className="w-1/2 flex items-center justify-center">
+        <div className="hidden lg:block lg:w-1/2 lg:h-screen lg:sticky lg:top-0 overflow-hidden">
           <img
             src={registerImage}
             className="w-full h-full object-cover"
             alt="register imagen"
           />
         </div>
-        <div className="w-1/2 flex items-center justify-center pt-8">
-          <div className="flex flex-col items-center space-y-6">
+        <div className="w-full lg:w-1/2 min-h-screen flex items-center justify-center py-12 px-6 lg:px-0">
+          <div className="flex flex-col items-center space-y-6 w-full max-w-md">
             <img
               src={logotipo}
               className="w-48 md:w-60 h-auto cursor-pointer hover:scale-105 transition-transform"
@@ -38,7 +38,9 @@ function Register2() {
                 Inicia sesión
               </a>
             </p>
-            <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">2026. Todos los derechos reservados. Compañia Cineflix.</p>
+            <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
+              2026. Todos los derechos reservados. Compañia Cineflix.
+            </p>
           </div>
         </div>
       </div>
