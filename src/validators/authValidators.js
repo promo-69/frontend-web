@@ -11,7 +11,6 @@ export const validateEmail = (value) => {
 }
 
 export const validatePhone = (value) => {
-  if (!value) return 'El teléfono es requerido'
   if (!/^[0-9]+$/.test(value)) return 'Solo números'
   return true
 }

@@ -15,8 +15,12 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
+
+  const emailValue = watch('email')
+  const passwordValue = watch('password')
 
   const onSubmit = async (data) => {
     const payload = {
@@ -42,16 +46,25 @@ function LoginForm() {
     >
       <div className="flex flex-col gap-8 items-center">
         {/* EMAIL */}
-        <div className="w-80">
+        <div className="relative w-80">
           <input
             type="email"
-            placeholder="Correo"
+            id="email"
             {...register('email', {
               validate: (value) =>
                 validateEmail(value) === true || validateEmail(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="email"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${emailValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Correo
+          </label>
           {errors.email && (
             <p className="text-red-500 text-sm">{errors.email.message}</p>
           )}
@@ -61,13 +74,22 @@ function LoginForm() {
         <div className="relative w-80">
           <input
             type={showPassword ? 'text' : 'password'}
-            placeholder="Contraseña"
+            id="password"
             {...register('password', {
               validate: (value) =>
                 validatePassword(value) === true || validatePassword(value),
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none focus:border-white font-montserrat pr-10"
+            placeholder=" "
+            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
           />
+          <label
+            htmlFor="password"
+            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${passwordValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+          >
+            Contraseña
+          </label>
 
           {/* Botón mostrar/ocultar */}
           <button
