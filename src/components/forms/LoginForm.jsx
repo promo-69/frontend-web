@@ -29,7 +29,7 @@ function LoginForm() {
     if (!res.success) {
       alert(res.message)
     } else {
-      console.log('Login exitoso')
+      alert('Login exitoso')
       // Aquí puedes redirigir si quieres:
       // navigate('/dashboard')
     }

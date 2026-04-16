@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: 'https://backend-jog6.onrender.com/api/v1',
+  baseURL: 'https://127.0.0.1/api/v1',//'https://backend-jog6.onrender.com/api/v1',
   withCredentials: true
 });
 

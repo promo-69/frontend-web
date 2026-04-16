@@ -3,9 +3,10 @@ import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm2 from '../../components/forms/RegisterForm2'
 
 function Register2() {
+  console.log(123123)
   return (
     <>
-      <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)] min-h-screen flex">
+      <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
         <div className="w-1/2 flex items-center justify-center">
           <img
             src={registerImage}
@@ -13,7 +14,7 @@ function Register2() {
             alt="register imagen"
           />
         </div>
-        <div className="w-1/2 flex items-start justify-center pt-8">
+        <div className="w-1/2 flex items-center justify-center pt-8">
           <div className="flex flex-col items-center space-y-6">
             <img src={logotipo} className="w-60 h-auto" alt="logotipo" />
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
@@ -30,7 +31,7 @@ function Register2() {
                 Inicia sesión
               </a>
             </p>
-            <p>2026. Todos los derechos reservados. Compañia Cineflix.</p>
+            <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">2026. Todos los derechos reservados. Compañia Cineflix.</p>
           </div>
         </div>
       </div>
