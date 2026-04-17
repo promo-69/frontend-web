@@ -30,11 +30,11 @@ describe('RegisterForm2', () => {
       </MemoryRouter>,
     )
 
-    const idPrefix = screen.getByDisplayValue(/V/i)
-    const idInput = screen.getByPlaceholderText(/Cédula/i)
+    const idPrefix = screen.getByText(/V/i)
+    const idInput = screen.getByLabelText(/Cédula/i)
     const birthdateInput = screen.getByLabelText(/Fecha de nacimiento/i)
-    const passwordInput = screen.getByPlaceholderText(/^Contraseña$/i)
-    const confirmInput = screen.getByPlaceholderText(/Confirmar contraseña/i)
+    const passwordInput = screen.getByLabelText(/Contraseña/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
     await user.clear(idInput)

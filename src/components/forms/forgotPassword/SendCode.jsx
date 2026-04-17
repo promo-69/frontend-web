@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
@@ -9,12 +9,36 @@ function SendCode({ email, onNext }) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   const onSubmit = async (data) => {
     await verifyRecoveryCode(email, data.code.trim())
     onNext() // avanzar al paso 3
+  }
+
+  const [code, setCode] = useState(['', '', '', ''])
+  const inputRefs = React.useRef([])
+
+  const handleChange = (index, value) => {
+    if (isNaN(value)) return 
+    const newCode = [...code]
+    newCode[index] = value.substring(value.length - 1)
+    setCode(newCode)
+
+    if (value && index < 3) {
+      inputRefs.current[index + 1].focus()
+    }
+
+    setValue('code', newCode.join(''), { shouldValidate: true })
+  }
+
+  const handleKeyDown = (index, e) => {
+    // Volver atrás con Backspace si está vacío
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1].focus()
+    }
   }
 
   return (
@@ -31,18 +55,35 @@ function SendCode({ email, onNext }) {
           para continuar.
         </p>
 
-        <div className="w-80 flex flex-col gap-2">
+        <div className="relative w-full flex flex-col items-center gap-4">
+          <div className="flex gap-4">
+            {code.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => (inputRefs.current[index] = el)}
+                type="text"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                className="w-12 h-14 bg-transparent border-2 border-white rounded-lg text-center text-2xl text-white font-bold font-montserrat focus:border-[#D9982F] focus:outline-none transition-colors"
+              />
+            ))}
+          </div>
+
+          {/* Input oculto para que react-hook-form siga funcionando */}
           <input
-            type="text"
-            placeholder="Código de verificación"
+            type="hidden"
             {...register('code', {
               required: 'El código es obligatorio',
-              minLength: { value: 4, message: 'Código inválido' },
+              minLength: { value: 4, message: 'Código incompleto' },
             })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none font-montserrat"
           />
+
           {errors.code && (
-            <p className="text-red-500 text-sm">{errors.code.message}</p>
+            <p className="absolute -bottom-6 text-red-500 text-[10px] font-montserrat italic">
+              {errors.code.message}
+            </p>
           )}
         </div>
 
