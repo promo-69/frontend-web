@@ -9,7 +9,7 @@ import {
 import Button from '../ui/Button'
 import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
-
+import  SuccessModal from '../ui/SuccessModal'
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
   const { step1Data, registerCustomer } = useContext(RegisterContext)
@@ -34,25 +34,31 @@ function RegisterForm2() {
   const passwordValue = watch('password')
   const confirmPasswordValue = watch('confirmPassword')
 
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+
   const onSubmit = async (values) => {
     const payload = {
-      firstName: step1Data.name,
-      lastName: step1Data.lastname,
-      email: step1Data.email,
-      phoneNumber: step1Data.countryCode + step1Data.phone,
+      firstName: step1Data?.name,
+      lastName: step1Data?.lastname,
+      email: step1Data?.email,
+      phoneNumber: step1Data?.countryCode + step1Data?.phone,
       documentNumber: values.idPrefix + values.idNumber,
       birthDate: values.birthdate,
       password: values.password,
-      gender: 1,
+      gender: step1Data?.gender,
     }
 
     const res = await registerCustomer(payload)
 
     if (!res.success) {
-      alert(res.message)
+      // Si hay error, se muestra el mensaje del backend en el modal
+      setModalMessage(res.message || 'Error al registrar')
+      setShowSuccessModal(true)
     } else {
-      alert('Registro exitoso')
-      navigate('/login')
+      // Si es exitoso
+      setModalMessage('¡Registro exitoso!')
+      setShowSuccessModal(true)
     }
   }
 
@@ -69,7 +75,7 @@ function RegisterForm2() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsIdOpen(!isIdOpen)} // Necesitas crear este estado: const [isIdOpen, setIsIdOpen] = useState(false)
+                onClick={() => setIsIdOpen(!isIdOpen)}  
                 className="text-white flex items-center gap-1 focus:outline-none min-w-[40px] hover:opacity-80 transition-opacity"
               >
                 <span className="text-base font-montserrat font-bold">
@@ -253,8 +259,20 @@ function RegisterForm2() {
           className="text-lg font-montserrat font-semibold"
         />
       </div>
+      {showSuccessModal && (
+        <SuccessModal
+          message={modalMessage}
+          onClose={() => {
+            setShowSuccessModal(false)
+            // Si el mensaje fue de éxito, navegamos al login
+            if (modalMessage === '¡Registro exitoso!') {
+              navigate('/login')
+            }
+          }}
+        />
+      )}
     </form>
-  )
+  );
 }
 
 export default RegisterForm2

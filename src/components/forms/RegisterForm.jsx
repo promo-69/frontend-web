@@ -30,7 +30,7 @@ function RegisterForm() {
   const [gender, setGender] = useState('Masculino')
   const [isGenderOpen, setIsGenderOpen] = useState(false)
 
-  const [countryCode, setCountryCode] = useState('+58') // Estado para el prefijo
+  const [countryCode, setCountryCode] = useState('+58') 
   const [isOpen, setIsOpen] = useState(false)
 
   const onSubmit = (values) => {
@@ -59,7 +59,7 @@ function RegisterForm() {
             />
             <label
               htmlFor="name"
-              className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
               peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
               ${nameValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
             >
@@ -88,7 +88,7 @@ function RegisterForm() {
             />
             <label
               htmlFor="lastname"
-              className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
               peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
               ${lastnameValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
             >
@@ -165,7 +165,7 @@ function RegisterForm() {
             />
             <label
               htmlFor="email"
-              className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
               peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
               ${emailValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
             >
@@ -236,7 +236,7 @@ function RegisterForm() {
             />
             <label
               htmlFor="phone"
-              className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
               peer-focus:-top-6 peer-focus:text-sm peer-focus:text-[#D9982F]
               ${phoneValue ? '-top-6 text-sm text-[#D9982F]' : 'top-1 text-base opacity-70'}`}
             >
