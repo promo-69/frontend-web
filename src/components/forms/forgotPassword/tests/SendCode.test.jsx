@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, test, expect, vi } from 'vitest'
 import SendCode from '../SendCode'
-import { AuthContext } from '../../../context/AuthContext'
+import { AuthContext } from '../../../../context/AuthContext'
+import React from 'react'
 
 describe('SendCode', () => {
   test('verifica código correctamente', async () => {

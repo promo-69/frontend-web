@@ -16,7 +16,7 @@ describe('LoginForm', () => {
     )
 
     const emailInput = screen.getByLabelText(/correo/i)
-    const passwordInput = screen.getByLabelText(/contraseña/i)
+    const passwordInput = screen.getByLabelText(/contraseña$/i, { selector: 'input' })
     const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
 
     // Email inválido

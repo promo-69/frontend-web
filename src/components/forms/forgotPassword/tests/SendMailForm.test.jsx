@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, test, expect, vi } from 'vitest'
 import SendMailForm from '../SendMailForm'
-import { AuthContext } from '../../../context/AuthContext'
+import { AuthContext } from '../../../../context/AuthContext'
+import React from 'react'
 
 describe('SendMailForm', () => {
   test('envía el correo correctamente', async () => {

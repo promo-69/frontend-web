@@ -18,6 +18,7 @@ function RegisterForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
@@ -26,11 +27,14 @@ function RegisterForm() {
   const emailValue = watch('email')
   const phoneValue = watch('phone')
 
+  const [gender, setGender] = useState('Masculino')
+  const [isGenderOpen, setIsGenderOpen] = useState(false)
+
   const [countryCode, setCountryCode] = useState('+58') // Estado para el prefijo
   const [isOpen, setIsOpen] = useState(false)
 
   const onSubmit = (values) => {
-    saveStep1(values)
+    saveStep1({ ...values, countryCode, gender })
     navigate('/register2')
   }
 
@@ -95,6 +99,54 @@ function RegisterForm() {
                 {errors.lastname.message}
               </p>
             )}
+          </div>
+        </div>
+
+        {/* Género */}
+        <div className="relative w-full">
+          <div className="flex flex-col">
+            <label htmlFor="gender" className="text-white font-montserrat mb-1">
+              Género
+            </label>
+            <div className="relative">
+              {/*Select personalizado */}
+              <button
+                type="button"
+                onClick={() => setIsGenderOpen(!isGenderOpen)} 
+                className="w-full bg-transparent border-b border-white text-white py-2 text-left flex justify-between items-center focus:outline-none"
+              >
+                <span>{watch('genderText') || 'Seleccionar'}</span>
+                <span className="text-[10px] opacity-70">▼</span>
+              </button>
+
+              {/* Menú Desplegable */}
+              {isGenderOpen && (
+                <div className="absolute top-full left-0 w-full bg-[#231640] border border-[#D9982F] rounded shadow-2xl z-[100] mt-1 p-1 flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('gender', 1)
+                      setValue('genderText', 'Masculino')
+                      setIsGenderOpen(false)
+                    }}
+                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
+                  >
+                    Masculino
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('gender', 2)
+                      setValue('genderText', 'Femenino')
+                      setIsGenderOpen(false)
+                    }}
+                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium"
+                  >
+                    Femenino
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

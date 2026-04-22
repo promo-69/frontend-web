@@ -39,7 +39,7 @@ function RegisterForm2() {
       firstName: step1Data.name,
       lastName: step1Data.lastname,
       email: step1Data.email,
-      phoneNumber: step1Data.phone,
+      phoneNumber: step1Data.countryCode + step1Data.phone,
       documentNumber: values.idPrefix + values.idNumber,
       birthDate: values.birthdate,
       password: values.password,
