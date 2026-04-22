@@ -5,7 +5,7 @@ import { AuthContext } from '../../../context/AuthContext'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { validatePassword } from '../../../validators/authValidators'
 
-function NewPasswordForm({ email }) {
+function NewPasswordForm({ email, code }) {
   const { resetPassword } = useContext(AuthContext)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -13,8 +13,12 @@ function NewPasswordForm({ email }) {
     register,
     handleSubmit,
     getValues,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
+
+  const passwordValue = watch('password')
+  const confirmPasswordValue = watch('confirmPassword')
 
   const onSubmit = async (data) => {
     await resetPassword({ email, newPassword: data.password.trim(), code })
@@ -37,54 +41,78 @@ function NewPasswordForm({ email }) {
         <div className="w-80 flex flex-col gap-6">
           {/* Contraseña */}
           <div className="relative w-full">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Contraseña"
-              {...register('password', {
-                validate: (value) =>
-                  validatePassword(value) === true || validatePassword(value),
-              })}
-              className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            >
-              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-            </button>
-            {errors.password && (
-              <p className="text-red-500 text-sm">{errors.password.message}</p>
-            )}
-          </div>
-
-          {/* Confirmación */}
-          <div className="relative w-full">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Confirmar contraseña"
-              {...register('confirmPassword', {
-                validate: (value) => {
-                  const password = getValues('password')
-                  if (!value) return 'Confirmación requerida'
-                  if (value !== password) return 'Las contraseñas no coinciden'
-                  return true
-                },
-              })}
-              className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            >
-              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-            </button>
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm">
-                {errors.confirmPassword.message}
-              </p>
-            )}
+                    <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        {...register('password', {
+                          validate: (value) =>
+                            validatePassword(value) === true || validatePassword(value),
+                        })}
+                        placeholder=" "
+                        className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
+                      />
+                      <label
+                        htmlFor="password"
+                        className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
+                  peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
+                  ${passwordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+                      >
+                        Contraseña
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
+                      >
+                        {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="absolute left-0 -bottom-5 text-red-500">
+                        {errors.password.message}
+                      </p>
+                    )}
+                  </div>
+          
+                  {/* Confirmación */}
+                  <div className="relative w-full mt-2">
+                    <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
+                      <input
+                        id="confirmPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        {...register('confirmPassword', {
+                          validate: (value) => {
+                            const password = getValues('password')
+                            if (!value) return 'Confirmación requerida'
+                            if (value !== password) return 'No coinciden'
+                            return true
+                          },
+                        })}
+                        placeholder=" "
+                        className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
+                      />
+                      <label
+                        htmlFor="confirmPassword"
+                        className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
+                  peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
+                  ${confirmPasswordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
+                      >
+                        Confirmar contraseña
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
+                      >
+                        {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="absolute left-0 -bottom-5 text-red-500">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
           </div>
         </div>
 

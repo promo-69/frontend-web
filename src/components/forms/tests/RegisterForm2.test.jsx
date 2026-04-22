@@ -22,6 +22,8 @@ describe('RegisterForm2', () => {
               lastname: 'Pérez',
               email: 'juan@test.com',
               phone: '04141234567',
+              countryCode: '+58',
+              gender: 'Masculino',
             },
           }}
         >
@@ -30,12 +32,17 @@ describe('RegisterForm2', () => {
       </MemoryRouter>,
     )
 
-    const idPrefix = screen.getByDisplayValue(/V/i)
-    const idInput = screen.getByPlaceholderText(/Cédula/i)
+    const idButton = screen.getByRole('button', { name: /v/i })
+    const idInput = screen.getByLabelText(/Cédula/i)
     const birthdateInput = screen.getByLabelText(/Fecha de nacimiento/i)
-    const passwordInput = screen.getByPlaceholderText(/^Contraseña$/i)
-    const confirmInput = screen.getByPlaceholderText(/Confirmar contraseña/i)
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
+
+    // Cambio de prefix V -> E
+    await user.click(idButton)
+    const optionE = screen.getByRole('button', { name: /^E$/ })
+    await user.click(optionE)
 
     await user.clear(idInput)
     await user.type(idInput, '123')
@@ -45,7 +52,7 @@ describe('RegisterForm2', () => {
       expect(screen.getByText(/Formato inválido/i)).toBeInTheDocument()
     })
 
-    await user.selectOptions(idPrefix, 'V')
+    await user.click(idButton)
     await user.clear(idInput)
     await user.type(idInput, '12345678')
     await user.type(birthdateInput, '2000-01-01')
@@ -55,7 +62,7 @@ describe('RegisterForm2', () => {
     await user.click(submitButton)
 
     expect(
-      screen.getByText(/Las contraseñas no coinciden/i),
+      screen.getByText(/No coinciden/i),
     ).toBeInTheDocument()
 
     await user.clear(confirmInput)
@@ -63,7 +70,7 @@ describe('RegisterForm2', () => {
     await user.click(submitButton)
 
     expect(
-      screen.queryByText(/Las contraseñas no coinciden/i),
+      screen.queryByText(/No coinciden/i),
     ).not.toBeInTheDocument()
 
     expect(mockRegisterCustomer).toHaveBeenCalled()
