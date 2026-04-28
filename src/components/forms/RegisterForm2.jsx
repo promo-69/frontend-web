@@ -42,6 +42,8 @@ function RegisterForm2() {
 
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('success')
+
 
   const onSubmit = async (values) => {
     const payload = {
@@ -58,11 +60,11 @@ function RegisterForm2() {
     const res = await registerUser(payload)
 
     if (!res.success) {
-      // Si hay error, se muestra el mensaje del backend en el modal
+      setModalType('error')
       setModalMessage(res.message || 'Error al registrar')
       setShowSuccessModal(true)
     } else {
-      // Si es exitoso
+      setModalType('success')
       setModalMessage('¡Registro exitoso!')
       setShowSuccessModal(true)
     }
@@ -217,12 +219,14 @@ function RegisterForm2() {
         />
       </div>
       {showSuccessModal && (
-        <SuccessModal
+        <ModalMessage
+          type={modalType}
           message={modalMessage}
           onClose={() => {
             setShowSuccessModal(false)
-            // Si el mensaje fue de éxito, navegamos al login
-            if (modalMessage === '¡Registro exitoso!') {
+
+            // Si fue éxito, redirige al login
+            if (modalType === 'success') {
               navigate('/login')
             }
           }}
