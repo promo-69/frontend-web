@@ -1,13 +1,8 @@
+import React from 'react'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { useState } from 'react'
 
-export default function InputPassword({
-  id,
-  label,
-  register,
-  error,
-  value,
-}) {
+export default function InputPassword({ id, label, register, error, value }) {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
