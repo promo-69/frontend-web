@@ -9,6 +9,7 @@ import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
 import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
+import InputText from '../ui/InputText'
 
 function RegisterForm() {
   const { saveStep1 } = useContext(RegisterContext)
@@ -45,62 +46,28 @@ function RegisterForm() {
     >
       <div className="flex flex-col gap-6 items-center w-80">
         {/* Nombre */}
-        <div className="relative w-full">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            <input
-              type="text"
-              id="name"
-              {...register('name', {
-                validate: (value) =>
-                  validateName(value) === true || validateName(value),
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
-            />
-            <label
-              htmlFor="name"
-              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${nameValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
-            >
-              Nombre
-            </label>
-            {errors.name && (
-              <p className="absolute left-0 -bottom-5 text-red-500">
-                {errors.name.message}
-              </p>
-            )}
-          </div>
-        </div>
+        <InputText
+          id="name"
+          label="Nombre"
+          register={register('name', {
+            validate: (value) =>
+              validateName(value) === true || validateName(value),
+          })}
+          error={errors.name?.message}
+          value={nameValue}
+        />
 
         {/* Apellido */}
-        <div className="relative w-full">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            <input
-              type="text"
-              id="lastname"
-              {...register('lastname', {
-                validate: (value) =>
-                  validateName(value) === true || validateName(value),
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
-            />
-            <label
-              htmlFor="lastname"
-              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${lastnameValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
-            >
-              Apellido
-            </label>
-            {errors.lastname && (
-              <p className="absolute left-0 -bottom-5 text-red-500">
-                {errors.lastname.message}
-              </p>
-            )}
-          </div>
-        </div>
+        <InputText
+          id="lastname"
+          label="Apellido"
+          register={register('lastname', {
+            validate: (value) =>
+              validateName(value) === true || validateName(value),
+          })}
+          error={errors.lastname?.message}
+          value={lastnameValue}
+        />
 
         {/* Género */}
         <div className="relative w-full">
@@ -112,7 +79,7 @@ function RegisterForm() {
               {/*Select personalizado */}
               <button
                 type="button"
-                onClick={() => setIsGenderOpen(!isGenderOpen)} 
+                onClick={() => setIsGenderOpen(!isGenderOpen)}
                 className="w-full bg-transparent border-b border-white text-white py-2 text-left flex justify-between items-center focus:outline-none"
               >
                 <span>{watch('genderText') || 'Seleccionar'}</span>
@@ -151,33 +118,17 @@ function RegisterForm() {
         </div>
 
         {/* Email */}
-        <div className="relative w-full">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            <input
-              type="email"
-              id="email"
-              {...register('email', {
-                validate: (value) =>
-                  validateEmail(value) === true || validateEmail(value),
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
-            />
-            <label
-              htmlFor="email"
-              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${emailValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
-            >
-              Correo
-            </label>
-            {errors.email && (
-              <p className="absolute left-0 -bottom-5 text-red-500">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-        </div>
+        <InputText
+          id="email"
+          label="Correo"
+          type="email"
+          register={register('email', {
+            validate: (value) =>
+              validateEmail(value) === true || validateEmail(value),
+          })}
+          error={errors.email?.message}
+          value={emailValue}
+        />
 
         {/* Teléfono */}
         <div className="relative w-full">

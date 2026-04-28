@@ -10,6 +10,7 @@ import Button from '../ui/Button'
 import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
 import  SuccessModal from '../ui/SuccessModal'
+import InputPassword from '../ui/InputPassword'
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
   const { step1Data, registerCustomer } = useContext(RegisterContext)
@@ -75,7 +76,7 @@ function RegisterForm2() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsIdOpen(!isIdOpen)}  
+                onClick={() => setIsIdOpen(!isIdOpen)}
                 className="text-white flex items-center gap-1 focus:outline-none min-w-[40px] hover:opacity-80 transition-opacity"
               >
                 <span className="text-base font-montserrat font-bold">
@@ -170,80 +171,31 @@ function RegisterForm2() {
         </div>
 
         {/* Contraseña */}
-        <div className="relative w-full">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              {...register('password', {
-                validate: (value) =>
-                  validatePassword(value) === true || validatePassword(value),
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
-            />
-            <label
-              htmlFor="password"
-              className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
-        peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-        ${passwordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-            >
-              Contraseña
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            >
-              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-            </button>
-          </div>
-          {errors.password && (
-            <p className="absolute left-0 -bottom-5 text-red-500">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        {/* Confirmación */}
-        <div className="relative w-full mt-2">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            <input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              {...register('confirmPassword', {
-                validate: (value) => {
-                  const password = getValues('password')
-                  if (!value) return 'Confirmación requerida'
-                  if (value !== password) return 'No coinciden'
-                  return true
-                },
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
-            />
-            <label
-              htmlFor="confirmPassword"
-              className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
-        peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-        ${confirmPasswordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-            >
-              Confirmar contraseña
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            >
-              {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-            </button>
-          </div>
-          {errors.confirmPassword && (
-            <p className="absolute left-0 -bottom-5 text-red-500">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
+        <InputPassword
+          id="password"
+          label="Contraseña"
+          register={register('password', {
+            validate: (value) =>
+              validatePassword(value) === true || validatePassword(value),
+          })}
+          error={errors.password?.message}
+          value={passwordValue}
+        />
+        {/* Confirmar Contraseña */}
+        <InputPassword
+          id="confirmPassword"
+          label="Confirmar contraseña"
+          register={register('confirmPassword', {
+            validate: (value) => {
+              const password = getValues('password')
+              if (!value) return 'Confirmación requerida'
+              if (value !== password) return 'No coinciden'
+              return true
+            },
+          })}
+          error={errors.confirmPassword?.message}
+          value={confirmPasswordValue}
+        />
       </div>
 
       <div className="w-full flex items-center justify-center gap-3 pt-4">
@@ -272,7 +224,7 @@ function RegisterForm2() {
         />
       )}
     </form>
-  );
+  )
 }
 
 export default RegisterForm2

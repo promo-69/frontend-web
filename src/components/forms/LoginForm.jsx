@@ -7,6 +7,8 @@ import {
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
 import { AuthContext } from '../../context/AuthContext'
+import InputPassword from '../ui/InputPassword'
+import InputText from '../ui/InputText'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -34,8 +36,6 @@ function LoginForm() {
       alert(res.message)
     } else {
       alert('Login exitoso')
-      // Aquí puedes redirigir si quieres:
-      // navigate('/dashboard')
     }
   }
 
@@ -46,69 +46,29 @@ function LoginForm() {
     >
       <div className="flex flex-col gap-8 items-center">
         {/* EMAIL */}
-        <div className="relative w-80">
-          <input
-            type="email"
-            id="email"
-            {...register('email', {
-              validate: (value) =>
-                validateEmail(value) === true || validateEmail(value),
-            })}
-            placeholder=" "
-            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
-          />
-          <label
-            htmlFor="email"
-            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${emailValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-          >
-            Correo
-          </label>
-          {errors.email && (
-            <p className="text-red-500 text-sm">{errors.email.message}</p>
-          )}
-        </div>
+        <InputText
+          id="email"
+          label="Correo"
+          type="email"
+          register={register('email', {
+            validate: (value) =>
+              validateEmail(value) === true || validateEmail(value),
+          })}
+          error={errors.email?.message}
+          value={emailValue}
+        />
 
         {/* PASSWORD */}
-        <div className="relative w-80">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            id="password"
-            {...register('password', {
-              validate: (value) =>
-                validatePassword(value) === true || validatePassword(value),
-            })}
-            placeholder=" "
-            className="peer w-full bg-transparent border-0 border-b-2 border-white text-white focus:outline-none focus:border-[#D9982F] font-montserrat py-2 transition-colors pr-10"
-          />
-          <label
-            htmlFor="password"
-            className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${passwordValue ? '-top-4 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-          >
-            Contraseña
-          </label>
-
-          {/* Botón mostrar/ocultar */}
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-0 top-1/4 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-            aria-label={
-              showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-            }
-          >
-            {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-          </button>
-
-          {errors.password && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
+        <InputPassword
+          id="password"
+          label="Contraseña"
+          register={register('password', {
+            validate: (value) =>
+              validatePassword(value) === true || validatePassword(value),
+          })}
+          error={errors.password?.message}
+          value={passwordValue}
+        />
 
         {/* LINK OLVIDASTE CONTRASEÑA */}
         <a
