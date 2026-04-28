@@ -1,9 +1,12 @@
 import axios from 'axios'
 
+{
+  /*baseURL: 'https://127.0.0.1/api/v1' */
+}
 const apiClient = axios.create({
-  baseURL: 'https://backend-jog6.onrender.com/api/v1',
-  withCredentials: true
-});
+  baseURL: 'https://backend-jog6.onrender.com/api/v1', //'https://backend-jog6.onrender.com/api/v1',
+  withCredentials: true,
+})
 
 // LOGIN
 export const loginRequest = async (data) => {
@@ -27,7 +30,7 @@ export const verifyRecoveryCodeRequest = async (email, code) => {
 }
 
 // RECOVERY: Paso 3
-export const resetPasswordRequest = async ({ email, newPassword }) => {
+export const resetPasswordRequest = async ({ email, newPassword, code }) => {
   return apiClient.post(`/auth/recovery/reset-password`, {
     email,
     newPassword,

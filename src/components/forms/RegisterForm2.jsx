@@ -9,7 +9,8 @@ import {
 import Button from '../ui/Button'
 import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
-
+import  SuccessModal from '../ui/SuccessModal'
+import InputPassword from '../ui/InputPassword'
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
   const { step1Data, registerCustomer } = useContext(RegisterContext)
@@ -19,28 +20,46 @@ function RegisterForm2() {
     register,
     handleSubmit,
     getValues,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm({ mode: 'onSubmit' })
+  } = useForm({
+    mode: 'onSubmit',
+    defaultValues: { idPrefix: 'V' },
+  })
+
+  const idPrefix = watch('idPrefix')
+  const idNumberValue = watch('idNumber')
+  const [isIdOpen, setIsIdOpen] = useState(false)
+
+  const passwordValue = watch('password')
+  const confirmPasswordValue = watch('confirmPassword')
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
 
   const onSubmit = async (values) => {
     const payload = {
-      firstName: step1Data.name,
-      lastName: step1Data.lastname,
-      email: step1Data.email,
-      phoneNumber: step1Data.phone,
+      firstName: step1Data?.name,
+      lastName: step1Data?.lastname,
+      email: step1Data?.email,
+      phoneNumber: step1Data?.countryCode + step1Data?.phone,
       documentNumber: values.idPrefix + values.idNumber,
       birthDate: values.birthdate,
       password: values.password,
-      gender: 1,
+      gender: step1Data?.gender,
     }
 
     const res = await registerCustomer(payload)
 
     if (!res.success) {
-      alert(res.message)
+      // Si hay error, se muestra el mensaje del backend en el modal
+      setModalMessage(res.message || 'Error al registrar')
+      setShowSuccessModal(true)
     } else {
-      alert('Registro exitoso')
-      navigate('/login')
+      // Si es exitoso
+      setModalMessage('¡Registro exitoso!')
+      setShowSuccessModal(true)
     }
   }
 
@@ -51,42 +70,83 @@ function RegisterForm2() {
     >
       <div className="flex flex-col gap-6 items-center w-80">
         {/* Cédula */}
-        <div className="flex items-center gap-2 w-full">
-          <div className="relative">
-            <select
-              {...register('idPrefix')}
-              className="bg-transparent border-b border-white text-white py-2 pl-2 pr-10 focus:outline-none appearance-none"
-            >
-              <option className="text-black" value="V">
-                V
-              </option>
-              <option className="text-black" value="E">
-                E
-              </option>
-            </select>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/20 border border-white rounded-md p-1 pointer-events-none">
-              <span className="text-white text-sm">▼</span>
-            </div>
-          </div>
+        <div className="relative w-full">
+          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
+            {/* MENU SELECTOR DE PREFIJO (V/E) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsIdOpen(!isIdOpen)}
+                className="text-white flex items-center gap-1 focus:outline-none min-w-[40px] hover:opacity-80 transition-opacity"
+              >
+                <span className="text-base font-montserrat font-bold">
+                  {idPrefix || 'V'}
+                </span>
+                <span className="text-[10px] opacity-70">▼</span>
+              </button>
 
-          <input
-            type="text"
-            placeholder="Cédula"
-            {...register('idNumber', {
-              validate: (value) => {
-                const prefix = getValues('idPrefix')
-                const fullId = prefix + value
-                return validateID(fullId) === true || validateID(fullId)
-              },
-            })}
-            className="flex-1 bg-transparent border-b border-white text-white py-2 focus:outline-none"
-          />
+              {/* MENU DESPLEGABLE */}
+              {isIdOpen && (
+                <div className="absolute top-12 left-0 bg-[#231640] border border-[#D9982F] rounded shadow-lg z-50 p-1 flex flex-col min-w-[50px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('idPrefix', 'V') // Si usas react-hook-form
+                      setIsIdOpen(false)
+                    }}
+                    className="p-2 text-white hover:bg-[#7B1A82] transition-colors text-center font-bold"
+                  >
+                    V
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('idPrefix', 'E')
+                      setIsIdOpen(false)
+                    }}
+                    className="p-2 text-white hover:bg-[#7B1A82] transition-colors text-center font-bold"
+                  >
+                    E
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* INPUT DE NÚMERO DE CÉDULA */}
+            <input
+              type="text"
+              id="idNumber"
+              {...register('idNumber', {
+                validate: (value) => {
+                  const prefix = watch('idPrefix') || 'V'
+                  const fullId = prefix + value
+                  return validateID(fullId) === true || validateID(fullId)
+                },
+              })}
+              placeholder=" "
+              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
+            />
+
+            {/* LABEL FLOTANTE */}
+            <label
+              htmlFor="idNumber"
+              className={`absolute transition-all duration-300 pointer-events-none font-montserrat
+        peer-focus:-top-6 peer-focus:left-0 peer-focus:text-sm peer-focus:text-[#D9982F]
+        ${
+          idNumberValue
+            ? '-top-6 left-0 text-sm text-[#D9982F]'
+            : 'top-3 left-12 text-base text-white opacity-70'
+        }`}
+            >
+              Cédula
+            </label>
+          </div>
+          {errors.idNumber && (
+            <p className="absolute left-0 -bottom-5 text-red-500">
+              {errors.idNumber.message}
+            </p>
+          )}
         </div>
-        {errors.idNumber && (
-          <p className="text-red-500 text-sm w-full">
-            {errors.idNumber.message}
-          </p>
-        )}
 
         {/* Fecha */}
         <div className="w-full flex flex-col">
@@ -111,56 +171,31 @@ function RegisterForm2() {
         </div>
 
         {/* Contraseña */}
-        <div className="relative w-full">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Contraseña"
-            {...register('password', {
-              validate: (value) =>
-                validatePassword(value) === true || validatePassword(value),
-            })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-          >
-            {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-          </button>
-          {errors.password && (
-            <p className="text-red-500 text-sm">{errors.password.message}</p>
-          )}
-        </div>
-
-        {/* Confirmación */}
-        <div className="relative w-full">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Confirmar contraseña"
-            {...register('confirmPassword', {
-              validate: (value) => {
-                const password = getValues('password')
-                if (!value) return 'Confirmación requerida'
-                if (value !== password) return 'Las contraseñas no coinciden'
-                return true
-              },
-            })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-0 top-1/3 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-          >
-            {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-          </button>
-          {errors.confirmPassword && (
-            <p className="text-red-500 text-sm">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
+        <InputPassword
+          id="password"
+          label="Contraseña"
+          register={register('password', {
+            validate: (value) =>
+              validatePassword(value) === true || validatePassword(value),
+          })}
+          error={errors.password?.message}
+          value={passwordValue}
+        />
+        {/* Confirmar Contraseña */}
+        <InputPassword
+          id="confirmPassword"
+          label="Confirmar contraseña"
+          register={register('confirmPassword', {
+            validate: (value) => {
+              const password = getValues('password')
+              if (!value) return 'Confirmación requerida'
+              if (value !== password) return 'No coinciden'
+              return true
+            },
+          })}
+          error={errors.confirmPassword?.message}
+          value={confirmPasswordValue}
+        />
       </div>
 
       <div className="w-full flex items-center justify-center gap-3 pt-4">
@@ -176,6 +211,18 @@ function RegisterForm2() {
           className="text-lg font-montserrat font-semibold"
         />
       </div>
+      {showSuccessModal && (
+        <SuccessModal
+          message={modalMessage}
+          onClose={() => {
+            setShowSuccessModal(false)
+            // Si el mensaje fue de éxito, navegamos al login
+            if (modalMessage === '¡Registro exitoso!') {
+              navigate('/login')
+            }
+          }}
+        />
+      )}
     </form>
   )
 }

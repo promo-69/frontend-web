@@ -1,9 +1,8 @@
 import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
-import RegisterForm2 from '../../components/forms/RegisterForm2'
 import { useNavigate } from 'react-router-dom'
 
-function Register2() {
+function Favorites() {
   const navigate = useNavigate()
   console.log(123123)
   return (
@@ -25,19 +24,8 @@ function Register2() {
               onClick={() => navigate('/')}
             />
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
-              Registro
+              ¿Cuales son tus géneros favoritos?
             </h1>
-            <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
-              Crea tu cuenta para acceder a todas las funciones y el mejor
-              contenido.
-            </p>
-            <RegisterForm2 />
-            <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100 pt-5">
-              ¿Ya tienes cuenta?
-              <a href="/login" className="text-[#D9982F] underline">
-                Inicia sesión
-              </a>
-            </p>
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
               2026. Todos los derechos reservados. Compañia Cineflix.
             </p>
@@ -48,4 +36,4 @@ function Register2() {
   )
 }
 
-export default Register2
+export default Favorites

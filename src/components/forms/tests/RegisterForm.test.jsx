@@ -19,10 +19,10 @@ describe('RegisterForm', () => {
       </MemoryRouter>,
     )
 
-    const nameInput = screen.getByPlaceholderText(/nombre/i)
-    const lastnameInput = screen.getByPlaceholderText(/apellido/i)
-    const emailInput = screen.getByPlaceholderText(/correo/i)
-    const phoneInput = screen.getByPlaceholderText(/teléfono/i)
+    const nameInput = screen.getByLabelText(/nombre/i)
+    const lastnameInput = screen.getByLabelText(/apellido/i)
+    const emailInput = screen.getByLabelText(/correo/i)
+    const phoneInput = screen.getByLabelText(/teléfono/i)
     const submitButton = screen.getByRole('button', { name: /siguiente/i })
 
     await user.type(nameInput, 'Juan')

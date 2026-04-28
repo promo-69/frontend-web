@@ -10,12 +10,24 @@ function SendMailForm({ onNext }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
-  const onSubmit = async (data) => {
+  const emailValue = watch('email')
+
+  {/*const onSubmit = async (data) => {
     await sendRecoveryEmail(data.email.trim())
     onNext(email) // avanzar al paso 2
+  }*/}
+
+  const onSubmit = async (data) => {
+    const cleanEmail = data.email.trim()
+
+    await sendRecoveryEmail(cleanEmail)
+
+    // Pasamos el correo al paso 2
+    onNext(cleanEmail)
   }
 
   return (
@@ -30,20 +42,34 @@ function SendMailForm({ onNext }) {
         <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
           Ingresa tu correo electrónico para enviarte un código de recuperación.
         </p>
-
-        <div className="w-80 flex flex-col gap-2">
-          <input
-            type="email"
-            placeholder="Correo"
-            {...register('email', {
-              validate: (value) =>
-                validateEmail(value) === true || validateEmail(value),
-            })}
-            className="w-full bg-transparent border-0 border-b-2 border-white text-white placeholder-white focus:outline-none font-montserrat"
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm">{errors.email.message}</p>
-          )}
+        <div className="flex flex-col gap-6 items-center w-80">
+          <div className="relative w-full">
+            <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
+              <input
+                type="email"
+                id="email"
+                {...register('email', {
+                  validate: (value) =>
+                    validateEmail(value) === true || validateEmail(value),
+                })}
+                placeholder=" "
+                className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
+              />
+              <label
+                htmlFor="email"
+                className={`absolute left-0 top-2 text-white font-montserrat transition-all duration-300 pointer-events-none
+                        peer-focus:-top-4 peer-focus:text-sm peer-focus:text-[#D9982F]
+                        ${emailValue ? '-top-5 text-sm text-[#D9982F]' : 'top-5 text-base opacity-70'}`}
+              >
+                Correo
+              </label>
+              {errors.email && (
+                <p className="absolute left-0 -bottom-5 text-red-500">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="w-full flex items-center justify-center gap-8 pt-6">
