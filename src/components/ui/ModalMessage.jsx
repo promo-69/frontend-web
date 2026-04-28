@@ -1,5 +1,5 @@
 import React from 'react'
-import { IconCheck, IconError } from './IconosProyect'
+import { LoginIcon, IconError } from './IconosProyect'
 
 const ModalMessage = ({ type = 'success', message, onClose }) => {
   const isSuccess = type === 'success'

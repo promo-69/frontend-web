@@ -226,9 +226,9 @@ function RegisterForm2() {
           onClose={() => {
             setShowSuccessModal(false)
 
-            // Si fue éxito, redirige al login
+            // Si guardó los datos redirige a la página de verificación de email
             if (modalType === 'success') {
-              navigate('/login')
+              navigate('/email-check')
             }
           }}
         />
