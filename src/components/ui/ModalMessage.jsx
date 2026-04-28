@@ -19,7 +19,7 @@ const ModalMessage = ({ type = 'success', message, onClose }) => {
           ${isSuccess ? 'bg-[#D9982F]' : 'bg-red-500'}`}
         >
           {isSuccess ? (
-            <IconCheck className="w-12 h-12 text-[#231640]" />
+            <LoginIcon className="w-12 h-12 text-[#231640]" />
           ) : (
             <IconError className="w-12 h-12 text-white" />
           )}

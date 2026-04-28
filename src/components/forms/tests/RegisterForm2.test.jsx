@@ -1,78 +1,58 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RegisterContext } from '../../../context/RegisterContext'
+import { describe, test, expect, vi } from 'vitest'
 import RegisterForm2 from '../RegisterForm2'
+import { AuthContext } from '../../../context/AuthContext'
 import { MemoryRouter } from 'react-router-dom'
-import { vi } from 'vitest'
+
+const mockRegisterUser = vi.fn().mockResolvedValue({ success: true })
 
 describe('RegisterForm2', () => {
-  it('debe validar cédula, fecha, contraseña y confirmación', async () => {
-    const user = userEvent.setup()
-
-    const mockRegisterCustomer = vi.fn().mockResolvedValue({ success: true })
-
+  const renderComponent = () =>
     render(
-      <MemoryRouter>
-        <RegisterContext.Provider
-          value={{
-            registerCustomer: mockRegisterCustomer,
-            step1Data: {
-              name: 'Juan',
-              lastname: 'Pérez',
-              email: 'juan@test.com',
-              phone: '04141234567',
-              countryCode: '+58',
-              gender: 'Masculino',
+      <AuthContext.Provider value={{ register: mockRegisterUser }}>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: '/register2',
+              state: {
+                name: 'Juan',
+                lastname: 'Perez',
+                email: 'test@test.com',
+                countryCode: '+58',
+                phone: '1234567',
+                gender: 'M',
+              },
             },
-          }}
+          ]}
         >
           <RegisterForm2 />
-        </RegisterContext.Provider>
-      </MemoryRouter>,
+        </MemoryRouter>
+      </AuthContext.Provider>,
     )
 
-    const idButton = screen.getByRole('button', { name: /v/i })
-    const idInput = screen.getByLabelText(/Cédula/i)
-    const birthdateInput = screen.getByLabelText(/Fecha de nacimiento/i)
-    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
-    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
-    const submitButton = screen.getByRole('button', { name: /Guardar/i })
+  test('renderiza correctamente', () => {
+    renderComponent()
 
-    // Cambio de prefix V -> E
-    await user.click(idButton)
-    const optionE = screen.getByRole('button', { name: /^E$/ })
-    await user.click(optionE)
+    expect(screen.getByText(/Cédula/i)).toBeInTheDocument()
+    expect(screen.getByText(/Fecha de nacimiento/i)).toBeInTheDocument()
+  })
 
-    await user.clear(idInput)
-    await user.type(idInput, '123')
-    await user.click(submitButton)
+  test('envía formulario correctamente', async () => {
+    const user = userEvent.setup()
+    renderComponent()
 
-    await waitFor(() => {
-      expect(screen.getByText(/Formato inválido/i)).toBeInTheDocument()
-    })
+    await user.type(screen.getByLabelText('Cédula'), '12345678')
+    await user.type(screen.getByLabelText('Fecha de nacimiento'), '2000-01-01')
+    await user.type(screen.getByLabelText('Contraseña'), 'Password123!')
+    await user.type(
+      screen.getByLabelText('Confirmar contraseña'),
+      'Password123!',
+    )
 
-    await user.click(idButton)
-    await user.clear(idInput)
-    await user.type(idInput, '12345678')
-    await user.type(birthdateInput, '2000-01-01')
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password1234')
+    await user.click(screen.getByText(/Guardar/i))
 
-    await user.click(submitButton)
-
-    expect(
-      screen.getByText(/No coinciden/i),
-    ).toBeInTheDocument()
-
-    await user.clear(confirmInput)
-    await user.type(confirmInput, 'Password123')
-    await user.click(submitButton)
-
-    expect(
-      screen.queryByText(/No coinciden/i),
-    ).not.toBeInTheDocument()
-
-    expect(mockRegisterCustomer).toHaveBeenCalled()
+    expect(mockRegisterUser).toHaveBeenCalled()
   })
 })

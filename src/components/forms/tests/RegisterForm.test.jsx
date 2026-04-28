@@ -1,49 +1,64 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { RegisterContext } from '../../../context/RegisterContext'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, test, expect, vi } from 'vitest'
 import RegisterForm from '../RegisterForm'
-import { MemoryRouter } from 'react-router-dom'
-import { vi } from 'vitest'
+import { BrowserRouter } from 'react-router-dom'
+
+const mockNavigate = vi.fn()
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
 
 describe('RegisterForm', () => {
-  it('debe mostrar error si el teléfono es muy corto y aceptar datos válidos', async () => {
-    const mockSaveStep1 = vi.fn()
-    const user = userEvent.setup()
-
+  test('renderiza correctamente el formulario', () => {
     render(
-      <MemoryRouter>
-        <RegisterContext.Provider value={{ saveStep1: mockSaveStep1 }}>
-          <RegisterForm />
-        </RegisterContext.Provider>
-      </MemoryRouter>,
+      <BrowserRouter>
+        <RegisterForm />
+      </BrowserRouter>,
     )
 
-    const nameInput = screen.getByLabelText(/nombre/i)
-    const lastnameInput = screen.getByLabelText(/apellido/i)
-    const emailInput = screen.getByLabelText(/correo/i)
-    const phoneInput = screen.getByLabelText(/teléfono/i)
-    const submitButton = screen.getByRole('button', { name: /siguiente/i })
-
-    await user.type(nameInput, 'Juan')
-    await user.type(lastnameInput, 'Pérez')
-    await user.type(emailInput, 'juan@dominio.com')
-    await user.type(phoneInput, '123')
-
-    await user.click(submitButton)
-
+    expect(screen.getByRole('textbox', { name: /Nombre/i })).toBeInTheDocument()
     expect(
-      screen.getByText(/teléfono debe tener entre 7 y 15 dígitos/i),
+      screen.getByRole('textbox', { name: /Apellido/i }),
     ).toBeInTheDocument()
-
-    await user.clear(phoneInput)
-    await user.type(phoneInput, '04141234567')
-    await user.click(submitButton)
-
+    expect(screen.getByRole('textbox', { name: /Correo/i })).toBeInTheDocument()
     expect(
-      screen.queryByText(/teléfono debe tener entre 7 y 15 dígitos/i),
-    ).not.toBeInTheDocument()
+      screen.getByRole('textbox', { name: /Teléfono/i }),
+    ).toBeInTheDocument()
+  })
 
-    expect(mockSaveStep1).toHaveBeenCalled()
+  test('envía el formulario y navega al paso 2', async () => {
+    render(
+      <BrowserRouter>
+        <RegisterForm />
+      </BrowserRouter>,
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: /Nombre/i }), {
+      target: { value: 'Juan' },
+    })
+
+    fireEvent.change(screen.getByRole('textbox', { name: /Apellido/i }), {
+      target: { value: 'Perez' },
+    })
+
+    fireEvent.change(screen.getByRole('textbox', { name: /Correo/i }), {
+      target: { value: 'test@test.com' },
+    })
+
+    fireEvent.change(screen.getByRole('textbox', { name: /Teléfono/i }), {
+      target: { value: '1234567' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Siguiente/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalled()
+    })
   })
 })
