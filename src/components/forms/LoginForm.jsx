@@ -9,10 +9,16 @@ import Button from '../ui/Button'
 import { AuthContext } from '../../context/AuthContext'
 import InputPassword from '../ui/InputPassword'
 import InputText from '../ui/InputText'
+import ModalMessage from '../ui/ModalMessage'
+import { useNavigate } from 'react-router-dom'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const { login } = useContext(AuthContext)
+
+  const [showModal, setShowModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('error')
 
   const {
     register,
@@ -33,10 +39,17 @@ function LoginForm() {
     const res = await login(payload)
 
     if (!res.success) {
-      alert(res.message)
-    } else {
-      alert('Login exitoso')
+      // ERROR general: usuario no existe, contraseña incorrecta, etc.
+      setModalType('error')
+      setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas')
+      setShowModal(true)
+      return
     }
+
+    // ÉXITO
+    setModalType('success')
+    setModalMessage('Inicio de sesión exitoso')
+    setShowModal(true)
   }
 
   return (
@@ -93,6 +106,20 @@ function LoginForm() {
           />
         </div>
       </div>
+      {showModal && (
+        <ModalMessage
+          type={modalType}
+          message={modalMessage}
+          onClose={() => {
+            setShowModal(false)
+
+            // login exitoso, redirige
+            if (modalType === 'success') {
+              navigate('/') 
+            }
+          }}
+        />
+      )}
     </form>
   )
 }
