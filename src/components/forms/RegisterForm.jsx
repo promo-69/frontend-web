@@ -7,12 +7,10 @@ import {
 } from '../../validators/authValidators'
 import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
-import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
 import InputText from '../ui/InputText'
 
 function RegisterForm() {
-  const { saveStep1 } = useContext(RegisterContext)
   const navigate = useNavigate()
 
   const {
@@ -35,8 +33,7 @@ function RegisterForm() {
   const [isOpen, setIsOpen] = useState(false)
 
   const onSubmit = (values) => {
-    saveStep1({ ...values, countryCode, gender })
-    navigate('/register2')
+    navigate('/register2', { state: { ...values, countryCode, gender } })
   }
 
   return (

@@ -7,14 +7,19 @@ import {
   validatePassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
-import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
 import  SuccessModal from '../ui/SuccessModal'
 import InputPassword from '../ui/InputPassword'
+import { useLocation } from 'react-router-dom'
+import { AuthContext } from '../../context/AuthContext'
+
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
-  const { step1Data, registerCustomer } = useContext(RegisterContext)
   const navigate = useNavigate()
+  const location = useLocation()
+  const step1Data = location.state
+
+  const { register: registerUser } = useContext(AuthContext)
 
   const {
     register,
@@ -50,7 +55,7 @@ function RegisterForm2() {
       gender: step1Data?.gender,
     }
 
-    const res = await registerCustomer(payload)
+    const res = await registerUser(payload)
 
     if (!res.success) {
       // Si hay error, se muestra el mensaje del backend en el modal
