@@ -7,14 +7,20 @@ import {
   validatePassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
-import { RegisterContext } from '../../context/RegisterContext'
 import { useNavigate } from 'react-router-dom'
 import  SuccessModal from '../ui/SuccessModal'
+import ModalMessage from '../ui/ModalMessage'
 import InputPassword from '../ui/InputPassword'
+import { useLocation } from 'react-router-dom'
+import { AuthContext } from '../../context/AuthContext'
+
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
-  const { step1Data, registerCustomer } = useContext(RegisterContext)
   const navigate = useNavigate()
+  const location = useLocation()
+  const step1Data = location.state
+
+  const { register: registerUser } = useContext(AuthContext)
 
   const {
     register,
@@ -37,6 +43,8 @@ function RegisterForm2() {
 
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('success')
+
 
   const onSubmit = async (values) => {
     const payload = {
@@ -50,14 +58,14 @@ function RegisterForm2() {
       gender: step1Data?.gender,
     }
 
-    const res = await registerCustomer(payload)
+    const res = await registerUser(payload)
 
     if (!res.success) {
-      // Si hay error, se muestra el mensaje del backend en el modal
+      setModalType('error')
       setModalMessage(res.message || 'Error al registrar')
       setShowSuccessModal(true)
     } else {
-      // Si es exitoso
+      setModalType('success')
       setModalMessage('¡Registro exitoso!')
       setShowSuccessModal(true)
     }
@@ -212,13 +220,15 @@ function RegisterForm2() {
         />
       </div>
       {showSuccessModal && (
-        <SuccessModal
+        <ModalMessage
+          type={modalType}
           message={modalMessage}
           onClose={() => {
             setShowSuccessModal(false)
-            // Si el mensaje fue de éxito, navegamos al login
-            if (modalMessage === '¡Registro exitoso!') {
-              navigate('/login')
+
+            // Si guardó los datos redirige a la página de verificación de email
+            if (modalType === 'success') {
+              navigate('/email-check')
             }
           }}
         />
