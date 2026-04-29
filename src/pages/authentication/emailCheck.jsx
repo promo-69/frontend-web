@@ -35,7 +35,7 @@ function EmailCheck() {
               lo ves, revisa tu carpeta de spam.
             </p>
             <Button
-              text="Continuar"
+              text="..."
               type="button"
               onClick={handleSubmit}
               className="text-lg font-montserrat font-semibold"
