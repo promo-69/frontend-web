@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 
 function EmailCheck() {
-  
+  const navigate = useNavigate()
   const handleSubmit = (e) => {
     if (e) e.preventDefault() 
     navigate('/favorites')
