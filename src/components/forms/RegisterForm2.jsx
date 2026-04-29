@@ -20,6 +20,9 @@ function RegisterForm2() {
   const location = useLocation()
   const step1Data = location.state
 
+  console.log('Datos recibidos del paso 1:', step1Data)
+  console.log('Género recibido en paso 2:', step1Data?.gender)
+
   const { register: registerUser } = useContext(AuthContext)
 
   const {
@@ -57,6 +60,8 @@ function RegisterForm2() {
       password: values.password,
       gender: step1Data?.gender,
     }
+
+    console.log('Payload enviado al backend:', payload)
 
     const res = await registerUser(payload)
 
