@@ -33,8 +33,10 @@ function RegisterForm() {
   const [isOpen, setIsOpen] = useState(false)
 
   const onSubmit = (values) => {
-    navigate('/register2', { state: { ...values, countryCode, gender } })
+    navigate('/register2', { state: { ...values, countryCode, gender:values.gender } })
   }
+
+  console.log('Género seleccionado en paso 1:', watch('gender'))
 
   return (
     <form
