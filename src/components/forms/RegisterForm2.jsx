@@ -104,7 +104,7 @@ function RegisterForm2() {
                   <button
                     type="button"
                     onClick={() => {
-                      setValue('idPrefix', 'V') // Si usas react-hook-form
+                      setValue('idPrefix', 'V')
                       setIsIdOpen(false)
                     }}
                     className="p-2 text-white hover:bg-[#7B1A82] transition-colors text-center font-bold"

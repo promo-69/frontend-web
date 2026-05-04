@@ -39,11 +39,11 @@ function LoginForm() {
     const res = await login(payload)
 
     if (!res.success) {
-      // ERROR general: usuario no existe, contraseña incorrecta, etc.
-      setModalType('error')
-      setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas')
-      setShowModal(true)
-      return
+      
+      setModalType('error');
+      setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
+      setShowModal(true);
+      return;
     }
 
     // ÉXITO
@@ -111,11 +111,11 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
-            setShowModal(false)
+            setShowModal(false);
 
             // login exitoso, redirige
             if (modalType === 'success') {
-              navigate('/') 
+              navigate('/'); 
             }
           }}
         />
