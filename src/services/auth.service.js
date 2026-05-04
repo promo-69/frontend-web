@@ -1,39 +1,35 @@
-import axios from 'axios'
-
-{
-  /*baseURL: 'https://127.0.0.1/api/v1' */
-}
-const apiClient = axios.create({
-  baseURL: 'https://backend-jog6.onrender.com/api/v1', //'https://backend-jog6.onrender.com/api/v1',
-  withCredentials: true,
-})
+import api from '../api/axios'
 
 // LOGIN
 export const loginRequest = async (data) => {
-  const response = await apiClient.post(`/auth/login`, data)
+  const response = await api.post('/auth/login', data)
   return response.data
 }
 
 // REGISTER
 export const registerRequest = async (data) => {
-  return apiClient.post(`/auth/signup`, data)
+  const response = await api.post('/auth/signup', data)
+  return response.data
 }
 
 // RECOVERY: Paso 1
 export const sendRecoveryEmailRequest = async (email) => {
-  return apiClient.post(`/auth/recovery/send-email`, { email })
+  const response = await api.post('/auth/recovery/send-email', { email })
+  return response.data
 }
 
 // RECOVERY: Paso 2
 export const verifyRecoveryCodeRequest = async (email, code) => {
-  return apiClient.post(`/auth/recovery/verify-code`, { email, code })
+  const response = await api.post('/auth/recovery/verify-code', { email, code })
+  return response.data
 }
 
 // RECOVERY: Paso 3
 export const resetPasswordRequest = async ({ email, newPassword, code }) => {
-  return apiClient.post(`/auth/recovery/reset-password`, {
+  const response = await api.post('/auth/recovery/reset-password', {
     email,
     newPassword,
-    code
+    code,
   })
+  return response.data
 }

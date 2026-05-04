@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react'
+import { createContext, useState, useEffect } from 'react'
 import {
   loginRequest,
   registerRequest,
@@ -13,12 +13,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
 
   // ---------------------------------------------------------
+  // Cargar sesión desde localStorage al iniciar la app
+  // ---------------------------------------------------------
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user')
+    if (savedUser) {
+      setUser(JSON.parse(savedUser))
+    }
+  }, [])
+
+  // ---------------------------------------------------------
   // LOGIN
   // ---------------------------------------------------------
   const login = async (credentials) => {
     try {
       const data = await loginRequest(credentials)
 
+      // Guardar token y usuario
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
 
@@ -31,6 +42,15 @@ export function AuthProvider({ children }) {
         message: error.response?.data?.message || 'Error al iniciar sesión',
       }
     }
+  }
+
+  // ---------------------------------------------------------
+  // LOGOUT
+  // ---------------------------------------------------------
+  const logout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setUser(null)
   }
 
   // ---------------------------------------------------------
@@ -52,24 +72,49 @@ export function AuthProvider({ children }) {
   // RECOVERY: Paso 1 — Enviar correo
   // ---------------------------------------------------------
   const sendRecoveryEmail = async (email) => {
-    const response = await sendRecoveryEmailRequest(email)
-    return response.data
+    try {
+      const data = await sendRecoveryEmailRequest(email)
+      return { success: true, data }
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          'Error al enviar correo de recuperación',
+      }
+    }
   }
 
   // ---------------------------------------------------------
   // RECOVERY: Paso 2 — Validar código
   // ---------------------------------------------------------
   const verifyRecoveryCode = async (email, code) => {
-    const response = await verifyRecoveryCodeRequest(email, code)
-    return response.data
+    try {
+      const data = await verifyRecoveryCodeRequest(email, code)
+      return { success: true, data }
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || 'Código de verificación inválido',
+      }
+    }
   }
 
   // ---------------------------------------------------------
   // RECOVERY: Paso 3 — Guardar nueva contraseña
   // ---------------------------------------------------------
   const resetPassword = async ({ email, newPassword, code }) => {
-    const response = await resetPasswordRequest({ email, newPassword, code })
-    return response.data
+    try {
+      const data = await resetPasswordRequest({ email, newPassword, code })
+      return { success: true, data }
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || 'Error al restablecer contraseña',
+      }
+    }
   }
 
   return (
@@ -78,6 +123,7 @@ export function AuthProvider({ children }) {
         user,
         setUser,
         login,
+        logout,
         register,
         sendRecoveryEmail,
         verifyRecoveryCode,
