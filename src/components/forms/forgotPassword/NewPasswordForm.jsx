@@ -8,6 +8,7 @@ import { validatePassword } from '../../../validators/authValidators'
 function NewPasswordForm({ email, code }) {
   const { resetPassword } = useContext(AuthContext)
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const {
     register,
@@ -21,8 +22,15 @@ function NewPasswordForm({ email, code }) {
   const confirmPasswordValue = watch('confirmPassword')
 
   const onSubmit = async (data) => {
-    await resetPassword({ email, newPassword: data.password.trim(), code })
-    alert('Contraseña actualizada exitosamente')
+    setIsLoading(true)
+    try {
+      await resetPassword({ email, newPassword: data.password.trim(), code })
+      alert('Contraseña actualizada exitosamente')
+    } catch (error) {
+      alert('Error al actualizar contraseña')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -124,8 +132,10 @@ function NewPasswordForm({ email, code }) {
             onClick={() => window.history.back()}
           />
           <Button
-            text="Guardar"
+            text={isLoading ? 'Guardando...' : 'Guardar'}
             type="submit"
+            disabled={isLoading}
+            isLoading={isLoading}
             className="text-lg font-montserrat font-semibold"
           />
         </div>

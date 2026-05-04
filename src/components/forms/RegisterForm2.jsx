@@ -16,6 +16,7 @@ import { AuthContext } from '../../context/AuthContext'
 
 function RegisterForm2() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const step1Data = location.state
@@ -50,6 +51,7 @@ function RegisterForm2() {
 
 
   const onSubmit = async (values) => {
+    setIsLoading(true)
     const payload = {
       firstName: step1Data?.name,
       lastName: step1Data?.lastname,
@@ -63,16 +65,24 @@ function RegisterForm2() {
 
     console.log('Payload enviado al backend:', payload)
 
-    const res = await registerUser(payload)
+    try {
+      const res = await registerUser(payload)
 
-    if (!res.success) {
+      if (!res.success) {
+        setModalType('error')
+        setModalMessage(res.message || 'Error al registrar')
+        setShowSuccessModal(true)
+      } else {
+        setModalType('success')
+        setModalMessage('¡Registro exitoso!')
+        setShowSuccessModal(true)
+      }
+    } catch (error) {
       setModalType('error')
-      setModalMessage(res.message || 'Error al registrar')
+      setModalMessage('Error inesperado')
       setShowSuccessModal(true)
-    } else {
-      setModalType('success')
-      setModalMessage('¡Registro exitoso!')
-      setShowSuccessModal(true)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -219,8 +229,10 @@ function RegisterForm2() {
           onClick={() => window.history.back()}
         />
         <Button
-          text="Guardar"
+          text={isLoading ? 'Guardando...' : 'Guardar'}
           type="submit"
+          disabled={isLoading}
+          isLoading={isLoading}
           className="text-lg font-montserrat font-semibold"
         />
       </div>

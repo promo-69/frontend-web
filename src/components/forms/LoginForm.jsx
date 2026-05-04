@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { login } = useContext(AuthContext)
 
   const [showModal, setShowModal] = useState(false)
@@ -31,25 +32,34 @@ function LoginForm() {
   const passwordValue = watch('password')
 
   const onSubmit = async (data) => {
+    setIsLoading(true)
     const payload = {
       email: data.email.trim(),
       password: data.password,
     }
 
-    const res = await login(payload)
+    try {
+      const res = await login(payload)
 
-    if (!res.success) {
-      
-      setModalType('error');
-      setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
-      setShowModal(true);
-      return;
+      if (!res.success) {
+        
+        setModalType('error');
+        setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
+        setShowModal(true);
+        return;
+      }
+
+      // ÉXITO
+      setModalType('success')
+      setModalMessage('Inicio de sesión exitoso')
+      setShowModal(true)
+    } catch (error) {
+      setModalType('error')
+      setModalMessage('Error inesperado')
+      setShowModal(true)
+    } finally {
+      setIsLoading(false)
     }
-
-    // ÉXITO
-    setModalType('success')
-    setModalMessage('Inicio de sesión exitoso')
-    setShowModal(true)
   }
 
   return (
@@ -100,8 +110,10 @@ function LoginForm() {
             onClick={() => window.history.back()}
           />
           <Button
-            text="Iniciar sesión"
+            text={isLoading ? 'Iniciando...' : 'Iniciar sesión'}
             type="submit"
+            disabled={isLoading}
+            isLoading={isLoading}
             className="text-lg font-montserrat font-semibold"
           />
         </div>
