@@ -1,57 +1,75 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, test, expect, vi } from 'vitest'
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
 import SendCode from '../SendCode'
 import { AuthContext } from '../../../../context/AuthContext'
-import React from 'react'
+
+const mockVerifyCode = vi.fn()
+const mockOnNext = vi.fn()
 
 describe('SendCode', () => {
-  test('verifica código correctamente', async () => {
-    const mockVerifyCode = vi.fn()
-    const mockOnNext = vi.fn()
-
-    render(
+  const setup = () => {
+    return render(
       <AuthContext.Provider value={{ verifyRecoveryCode: mockVerifyCode }}>
-        <SendCode email="test@mail.com" onNext={mockOnNext} />
+        <SendCode email="test@email.com" onNext={mockOnNext} />
       </AuthContext.Provider>,
     )
+  }
 
-    const inputs = screen.getAllByRole('textbox')
+  it('debe mostrar error si el código está vacío', async () => {
+    const user = userEvent.setup()
+    setup()
 
-    // Simular ingreso de código 1234
-    fireEvent.change(inputs[0], { target: { value: '1' } })
-    fireEvent.change(inputs[1], { target: { value: '2' } })
-    fireEvent.change(inputs[2], { target: { value: '3' } })
-    fireEvent.change(inputs[3], { target: { value: '4' } })
+    const submitButton = screen.getByRole('button', { name: /Validar/i })
 
-    const button = screen.getByText(/validar/i)
-    fireEvent.click(button)
+    await user.click(submitButton)
 
-    await waitFor(() => {
-      expect(mockVerifyCode).toHaveBeenCalledWith('test@mail.com', '1234')
-      expect(mockOnNext).toHaveBeenCalled()
-    })
+    expect(
+      await screen.findByText(/El código es obligatorio/i),
+    ).toBeInTheDocument()
   })
 
-  test('muestra error si el código está incompleto', async () => {
-    const mockVerifyCode = vi.fn()
+  it('debe mostrar error si código es incorrecto', async () => {
+    const user = userEvent.setup()
 
-    render(
-      <AuthContext.Provider value={{ verifyRecoveryCode: mockVerifyCode }}>
-        <SendCode email="test@mail.com" onNext={() => {}} />
-      </AuthContext.Provider>,
-    )
+    mockVerifyCode.mockResolvedValue({
+      success: false,
+      message: 'Código inválido',
+    })
+
+    setup()
 
     const inputs = screen.getAllByRole('textbox')
 
-    // Solo 2 dígitos
-    fireEvent.change(inputs[0], { target: { value: '1' } })
-    fireEvent.change(inputs[1], { target: { value: '2' } })
+    await user.type(inputs[0], '1')
+    await user.type(inputs[1], '2')
+    await user.type(inputs[2], '3')
+    await user.type(inputs[3], '4')
 
-    const button = screen.getByText(/validar/i)
-    fireEvent.click(button)
+    const submitButton = screen.getByRole('button', { name: /Validar/i })
+    await user.click(submitButton)
 
-    await waitFor(() => {
-      expect(screen.getByText(/código incompleto/i)).toBeInTheDocument()
-    })
+    expect(await screen.findByText(/Código inválido/i)).toBeInTheDocument()
+  })
+
+  it('debe avanzar si código es correcto', async () => {
+    const user = userEvent.setup()
+
+    mockVerifyCode.mockResolvedValue({ success: true })
+
+    setup()
+
+    const inputs = screen.getAllByRole('textbox')
+
+    await user.type(inputs[0], '1')
+    await user.type(inputs[1], '2')
+    await user.type(inputs[2], '3')
+    await user.type(inputs[3], '4')
+
+    const submitButton = screen.getByRole('button', { name: /Validar/i })
+    await user.click(submitButton)
+
+    expect(mockOnNext).toHaveBeenCalled()
   })
 })

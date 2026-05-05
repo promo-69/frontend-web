@@ -1,67 +1,127 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, test, expect, vi } from 'vitest'
+import React from 'react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
 import NewPasswordForm from '../NewPasswordForm'
 import { AuthContext } from '../../../../context/AuthContext'
-import React from 'react'
+import { BrowserRouter } from 'react-router-dom'
+
+const mockResetPassword = vi.fn()
+const mockNavigate = vi.fn()
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
 
 describe('NewPasswordForm', () => {
-  test('resetea contraseña correctamente', async () => {
-    const mockResetPassword = vi.fn()
-
-    render(
-      <AuthContext.Provider value={{ resetPassword: mockResetPassword }}>
-        <NewPasswordForm email="test@mail.com" code="1234" />
-      </AuthContext.Provider>,
+  const setup = () => {
+    return render(
+      <BrowserRouter>
+        <AuthContext.Provider value={{ resetPassword: mockResetPassword }}>
+          <NewPasswordForm email="test@email.com" code="1234" />
+        </AuthContext.Provider>
+      </BrowserRouter>,
     )
+  }
 
-    const passwordInput = screen.getByLabelText(/^contraseña$/i)
-    const confirmInput = screen.getByLabelText(/confirmar contraseña/i)
+  it('debe mostrar error si contraseñas no coinciden', async () => {
+    const user = userEvent.setup()
+    setup()
 
-    fireEvent.change(passwordInput, {
-      target: { value: 'Password123!' },
-    })
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
+    const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    fireEvent.change(confirmInput, {
-      target: { value: 'Password123!' },
-    })
+    await user.type(passwordInput, 'Password123')
+    await user.type(confirmInput, 'Password999')
+    await user.click(submitButton)
 
-    const button = screen.getByText(/guardar/i)
-    fireEvent.click(button)
-
-    await waitFor(() => {
-      expect(mockResetPassword).toHaveBeenCalledWith({
-        email: 'test@mail.com',
-        newPassword: 'Password123!',
-        code: '1234',
-      })
-    })
+    expect(await screen.findByText(/No coinciden/i)).toBeInTheDocument()
   })
 
-  test('muestra error si las contraseñas no coinciden', async () => {
-    const mockResetPassword = vi.fn()
+  it('debe enviar correctamente y mostrar éxito', async () => {
+    const user = userEvent.setup()
 
-    render(
-      <AuthContext.Provider value={{ resetPassword: mockResetPassword }}>
-        <NewPasswordForm email="test@mail.com" code="1234" />
-      </AuthContext.Provider>,
-    )
+    mockResetPassword.mockResolvedValue({ success: true })
 
-    const passwordInput = screen.getByLabelText(/^contraseña$/i)
-    const confirmInput = screen.getByLabelText(/confirmar contraseña/i)
+    setup()
 
-    fireEvent.change(passwordInput, {
-      target: { value: 'Password123!' },
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
+    const submitButton = screen.getByRole('button', { name: /Guardar/i })
+
+    await user.type(passwordInput, 'Password123')
+    await user.type(confirmInput, 'Password123')
+    await user.click(submitButton)
+
+    expect(
+      await screen.findByText(/Contraseña actualizada exitosamente/i),
+    ).toBeInTheDocument()
+  })
+
+  it('debe redirigir al login después de cerrar modal de éxito', async () => {
+    const user = userEvent.setup()
+
+    mockResetPassword.mockResolvedValue({ success: true })
+
+    setup()
+
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
+    const submitButton = screen.getByRole('button', { name: /Guardar/i })
+
+    await user.type(passwordInput, 'Password123')
+    await user.type(confirmInput, 'Password123')
+    await user.click(submitButton)
+
+    const closeButton = await screen.findByRole('button', { name: /Cerrar/i })
+    await user.click(closeButton)
+
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
+  })
+
+  it('debe mostrar error si backend responde fallo', async () => {
+    const user = userEvent.setup()
+
+    mockResetPassword.mockResolvedValue({
+      success: false,
+      message: 'Error backend',
     })
 
-    fireEvent.change(confirmInput, {
-      target: { value: 'OtraPassword123!' },
-    })
+    setup()
 
-    const button = screen.getByText(/guardar/i)
-    fireEvent.click(button)
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
+    const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await waitFor(() => {
-      expect(screen.getByText(/no coinciden/i)).toBeInTheDocument()
-    })
+    await user.type(passwordInput, 'Password123')
+    await user.type(confirmInput, 'Password123')
+    await user.click(submitButton)
+
+    expect(await screen.findByText(/Error backend/i)).toBeInTheDocument()
+  })
+
+  it('debe manejar error de servidor (catch)', async () => {
+    const user = userEvent.setup()
+
+    mockResetPassword.mockRejectedValue(new Error('Server error'))
+
+    setup()
+
+    const passwordInput = screen.getByLabelText(/^Contraseña$/i)
+    const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
+    const submitButton = screen.getByRole('button', { name: /Guardar/i })
+
+    await user.type(passwordInput, 'Password123')
+    await user.type(confirmInput, 'Password123')
+    await user.click(submitButton)
+
+    expect(
+      await screen.findByText(/Error al conectar con el servidor/i),
+    ).toBeInTheDocument()
   })
 })

@@ -35,7 +35,7 @@ function Favorites() {
 
   const handleSubmit = () => {
     console.log('Géneros seleccionados:', selectedGenres)
-    navigate('/login') 
+    navigate('/') 
   }
 
   return (

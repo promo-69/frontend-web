@@ -1,14 +1,20 @@
 import React, { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { validatePassword } from '../../../validators/authValidators'
+import ModalMessage from '../../ui/ModalMessage'
 
 function NewPasswordForm({ email, code }) {
+  const navigate = useNavigate()
   const { resetPassword } = useContext(AuthContext)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('success')
 
   const {
     register,
@@ -23,11 +29,24 @@ function NewPasswordForm({ email, code }) {
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+
     try {
-      await resetPassword({ email, newPassword: data.password.trim(), code })
-      alert('Contraseña actualizada exitosamente')
+      const res = await resetPassword({ email, newPassword: data.password.trim(), code })
+
+      if (!res.success) {
+        setModalType('error')
+        setModalMessage(res.message || 'No se pudo cambiar la contraseña')
+        setShowModal(true)
+        return
+      }
+
+      setModalType('success')
+      setModalMessage('Contraseña actualizada exitosamente')
+      setShowModal(true)
     } catch (error) {
-      alert('Error al actualizar contraseña')
+      setModalType('error')
+      setModalMessage('Error al conectar con el servidor')
+      setShowModal(true)
     } finally {
       setIsLoading(false)
     }
@@ -140,6 +159,18 @@ function NewPasswordForm({ email, code }) {
           />
         </div>
       </div>
+      {showModal && (
+        <ModalMessage
+          type={modalType}
+          message={modalMessage}
+          onClose={() => {
+            setShowModal(false)
+            if (modalType === 'success') {
+              navigate('/login')
+            }
+          }}
+        />
+      )}
     </form>
   )
 }
