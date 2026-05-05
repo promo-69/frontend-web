@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import passwordimage from '../../assets/images/backforgetpassword.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 
@@ -9,6 +10,8 @@ import NewPasswordForm from '../../components/forms/forgotPassword/NewPasswordFo
 function ForgotPassword() {
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState(' ')
+
+  const navigate = useNavigate()
 
   return (
     <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">

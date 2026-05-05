@@ -1,12 +1,17 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
 import { validateEmail } from '../../../validators/authValidators'
 import InputText from '../../ui/InputText'
+import ModalMessage from '../../ui/ModalMessage'
 
 function SendMailForm({ onNext }) {
   const { sendRecoveryEmail } = useContext(AuthContext)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('error')
 
   const {
     register,
@@ -24,11 +29,26 @@ function SendMailForm({ onNext }) {
 
   const onSubmit = async (data) => {
     const cleanEmail = data.email.trim()
+    setIsLoading(true)
 
-    await sendRecoveryEmail(cleanEmail)
+    try {
+      const res = await sendRecoveryEmail(cleanEmail)
+      if (!res.success) {
+        setModalType('error')
+        setModalMessage(res.message || 'No se pudo enviar el correo de recuperación')
+        setShowModal(true)
+        return
+      }
 
-    // Pasamos el correo al paso 2
-    onNext(cleanEmail)
+      // El correo de recuperación se envió correctamente.
+      onNext(cleanEmail)
+    } catch (error) {
+      setModalType('error')
+      setModalMessage('Error al conectar con el servidor')
+      setShowModal(true)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -67,12 +87,21 @@ function SendMailForm({ onNext }) {
             onClick={() => window.history.back()}
           />
           <Button
-            text="Enviar correo"
+            text={isLoading ? 'Enviando...' : 'Enviar correo'}
             type="submit"
+            disabled={isLoading}
+            isLoading={isLoading}
             className="text-lg font-montserrat font-semibold"
           />
         </div>
       </div>
+      {showModal && (
+        <ModalMessage
+          type={modalType}
+          message={modalMessage}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </form>
   )
 }

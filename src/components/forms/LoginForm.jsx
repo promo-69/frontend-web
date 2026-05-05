@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom'
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useContext(AuthContext)
+  const { login, user } = useContext(AuthContext)
 
   const [showModal, setShowModal] = useState(false)
   const [modalMessage, setModalMessage] = useState('')
@@ -127,7 +127,11 @@ function LoginForm() {
 
             // login exitoso, redirige
             if (modalType === 'success') {
-              navigate('/'); 
+              if (!user?.hasSelectedGenres) {
+                navigate('/favorites');
+              } else {
+                navigate('/');
+              }
             }
           }}
         />
