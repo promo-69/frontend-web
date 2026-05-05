@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' // Nuevos iconos
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
+import { AuthContext } from '../../context/AuthContext'
 
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
@@ -22,10 +23,15 @@ const NAV_LINKS = [
 
 function Header({ isLoggedIn = true, userName = 'Yessea' }) {
   const navigate = useNavigate()
+  const { user } = useContext(AuthContext)
   const [isCityOpen, setIsCityOpen] = useState(false)
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [selectedCity, setSelectedCity] = useState('Barquisimeto')
+
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name || user.username || user.email || userName
+    : userName
 
   // Dropdown para Cartelera
   const CarteleraDropdown = () => (
@@ -248,7 +254,7 @@ function Header({ isLoggedIn = true, userName = 'Yessea' }) {
 
                   {/* 🔥 Saludo: Visible en pantallas grandes, Montserrat Bold */}
                   <span className="hidden lg:block text-xl font-['Montserrat'] font-bold tracking-tight text-white whitespace-nowrap">
-                    ¡Hola {userName}!
+                    ¡Hola {displayName}!
                   </span>
 
                   <FiChevronDown
