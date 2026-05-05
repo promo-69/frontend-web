@@ -6,8 +6,8 @@ import Register from '../pages/authentication/register';
 import Profile from '../pages/private/user/profile';
 import ForgotPassword from '../pages/authentication/forgotPassword';
 import Register2 from '../pages/authentication/register2';
-import Favorites from '../pages/authentication/favorites';
 import EmailCheck from '../pages/authentication/emailCheck';
+import VerifyAccount from '../pages/authentication/verifyAccount';
 
 // 1. Un pequeño Layout que solo tiene el Header y el contenido (Outlet)
 const PublicLayout = () => {
@@ -36,6 +36,6 @@ export const publicRoutes = (
     <Route path="/register2" element={<Register2 />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/email-check" element={<EmailCheck />} />
-    <Route path="/favorites" element={<Favorites />} />
+    <Route path="/verify-account" element={<VerifyAccount />} />
   </>
 )

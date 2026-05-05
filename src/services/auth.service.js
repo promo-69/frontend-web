@@ -14,22 +14,27 @@ export const registerRequest = async (data) => {
 
 // RECOVERY: Paso 1
 export const sendRecoveryEmailRequest = async (email) => {
-  const response = await api.post('/auth/recovery/send-email', { email })
+  const response = await api.post('/auth/forgot-password', { email })
   return response.data
 }
 
 // RECOVERY: Paso 2
 export const verifyRecoveryCodeRequest = async (email, code) => {
-  const response = await api.post('/auth/recovery/verify-code', { email, code })
+  const response = await api.post('/auth/verify-reset-code', { email, code })
   return response.data
 }
 
 // RECOVERY: Paso 3
-export const resetPasswordRequest = async ({ email, newPassword, code }) => {
-  const response = await api.post('/auth/recovery/reset-password', {
+export const resetPasswordRequest = async ({ email, newPassword }) => {
+  const response = await api.post('/auth/reset-password', {
     email,
     newPassword,
-    code,
   })
+  return response.data
+}
+
+// VERIFY ACCOUNT
+export const verifyAccountRequest = async (token) => {
+  const response = await api.post('/auth/verify-signup', { token })
   return response.data
 }

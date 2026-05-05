@@ -2,9 +2,14 @@ import React, { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
+import ModalMessage from '../../ui/ModalMessage'
 
 function SendCode({ email, onNext }) {
   const { verifyRecoveryCode } = useContext(AuthContext)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [modalType, setModalType] = useState('error')
 
   const {
     register,
@@ -14,8 +19,25 @@ function SendCode({ email, onNext }) {
   } = useForm({ mode: 'onBlur' })
 
   const onSubmit = async (data) => {
-    await verifyRecoveryCode(email, data.code.trim())
-    onNext() // avanzar al paso 3
+    setIsLoading(true)
+
+    try {
+      const res = await verifyRecoveryCode(email, data.code.trim())
+      if (!res.success) {
+        setModalType('error')
+        setModalMessage(res.message || 'Código de verificación inválido')
+        setShowModal(true)
+        return
+      }
+
+      onNext() // avanzar al paso 3
+    } catch (error) {
+      setModalType('error')
+      setModalMessage('Error al conectar con el servidor')
+      setShowModal(true)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const [code, setCode] = useState(['', '', '', ''])
@@ -95,12 +117,21 @@ function SendCode({ email, onNext }) {
             onClick={() => window.history.back()}
           />
           <Button
-            text="Validar"
+            text={isLoading ? 'Validando...' : 'Validar'}
             type="submit"
+            disabled={isLoading}
+            isLoading={isLoading}
             className="text-lg font-montserrat font-semibold"
           />
         </div>
       </div>
+      {showModal && (
+        <ModalMessage
+          type={modalType}
+          message={modalMessage}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </form>
   )
 }

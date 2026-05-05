@@ -5,6 +5,7 @@ import {
   sendRecoveryEmailRequest,
   verifyRecoveryCodeRequest,
   resetPasswordRequest,
+  verifyAccountRequest,
 } from '../services/auth.service'
 
 export const AuthContext = createContext()
@@ -117,6 +118,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // ---------------------------------------------------------
+// VERIFY ACCOUNT
+// ---------------------------------------------------------
+  const verifyAccount = async (token) => {
+    try {
+      const data = await verifyAccountRequest(token)
+      return { success: true, data }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al verificar cuenta',
+      }
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -128,6 +144,7 @@ export function AuthProvider({ children }) {
         sendRecoveryEmail,
         verifyRecoveryCode,
         resetPassword,
+        verifyAccount,
       }}
     >
       {children}

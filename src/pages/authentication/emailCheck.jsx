@@ -5,10 +5,6 @@ import Button from '../../components/ui/Button'
 
 function EmailCheck() {
   const navigate = useNavigate()
-  const handleSubmit = (e) => {
-    if (e) e.preventDefault() 
-    navigate('/favorites')
-  }
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
@@ -34,12 +30,6 @@ function EmailCheck() {
               Te enviamos un correo para validar y culminar tu registro. Si no
               lo ves, revisa tu carpeta de spam.
             </p>
-            <Button
-              text="..."
-              type="button"
-              onClick={handleSubmit}
-              className="text-lg font-montserrat font-semibold"
-            />
           </div>
         </div>
       </div>
