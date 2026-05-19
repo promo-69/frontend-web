@@ -4,19 +4,26 @@ import userEvent from '@testing-library/user-event'
 import { AuthContext } from '../../../context/AuthContext'
 import LoginForm from '../LoginForm'
 import { vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 describe('LoginForm', () => {
   it('debe mostrar errores en campos inválidos y permitir submit con datos válidos', async () => {
-    const mockLogin = vi.fn().mockResolvedValue({ success: true })
+    const mockLogin = vi
+      .fn()
+      .mockResolvedValue({ success: true, user: { hasSelectedGenres: false } })
 
     render(
-      <AuthContext.Provider value={{ login: mockLogin }}>
-        <LoginForm />
-      </AuthContext.Provider>,
+      <MemoryRouter>
+        <AuthContext.Provider value={{ login: mockLogin }}>
+          <LoginForm />
+        </AuthContext.Provider>
+      </MemoryRouter>,
     )
 
     const emailInput = screen.getByLabelText(/correo/i)
-    const passwordInput = screen.getByLabelText(/contraseña$/i, { selector: 'input' })
+    const passwordInput = screen.getByLabelText(/contraseña$/i, {
+      selector: 'input',
+    })
     const submitButton = screen.getByRole('button', { name: /iniciar sesión/i })
 
     // Email inválido
@@ -35,12 +42,10 @@ describe('LoginForm', () => {
     // Submit
     await userEvent.click(submitButton)
 
-    // El error desaparece
     expect(
       screen.queryByText(/debe tener al menos @ y \./i),
     ).not.toBeInTheDocument()
 
-    // login() fue llamado
     expect(mockLogin).toHaveBeenCalled()
   })
 })
