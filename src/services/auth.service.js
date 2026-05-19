@@ -34,7 +34,8 @@ export const resetPasswordRequest = async ({ email, newPassword }) => {
 }
 
 // VERIFY ACCOUNT
-export const verifyAccountRequest = async (token) => {
-  const response = await api.post('/auth/verify-signup', { token })
+export const verifyAccountRequest = async ({ email, token }) => {
+  const response = await api.post('/auth/verify-signup', { email, token })
   return response.data
 }
+

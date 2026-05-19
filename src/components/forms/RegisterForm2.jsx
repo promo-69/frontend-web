@@ -245,6 +245,7 @@ function RegisterForm2() {
 
             // Si guardó los datos redirige a la página de verificación de email
             if (modalType === 'success') {
+              localStorage.removeItem('registerFormStep1')
               navigate('/email-check')
             }
           }}

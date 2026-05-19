@@ -21,6 +21,9 @@ function LoginForm() {
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('error')
 
+  const [loggedUser, setLoggedUser] = useState(null)
+  const navigate = useNavigate()
+
   const {
     register,
     handleSubmit,
@@ -42,13 +45,13 @@ function LoginForm() {
       const res = await login(payload)
 
       if (!res.success) {
-        
         setModalType('error');
         setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
         setShowModal(true);
         return;
       }
 
+      setLoggedUser(res.user)
       // ÉXITO
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
@@ -127,7 +130,7 @@ function LoginForm() {
 
             // login exitoso, redirige
             if (modalType === 'success') {
-              if (!user?.hasSelectedGenres) {
+              if (!loggedUser?.hasSelectedGenres) {
                 navigate('/favorites');
               } else {
                 navigate('/');

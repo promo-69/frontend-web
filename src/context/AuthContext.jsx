@@ -121,17 +121,19 @@ export function AuthProvider({ children }) {
   // ---------------------------------------------------------
 // VERIFY ACCOUNT
 // ---------------------------------------------------------
-  const verifyAccount = async (token) => {
+  const verifyAccount = async ({ email, token }) => {
     try {
-      const data = await verifyAccountRequest(token)
-      return { success: true, data }
+      const res = await verifyAccountRequest({ email, token })
+      return { success: true, data: res }
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al verificar cuenta',
+        message:
+          error.response?.data?.message || 'Error al verificar la cuenta',
       }
     }
   }
+
 
   return (
     <AuthContext.Provider
