@@ -123,8 +123,8 @@ export function AuthProvider({ children }) {
 // ---------------------------------------------------------
   const verifyAccount = async (token) => {
     try {
-      const data = await verifyAccountRequest(token)
-      return { success: true, data }
+      const response = await verifyAccountRequest(token)
+      return { success: true, data:response }
     } catch (error) {
       return {
         success: false,

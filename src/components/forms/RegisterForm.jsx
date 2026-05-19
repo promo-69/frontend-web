@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateName,
@@ -37,6 +37,45 @@ function RegisterForm() {
   }
 
   console.log('Género seleccionado en paso 1:', watch('gender'))
+
+  //guardar temporalemnte data en localstorage
+  useEffect(() => {
+    const saved = localStorage.getItem('registerFormStep1')
+    if (saved) {
+      const data = JSON.parse(saved)
+
+      setValue('name', data.name || '')
+      setValue('lastname', data.lastname || '')
+      setValue('email', data.email || '')
+      setValue('phone', data.phone || '')
+      setValue('gender', data.gender || '')
+      setValue('genderText', data.genderText || '')
+      setCountryCode(data.countryCode || '+58')
+    }
+  }, [])
+
+  useEffect(() => {
+    const formData = {
+      name: nameValue,
+      lastname: lastnameValue,
+      email: emailValue,
+      phone: phoneValue,
+      gender: watch('gender'),
+      genderText: watch('genderText'),
+      countryCode,
+    }
+
+    localStorage.setItem('registerFormStep1', JSON.stringify(formData))
+  }, [
+    nameValue,
+    lastnameValue,
+    emailValue,
+    phoneValue,
+    countryCode,
+    watch('gender'),
+    watch('genderText'),
+  ])
+
 
   return (
     <form
@@ -182,13 +221,13 @@ function RegisterForm() {
                 },
               })}
               placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
+              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"
             />
             <label
               htmlFor="phone"
-              className={`absolute left-0 top-0 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-6 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${phoneValue ? '-top-6 text-sm text-[#D9982F]' : 'top-1 text-base opacity-70'}`}
+              className={`absolute left-0 top-1 text-white font-montserrat transition-all duration-300 pointer-events-none
+              peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
+              ${phoneValue ? '-top-5 text-sm text-[#D9982F]' : 'top-1 text-base opacity-70'}`}
             >
               Teléfono
             </label>
