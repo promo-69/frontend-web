@@ -9,11 +9,11 @@ import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 
-// 1. Un pequeño Layout que solo tiene el Header y el contenido (Outlet)
+
 const PublicLayout = () => {
   return (
     <>
-      <Header isLoggedIn={false} userName="Yessea"/>
+      <Header />
       <main>
         <Outlet />
       </main>
@@ -27,7 +27,7 @@ export const publicRoutes = (
     {/* Grupo de rutas conHeader */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
-      <Route path="/profile" element={<Profile />} />
+      {/*<Route path="/profile" element={<Profile />} />*/}
     </Route>
 
     {/* Rutas sin Header */}

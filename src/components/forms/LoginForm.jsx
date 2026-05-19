@@ -21,7 +21,7 @@ function LoginForm() {
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('error')
 
-  const [loggedUser, setLoggedUser] = useState(null)
+  //const [loggedUser, setLoggedUser] = useState(null)
   const navigate = useNavigate()
 
   const {
@@ -51,7 +51,7 @@ function LoginForm() {
         return;
       }
 
-      setLoggedUser(res.user)
+      //setLoggedUser(res.user)
       // ÉXITO
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
@@ -130,7 +130,7 @@ function LoginForm() {
 
             // login exitoso, redirige
             if (modalType === 'success') {
-              if (!loggedUser?.hasSelectedGenres) {
+              if (!res.user?.hasSelectedGenres) {
                 navigate('/favorites');
               } else {
                 navigate('/');
