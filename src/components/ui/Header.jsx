@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { name: 'Empresa', path: '/empresa' },
 ]
 
-function Header({ isLoggedIn = true, userName = 'Yessea' }) {
+function Header() {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
   const [isCityOpen, setIsCityOpen] = useState(false)
@@ -29,9 +29,10 @@ function Header({ isLoggedIn = true, userName = 'Yessea' }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [selectedCity, setSelectedCity] = useState('Barquisimeto')
 
-  const displayName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name || user.username || user.email || userName
-    : userName
+  const isLoggedIn = !!user
+  const displayName =
+    user?.firstName || user?.name || user?.email?.split('@')[0]
+
 
   // Dropdown para Cartelera
   const CarteleraDropdown = () => (
