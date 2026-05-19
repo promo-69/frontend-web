@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateName,
@@ -12,6 +12,8 @@ import InputText from '../ui/InputText'
 
 function RegisterForm() {
   const navigate = useNavigate()
+
+  const phoneRef = useRef(null)
 
   const {
     register,
@@ -29,16 +31,29 @@ function RegisterForm() {
   const [gender, setGender] = useState('Masculino')
   const [isGenderOpen, setIsGenderOpen] = useState(false)
 
-  const [countryCode, setCountryCode] = useState('+58') 
+  const [countryCode, setCountryCode] = useState('+58')
   const [isOpen, setIsOpen] = useState(false)
 
   const onSubmit = (values) => {
-    navigate('/register2', { state: { ...values, countryCode, gender:values.gender } })
+    navigate('/register2', {
+      state: { ...values, countryCode, gender: values.gender },
+    })
   }
 
   console.log('Género seleccionado en paso 1:', watch('gender'))
 
-  //guardar temporalemnte data en localstorage
+  // 1. EFECTO PARA MANEJAR EL CLICK OUTSIDE (Separado para que sea limpio)
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (phoneRef.current && !phoneRef.current.contains(e.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  //CARGAR LOS DATOS AL MONTAR EL COMPONENTE
   useEffect(() => {
     const saved = localStorage.getItem('registerFormStep1')
     if (saved) {
@@ -52,9 +67,13 @@ function RegisterForm() {
       setValue('genderText', data.genderText || '')
       setCountryCode(data.countryCode || '+58')
     }
-  }, [])
+  }, [setValue]) 
 
+  //GUARDAR EN LOCALSTORAGE CUANDO CAMBIEN LOS VALORES
   useEffect(() => {
+    // Evitamos guardar si estan vacios los campos
+    if (!nameValue && !lastnameValue && !emailValue && !phoneValue) return
+
     const formData = {
       name: nameValue,
       lastname: lastnameValue,
@@ -75,7 +94,6 @@ function RegisterForm() {
     watch('gender'),
     watch('genderText'),
   ])
-
 
   return (
     <form
@@ -169,73 +187,75 @@ function RegisterForm() {
         />
 
         {/* Teléfono */}
-        <div className="relative w-full">
-          <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-            {/* MENU SELECTOR */}
-            <button
-              type="button"
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-white flex items-center gap-1 focus:outline-none"
-            >
-              <span>{countryCode === '+58' ? '🇻🇪' : '🇨🇴'}</span>
-              <span className="text-sm">{countryCode}</span>
-            </button>
+        <div ref={phoneRef} className="flex flex-col w-full">
+          <div className="relative w-full">
+            <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
+              {/* MENU SELECTOR */}
+              <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-white flex items-center gap-1 focus:outline-none"
+              >
+                <span>{countryCode === '+58' ? '🇻🇪' : '🇨🇴'}</span>
+                <span className="text-sm">{countryCode}</span>
+              </button>
 
-            {/* MENU DESPLEGABLE */}
-            {isOpen && (
-              <div className="absolute top-12 left-0 bg-[#231640] border border-[#D9982F] rounded shadow-lg z-50 p-2 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCountryCode('+58')
-                    setIsOpen(false)
-                  }}
-                  className="flex items-center gap-2 text-white hover:text-[#D9982F]"
-                >
-                  <span>🇻🇪</span> +58
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCountryCode('+57')
-                    setIsOpen(false)
-                  }}
-                  className="flex items-center gap-2 text-white hover:text-[#D9982F]"
-                >
-                  <span>🇨🇴</span> +57
-                </button>
-              </div>
-            )}
+              {/* MENU DESPLEGABLE */}
+              {isOpen && (
+                <div className="absolute top-12 left-0 bg-[#231640] border border-[#D9982F] rounded shadow-lg z-50 p-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCountryCode('+58')
+                      setIsOpen(false)
+                    }}
+                    className="flex items-center gap-2 text-white hover:text-[#D9982F]"
+                  >
+                    <span>🇻🇪</span> +58
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCountryCode('+57')
+                      setIsOpen(false)
+                    }}
+                    className="flex items-center gap-2 text-white hover:text-[#D9982F]"
+                  >
+                    <span>🇨🇴</span> +57
+                  </button>
+                </div>
+              )}
 
-            <input
-              type="tel"
-              id="phone"
-              {...register('phone', {
-                validate: (value) => {
-                  const cleaned = cleanNumber(value)
-                  const phoneValidation = validatePhone(cleaned)
-                  if (phoneValidation !== true) return phoneValidation
-                  if (cleaned.length < 7 || cleaned.length > 15)
-                    return 'Teléfono debe tener entre 7 y 15 dígitos'
-                  return true
-                },
-              })}
-              placeholder=" "
-              className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"
-            />
-            <label
-              htmlFor="phone"
-              className={`absolute left-0 top-1 text-white font-montserrat transition-all duration-300 pointer-events-none
+              <input
+                type="tel"
+                id="phone"
+                {...register('phone', {
+                  validate: (value) => {
+                    const cleaned = cleanNumber(value)
+                    const phoneValidation = validatePhone(cleaned)
+                    if (phoneValidation !== true) return phoneValidation
+                    if (cleaned.length < 7 || cleaned.length > 15)
+                      return 'Teléfono debe tener entre 7 y 15 dígitos'
+                    return true
+                  },
+                })}
+                placeholder=" "
+                className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"
+              />
+              <label
+                htmlFor="phone"
+                className={`absolute left-0 top-1 text-white font-montserrat transition-all duration-300 pointer-events-none
               peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
               ${phoneValue ? '-top-5 text-sm text-[#D9982F]' : 'top-1 text-base opacity-70'}`}
-            >
-              Teléfono
-            </label>
-            {errors.phone && (
-              <p className="absolute left-0 -bottom-5 text-red-500">
-                {errors.phone.message}
-              </p>
-            )}
+              >
+                Teléfono
+              </label>
+              {errors.phone && (
+                <p className="absolute left-0 -bottom-5 text-red-500">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

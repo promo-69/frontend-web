@@ -16,17 +16,20 @@ function VerifyAccount() {
   const [isSuccess, setIsSuccess] = useState(false)
 
   useEffect(() => {
+    const email = searchParams.get('email')
     const token = searchParams.get('token')
-    if (!token) {
+
+    if (!email || !token) {
       setIsLoading(false)
-      setMessage('Token no encontrado en la URL')
+      setMessage('Datos inválidos en el enlace')
       setIsSuccess(false)
       return
     }
 
     const validateToken = async () => {
-      const res = await verifyAccount(token)
+      const res = await verifyAccount({ email, token })
       setIsLoading(false)
+
       if (res.success) {
         setMessage('Cuenta verificada exitosamente')
         setIsSuccess(true)
@@ -37,7 +40,8 @@ function VerifyAccount() {
     }
 
     validateToken()
-  }, [searchParams, verifyAccount])
+  }, [])
+
 
   return (
     <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
