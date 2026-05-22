@@ -1,4 +1,4 @@
-import registerImage from '../../assets/images/register.png'
+import registerImage from '../../assets/images/RegisterHD.webp'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm2 from '../../components/forms/RegisterForm2'
 import { useNavigate } from 'react-router-dom'
@@ -33,9 +33,8 @@ function Register2() {
             </p>
             <RegisterForm2 />
             <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100 pt-5">
-              ¿Ya tienes cuenta?
               <a href="/login" className="text-[#D9982F] underline">
-                Inicia sesión
+                 ¿Ya tienes cuenta? Inicia sesión
               </a>
             </p>
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
