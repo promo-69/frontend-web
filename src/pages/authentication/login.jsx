@@ -1,5 +1,5 @@
 import React from 'react'
-import loginImage from '../../assets/images/LoginHD.jpg'
+import loginImage from '../../assets/images/LoginHD.webp'
 import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate } from 'react-router-dom'
@@ -27,9 +27,8 @@ function Login() {
             </p>
             <LoginForm />
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
-              ¿No tienes cuenta?
               <a href="/register" className="text-[#D9982F] underline">
-                Regístrate
+                ¿No tienes cuenta? Regístrate
               </a>
             </p>
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">

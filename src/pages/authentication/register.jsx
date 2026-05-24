@@ -1,4 +1,4 @@
-import registerImage from '../../assets/images/register.png'
+import registerImage from '../../assets/images/RegisterHD.webp'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm from '../../components/forms/RegisterForm'
 import { useNavigate } from 'react-router-dom'
