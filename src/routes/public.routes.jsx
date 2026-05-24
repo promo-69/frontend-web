@@ -9,6 +9,12 @@ import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 
+import MovieDetails from '../pages/public/MovieDetails'
+// TEMPORAL PRIVATE PAGES (public while login is not ready)
+import SelectSeats from '../pages/private/buy/SelectSeats';
+import Confectionery from '../pages/private/buy/Confectionery';
+import Payment from '../pages/private/buy/Payment';
+import Success from '../pages/private/buy/succesQR';
 
 const PublicLayout = () => {
   return (
@@ -28,6 +34,17 @@ export const publicRoutes = (
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
       {/*<Route path="/profile" element={<Profile />} />*/}
+
+      <Route path="/movie/:movieId" element={<MovieDetails />} />
+
+      {/* TEMPORAL: rutas de compra aquí mientras login funcione */}
+      <Route path="/buy/:movieId/:showtimeId" element={<SelectSeats />} />
+      <Route
+        path="/buy/:movieId/:showtimeId/confectionery"
+        element={<Confectionery />}
+      />
+      <Route path="/buy/:movieId/:showtimeId/payment" element={<Payment />} />
+      <Route path="/buy/success" element={<Success />} />
     </Route>
 
     {/* Rutas sin Header */}

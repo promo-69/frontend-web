@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Step2Seats from '../../../components/buyTickets/Step2Seats'
 import {
-  getMovie,
-  getShowtime,
+  getMovieById,
+  getShowtimeById,
   getSeatMap,
 } from '../../../services/localStorage.service'
 
@@ -16,8 +16,8 @@ export default function SelectSeats() {
   const [seatMap, setSeatMap] = useState([])
 
   useEffect(() => {
-    setMovie(getMovie(movieId))
-    setShowtime(getShowtime(showtimeId))
+    setMovie(getMovieById(movieId))
+    setShowtime(getShowtimeById(showtimeId))
     setSeatMap(getSeatMap(showtimeId))
   }, [])
 
