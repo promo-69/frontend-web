@@ -1,89 +1,116 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import {
-  getMovieById,
-  getShowtimesByMovie,
-} from '../../services/localStorage.service'
+import { getMovieById } from '../../services/movies.service'
 
 export default function MovieDetails() {
   const { movieId } = useParams()
   const navigate = useNavigate()
 
   const [movie, setMovie] = useState(null)
-  const [showtimes, setShowtimes] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const id = Number(movieId)
+    async function loadMovie() {
+      try {
+        const response = await getMovieById(movieId)
+        setMovie(response)
+      } catch (err) {
+        console.error('Error cargando película:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    setMovie(getMovieById(id))
-    setShowtimes(getShowtimesByMovie(id))
+    loadMovie()
   }, [movieId])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
+        <p className="text-xl opacity-70">Cargando película...</p>
+      </div>
+    )
+  }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-[#231640] text-white flex items-center justify-center">
-        <p className="text-xl opacity-70">Cargando película...</p>
+      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
+        <p className="text-xl opacity-70">Película no encontrada</p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-[#231640] text-white pb-20">
-      {/* HERO */}
-      <section className="relative w-full h-[350px] md:h-[500px] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-[#231640] z-10" />
+      {/* CONTENEDOR PRINCIPAL */}
+      <div className="max-w-6xl mx-auto px-6 md:px-10 pt-10">
+        {/* POSTER + INFO */}
+        <div className="flex flex-col md:flex-row gap-10">
+          {/* POSTER */}
+          <div className="w-full md:w-1/3">
+            <div className="w-full aspect-[2/3] bg-white/10 rounded-2xl border border-white/10 shadow-xl flex items-center justify-center text-gray-400 text-lg">
+              {/* Cuando tengas poster_url, reemplaza esto: */}
+              {/* <img src={movie.poster_url} className="w-full h-full object-cover rounded-2xl" /> */}
+              PÓSTER NO DISPONIBLE
+            </div>
+          </div>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-20">
-          <h1 className="text-4xl md:text-6xl font-bold italic mb-4">
-            {movie.title}
-          </h1>
-          <p className="text-gray-300 text-lg md:text-xl max-w-2xl">
-            {movie.description || 'Sinopsis no disponible.'}
-          </p>
-        </div>
+          {/* INFORMACIÓN PRINCIPAL */}
+          <div className="w-full md:w-2/3">
+            <h1 className="text-4xl md:text-6xl font-bold italic mb-6 leading-tight">
+              {movie.title}
+            </h1>
 
-        <div className="absolute inset-0 bg-[#3a3a3a]" />
-      </section>
+            <p className="text-gray-300 text-lg md:text-xl mb-8 leading-relaxed">
+              {movie.synopsis}
+            </p>
 
-      {/* CONTENIDO */}
-      <main className="px-6 md:px-16 mt-10">
-        <h2 className="text-[#f4b400] text-2xl md:text-3xl font-bold mb-6">
-          Horarios disponibles
-        </h2>
+            {/* DATOS ORGANIZADOS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/5 p-6 rounded-2xl border border-white/10">
+              <div>
+                <p className="text-gray-400 text-sm">Duración</p>
+                <p className="text-white font-semibold">
+                  {movie.duration_minutes} min
+                </p>
+              </div>
 
-        {showtimes.length === 0 && (
-          <p className="text-gray-400">No hay horarios disponibles.</p>
-        )}
+              <div>
+                <p className="text-gray-400 text-sm">Clasificación</p>
+                <p className="text-white font-semibold">
+                  {movie.age_classification?.description}
+                </p>
+              </div>
 
-        <div className="flex flex-wrap gap-4">
-          {showtimes.map((s) => (
+              <div>
+                <p className="text-gray-400 text-sm">Estado</p>
+                <p className="text-white font-semibold">
+                  {movie.lifecycle_state?.description}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-400 text-sm">Fecha de Estreno</p>
+                <p className="text-white font-semibold">{movie.release_date}</p>
+              </div>
+
+              <div className="md:col-span-2">
+                <p className="text-gray-400 text-sm">Géneros</p>
+                <p className="text-white font-semibold">
+                  {movie.genres?.map((g) => g.description).join(', ')}
+                </p>
+              </div>
+            </div>
+
+            {/* BOTÓN TEMPORAL PARA IR A SELECT SEATS */}
             <button
-              key={s.id}
-              onClick={() => navigate(`/buy/${movieId}/${s.id}`)}
-              className="px-6 py-3 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all text-lg"
+              onClick={() => navigate(`/buy/${movieId}/1`)}
+              className="mt-10 px-10 py-4 bg-[#f4b400] text-[#231640] rounded-xl font-bold text-lg hover:bg-[#ffcc4d] transition-all"
             >
-              {s.time}
+              Seleccionar Asientos
             </button>
-          ))}
+          </div>
         </div>
-
-        <section className="mt-16">
-          <h3 className="text-xl font-bold mb-3">Género</h3>
-          <p className="text-gray-300 mb-6">
-            {movie.genre || 'No especificado'}
-          </p>
-
-          <h3 className="text-xl font-bold mb-3">Duración</h3>
-          <p className="text-gray-300 mb-6">
-            {movie.duration || 'No disponible'}
-          </p>
-
-          <h3 className="text-xl font-bold mb-3">Clasificación</h3>
-          <p className="text-gray-300 mb-6">
-            {movie.rating || 'No disponible'}
-          </p>
-        </section>
-      </main>
+      </div>
     </div>
   )
 }
