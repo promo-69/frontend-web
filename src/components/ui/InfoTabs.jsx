@@ -1,28 +1,33 @@
 import React, { useState } from 'react';
 
-// Eliminamos las interfaces de TypeScript ya que estamos en JavaScript (.jsx)
-
 export const InfoTabs = ({ tabs = [] }) => {
-  // Aseguramos que tabs exista antes de buscar el primer id
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || '');
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6">
-      {/* Contenedor de los botones de las pestañas */}
-      <div className="flex border-b border-white/20 relative justify-start sm:justify-around items-end overflow-x-auto no-scrollbar">
+    <div className="w-full max-w-5xl mx-auto px-2 sm:px-4 py-6">
+      {/* Contenedor de los botones - Eliminamos overflow-x-auto y no-scrollbar */}
+      <div className="flex border-b border-white/20 relative justify-between items-stretch w-full">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-[150px] text-center pb-3 text-sm font-medium tracking-wide transition-all duration-300 relative focus:outline-none
+              /* Explicación de clases clave:
+                - flex-1 y flex-col: reparte el espacio equitativamente y permite centrar texto verticalmente.
+                - text-[10px] sm:text-sm md:text-base: reduce drásticamente la letra en móviles.
+                - leading-tight o leading-none: evita que quede mucho espacio si el texto pasa a dos líneas.
+              */
+              className={`flex-1 flex flex-col justify-center items-center text-center pb-3 px-1 sm:px-4 text-[10px] sm:text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 relative focus:outline-none min-w-0 leading-tight md:leading-normal
                 ${isActive 
                   ? 'text-[#F6AD38]' 
-                  : 'text-white/80 hover:text-white'
+                  : 'text-white/60 hover:text-white'
                 }`}
             >
-              {tab.label}
+              {/* Contenedor interno para manejar la rotura de palabras si es necesario */}
+              <span className="block max-w-full break-words">
+                {tab.label}
+              </span>
               
               {/* Línea indicadora inferior */}
               <div
@@ -38,7 +43,7 @@ export const InfoTabs = ({ tabs = [] }) => {
       </div>
 
       {/* Contenedor del contenido indexado */}
-      <div className="mt-6 text-white bg-white/5 p-6 rounded-lg backdrop-blur-sm min-h-[200px]">
+      <div className="mt-6 text-white bg-white/5 p-4 sm:p-6 rounded-2xl backdrop-blur-sm min-h-[200px]">
         {tabs.find((tab) => tab.id === activeTab)?.content}
       </div>
     </div>

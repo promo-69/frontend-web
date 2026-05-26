@@ -1,8 +1,8 @@
 import React from 'react'
+import Header from '../../components/ui/Header' // Asegúrate de ajustar la ruta correcta hacia tu componente Header
 import { InfoTabs } from '../../components/ui/InfoTabs'
 
 function AboutUs() {
-  // Configuración de los datos que alimentarán tus pestañas
   const empresaTabs = [
     {
       id: 'sobre-nosotros',
@@ -64,28 +64,22 @@ function AboutUs() {
   ]
 
   return (
-    /* Mismo color de fondo y propiedades estéticas que tu Home para mantener consistencia */
-    <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex flex-col justify-between font-['Montserrat']">
       
-      {/* Contenedor principal del contenido. 
-        El padding-top (pt-24 y md:pt-32) asegura que el Header fijo no tape las pestañas.
-      */}
-      <main className="flex-grow px-4 sm:px-6 md:px-16 pt-24 md:pt-36 pb-12">
-        <div className="max-w-5xl mx-auto">
+      {/* 1. Insertamos el Header aquí arriba */}
+      <Header />
+      
+      {/* 2. Contenedor principal ajustado responsivamente */}
+      <main className="flex-grow px-4 sm:px-8 md:px-16 pt-28 md:pt-36 pb-12">
+        <div className="max-w-6xl mx-auto">
           
-          {/* Título de la sección (Opcional, puedes removerlo si deseas el diseño exacto de tu captura) */}
-          <div className="text-center mb-4 md:mb-8">
-            <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">Company - Info</span>
-            <h2 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight">Nuestra Empresa</h2>
-          </div>
-
-          {/* Invocación del componente con los datos adaptados */}
+          {/* Renderizado de las pestañas adaptativas */}
           <InfoTabs tabs={empresaTabs} />
           
         </div>
       </main>
 
-      {/* Footer consistente con la aplicación */}
+      {/* Footer consistente */}
       <footer className="py-8 text-center text-gray-500 border-t border-white/10 text-xs md:text-sm bg-[#231640]">
         <p>&copy; 2026 CINEFLIX - Todos los derechos reservados.</p>
       </footer>
