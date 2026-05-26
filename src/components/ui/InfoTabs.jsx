@@ -1,0 +1,1 @@
+//aqui va lo de un componente de un boton para cambiar entre opciones
