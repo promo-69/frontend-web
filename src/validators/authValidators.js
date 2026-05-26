@@ -42,3 +42,9 @@ export const validatePassword = (value) => {
   if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) return 'Debe incluir mayúscula, minúscula y número'
   return true
 }
+
+export const validateLoginPassword = (value) => {
+  if (!value) return 'La contraseña es requerida'
+  return true
+}
+
