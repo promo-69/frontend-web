@@ -1,21 +1,19 @@
-import React, { useState, useContext } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
   validateID,
   validateBirthdate,
   validatePassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
-import { useNavigate } from 'react-router-dom'
-import  SuccessModal from '../ui/SuccessModal'
+import { useNavigate, useLocation } from 'react-router-dom'
 import ModalMessage from '../ui/ModalMessage'
 import InputPassword from '../ui/InputPassword'
-import { useLocation } from 'react-router-dom'
-import { AuthContext } from '../../context/AuthContext'
+
+// IMPORTACIÓN DIRECTA DE TU SERVICIO (Evita el choque con el Contexto)
+import { registerRequest } from '../../services/auth.service'
 
 function RegisterForm2() {
-  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -23,8 +21,6 @@ function RegisterForm2() {
 
   console.log('Datos recibidos del paso 1:', step1Data)
   console.log('Género recibido en paso 2:', step1Data?.gender)
-
-  const { register: registerUser } = useContext(AuthContext)
 
   const {
     register,
@@ -49,7 +45,6 @@ function RegisterForm2() {
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('success')
 
-
   const onSubmit = async (values) => {
     setIsLoading(true)
     const payload = {
@@ -66,11 +61,13 @@ function RegisterForm2() {
     console.log('Payload enviado al backend:', payload)
 
     try {
-      const res = await registerUser(payload)
+      console.log('ENVIANDO DATOS AL SERVICIO...')
+      const res = await registerRequest(payload)
 
-      if (!res.success) {
+      // Se evalúa la respuesta según la estructura de Axios de tu Web Cliente
+      if (!res || res.success === false) {
         setModalType('error')
-        setModalMessage(res.message || 'Error al registrar')
+        setModalMessage(res?.message || 'Error al registrar')
         setShowSuccessModal(true)
       } else {
         setModalType('success')
@@ -78,8 +75,11 @@ function RegisterForm2() {
         setShowSuccessModal(true)
       }
     } catch (error) {
+      console.error('Error capturado en la petición de registro:', error)
+
       setModalType('error')
-      setModalMessage('Error inesperado')
+      // Muestra el mensaje real del backend si existe (por ejemplo: "El correo ya existe")
+      setModalMessage(error.response?.data?.message || 'Error inesperado')
       setShowSuccessModal(true)
     } finally {
       setIsLoading(false)
@@ -150,7 +150,7 @@ function RegisterForm2() {
               className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base"
             />
 
-            {/* LABEL FLOTANTE */}
+            {/* LABEL FLOTANTE (Corregido el auto-cierre) */}
             <label
               htmlFor="idNumber"
               className={`absolute transition-all duration-300 pointer-events-none font-montserrat
