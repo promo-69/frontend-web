@@ -1,35 +1,42 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, test, expect, vi } from 'vitest'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
 import RegisterForm2 from '../RegisterForm2'
-import { AuthContext } from '../../../context/AuthContext'
 import { MemoryRouter } from 'react-router-dom'
 
-const mockRegisterUser = vi.fn().mockResolvedValue({ success: true })
+// 1. MOCKEAMOS EL SERVICIO DIRECTO EN LUGAR DEL CONTEXTO
+vi.mock('../../../services/auth.service', () => ({
+  registerRequest: vi.fn(),
+}))
+
+// Importamos la función mockeada para poder controlar sus respuestas y espionajes
+import { registerRequest } from '../../../services/auth.service'
 
 describe('RegisterForm2', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   const renderComponent = () =>
     render(
-      <AuthContext.Provider value={{ register: mockRegisterUser }}>
-        <MemoryRouter
-          initialEntries={[
-            {
-              pathname: '/register2',
-              state: {
-                name: 'Juan',
-                lastname: 'Perez',
-                email: 'test@test.com',
-                countryCode: '+58',
-                phone: '1234567',
-                gender: 'M',
-              },
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/register2',
+            state: {
+              name: 'Juan',
+              lastname: 'Perez',
+              email: 'test@test.com',
+              countryCode: '+58',
+              phone: '1234567',
+              gender: 'M',
             },
-          ]}
-        >
-          <RegisterForm2 />
-        </MemoryRouter>
-      </AuthContext.Provider>,
+          },
+        ]}
+      >
+        <RegisterForm2 />
+      </MemoryRouter>,
     )
 
   test('renderiza correctamente', () => {
@@ -40,19 +47,41 @@ describe('RegisterForm2', () => {
   })
 
   test('envía formulario correctamente', async () => {
+    // Simulamos que el servicio responde exitosamente
+    vi.mocked(registerRequest).mockResolvedValue({ success: true })
+
     const user = userEvent.setup()
     renderComponent()
 
+    // Llenamos los campos usando sus respectivos labels
     await user.type(screen.getByLabelText('Cédula'), '12345678')
     await user.type(screen.getByLabelText('Fecha de nacimiento'), '2000-01-01')
-    await user.type(screen.getByLabelText('Contraseña'), 'Password123!')
-    await user.type(
-      screen.getByLabelText('Confirmar contraseña'),
-      'Password123!',
-    )
 
-    await user.click(screen.getByText(/Guardar/i))
+    // Si tienes múltiples inputs de tipo contraseña, los buscamos de manera segura
+    const passwordInput = screen.getByLabelText('Contraseña')
+    const confirmPasswordInput = screen.getByLabelText('Confirmar contraseña')
 
-    expect(mockRegisterUser).toHaveBeenCalled()
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmPasswordInput, 'Password123!')
+
+    // Enviamos el formulario
+    await user.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    // Esperamos a que la microtarea asíncrona del submit se complete y verifique el servicio
+    await waitFor(() => {
+      expect(registerRequest).toHaveBeenCalled()
+    })
+
+    // Opcional: Verificamos que el payload se construya con la combinación del Paso 1 y Paso 2
+    expect(registerRequest).toHaveBeenCalledWith({
+      firstName: 'Juan',
+      lastName: 'Perez',
+      email: 'test@test.com',
+      phoneNumber: '+581234567',
+      documentNumber: 'V12345678',
+      birthDate: '2000-01-01',
+      password: 'Password123!',
+      gender: 'M',
+    })
   })
 })

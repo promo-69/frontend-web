@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
   validateEmail,
-  validatePassword,
+  validateLoginPassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
 import { AuthContext } from '../../context/AuthContext'
@@ -90,7 +90,7 @@ function LoginForm() {
           label="Contraseña"
           register={register('password', {
             validate: (value) =>
-              validatePassword(value) === true || validatePassword(value),
+              validateLoginPassword(value) === true || validateLoginPassword(value),
           })}
           error={errors.password?.message}
           value={passwordValue}
