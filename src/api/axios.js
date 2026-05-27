@@ -12,10 +12,14 @@ const api = axios.create({
 let isRefreshing = false
 let failedQueue = []
 
-const processQueue = (error) => {
+// Modificado para pasar el error si el refresh falla
+const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
-    if (error) prom.reject(error)
-    else prom.resolve()
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
   })
   failedQueue = []
 }
@@ -25,37 +29,42 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Si es 401 y no hemos reintentado
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Evitar refrescar desde /auth/refresh
+      // CRÍTICO: Si la petición que falló ya era el refresh, no intentes refrescar otra vez
       if (originalRequest.url === '/auth/refresh') {
         return Promise.reject(error)
       }
 
-      // Si ya hay un refresh en progreso → cola
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
-        }).then(() => api(originalRequest))
+        })
+          .then(() => {
+            return api(originalRequest)
+          })
+          .catch((err) => {
+            return Promise.reject(err)
+          })
       }
 
       originalRequest._retry = true
       isRefreshing = true
 
       try {
-        // Intento de refresh
         await api.post('/auth/refresh')
 
         processQueue(null)
         isRefreshing = false
 
-        // Reintentar la petición original
         return api(originalRequest)
       } catch (err) {
-        processQueue(err)
+        // Si el refresh falla, cancelamos la cola pasándole el error
+        processQueue(err, null)
         isRefreshing = false
 
-        // Redirigir al login
+        // Limpiamos rastro del usuario local
+        localStorage.removeItem('user_logged')
+
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
         }

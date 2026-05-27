@@ -50,8 +50,8 @@ export default function MovieDetails() {
           <div className="w-full md:w-1/3">
             <div className="w-full aspect-[2/3] bg-white/10 rounded-2xl border border-white/10 shadow-xl flex items-center justify-center text-gray-400 text-lg">
               {/* Cuando tengas poster_url, reemplaza esto: */}
-              {/* <img src={movie.poster_url} className="w-full h-full object-cover rounded-2xl" /> */}
-              PÓSTER NO DISPONIBLE
+              <img src={movie.poster_url} className="w-full h-full object-cover rounded-2xl" /> 
+              
             </div>
           </div>
 
