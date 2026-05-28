@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getMovieById } from '../../services/movies.service'
 import Showtimes from '../../components/showtimesMovie/Showtimes'
+import SelectSeats from '../private/buy/selectSeats'
 
 export default function MovieDetails() {
   const { movieId } = useParams()
@@ -103,6 +104,12 @@ export default function MovieDetails() {
                 </p>
               </div>
             </div>
+            <button
+              onClick={() => navigate(`/selectSeats/${movieId}/1`)} // ID de la película y un showtimeId temporal
+              className="mt-6 px-6 py-3 bg-[#f4b400] text-black rounded-xl font-bold"
+            >
+              Ir a Asientos (Temporal)
+            </button>
           </div>
         </div>
         {/* SECCIÓN DE FUNCIONES */}

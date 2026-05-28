@@ -1,10 +1,11 @@
 import { Route } from 'react-router-dom'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
-import SelectSeats from '../pages/private/buy/SelectSeats'
 import { PrivateRoute } from './PrivateRoute'
-
-// mientras se crean las pages internas: compra boletos, pago. etc...
+import SelectSeats from '../pages/private/buy/selectSeats';
+//import Confectionery from '../pages/private/buy/Confectionery';
+//import Payment from '../pages/private/buy/Payment';
+//import Success from '../pages/private/buy/succesQR';
 
 export const privateRoutes = (
   <>
@@ -24,8 +25,9 @@ export const privateRoutes = (
         </PrivateRoute>
       }
     />
+    {/* Flujo de compra completo protegido */}
     <Route
-      path="/selectSeats"
+      path="/selectSeats/:movieId/:showtimeId"
       element={
         <PrivateRoute>
           <SelectSeats />
@@ -34,3 +36,16 @@ export const privateRoutes = (
     />
   </>
 )
+
+{
+  /* TEMPORAL: rutas de compra aquí mientras los enpoints esten listos*/
+}
+{
+  /*<Route path="/buy/:movieId/:showtimeId" element={<SelectSeats />} />
+      <Route
+        path="/buy/:movieId/:showtimeId/confectionery"
+        element={<Confectionery />}
+      />
+      <Route path="/buy/:movieId/:showtimeId/payment" element={<Payment />} />
+      <Route path="/buy/success" element={<Success />} />*/
+}

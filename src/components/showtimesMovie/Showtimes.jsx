@@ -53,7 +53,7 @@ export default function Showtimes({ movieId, cinemaId }) {
           </div>
 
           <button
-            onClick={() => navigate('/selectSeats')}
+            onClick={() => navigate(`/selectSeats/${movieId}/${s.id}`)}
             className="mt-4 md:mt-0 px-6 py-3 bg-[#f4b400] text-black rounded-xl font-bold hover:bg-[#ffcc33] transition"
           >
             Elegir Asientos

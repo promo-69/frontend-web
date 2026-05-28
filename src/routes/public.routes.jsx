@@ -10,12 +10,8 @@ import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 import Empresa from '../pages/public/AboutUs';
 
-import MovieDetails from '../pages/public/MovieDetails'
-// TEMPORAL PRIVATE PAGES (public while login is not ready)
-import SelectSeats from '../pages/private/buy/SelectSeats';
-import Confectionery from '../pages/private/buy/Confectionery';
-import Payment from '../pages/private/buy/Payment';
-import Success from '../pages/private/buy/succesQR';
+import MovieDetails from '../pages/public/MovieDetails';
+
 
 const PublicLayout = () => {
   return (
@@ -34,19 +30,8 @@ export const publicRoutes = (
     {/* Grupo de rutas conHeader */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
-
       <Route path="/movie/:movieId" element={<MovieDetails />} />
 
-      <Route path="/selectSeats" element={<SelectSeats />} />
-
-      {/* TEMPORAL: rutas de compra aquí mientras login funcione */}
-      {/*<Route path="/buy/:movieId/:showtimeId" element={<SelectSeats />} />
-      <Route
-        path="/buy/:movieId/:showtimeId/confectionery"
-        element={<Confectionery />}
-      />
-      <Route path="/buy/:movieId/:showtimeId/payment" element={<Payment />} />
-      <Route path="/buy/success" element={<Success />} />*/}
     </Route>
 
     {/* Rutas sin Header */}
