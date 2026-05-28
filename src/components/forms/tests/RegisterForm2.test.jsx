@@ -61,8 +61,8 @@ describe('RegisterForm2', () => {
     const passwordInput = screen.getByLabelText('Contraseña')
     const confirmPasswordInput = screen.getByLabelText('Confirmar contraseña')
 
-    await user.type(passwordInput, 'Password123!')
-    await user.type(confirmPasswordInput, 'Password123!')
+    await user.type(passwordInput, 'abc123')
+    await user.type(confirmPasswordInput, 'abc123')
 
     // Enviamos el formulario
     await user.click(screen.getByRole('button', { name: /Guardar/i }))
@@ -80,7 +80,7 @@ describe('RegisterForm2', () => {
       phoneNumber: '+581234567',
       documentNumber: 'V12345678',
       birthDate: '2000-01-01',
-      password: 'Password123!',
+      password: 'abc123',
       gender: 'M',
     })
   })
