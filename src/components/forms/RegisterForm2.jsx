@@ -63,7 +63,7 @@ function RegisterForm2() {
       console.log('ENVIANDO DATOS AL SERVICIO...')
       const res = await registerRequest(payload)
 
-      // Se evalúa la respuesta según la estructura de Axios de tu Web Cliente
+      // Se evalúa la respuesta según la estructura de Axios
       if (!res || res.success === false) {
         setModalType('error')
         setModalMessage(res?.message || 'Error al registrar')
@@ -245,7 +245,9 @@ function RegisterForm2() {
             // Si guardó los datos redirige a la página de verificación de email
             if (modalType === 'success') {
               localStorage.removeItem('registerFormStep1')
-              navigate('/email-check')
+              navigate('/email-check', {
+                state: { email: step1Data?.email },
+              })
             }
           }}
         />
