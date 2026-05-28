@@ -3,6 +3,7 @@ import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' // Nuev
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../../context/AuthContext'
+import { useAuth } from '../../context/AuthContext'
 
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
@@ -34,7 +35,13 @@ function Header() {
     user?.firstName || user?.name || user?.email?.split('@')[0]
 
 
-  // Dropdown para Cartelera
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    await logout() // Ejecuta la petición al backend, borra el localStorage y limpia el estado 'user'
+    navigate('/login') 
+  }
+    // Dropdown para Cartelera
   const CarteleraDropdown = () => (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -123,9 +130,7 @@ function Header() {
       </Link>
 
       <button
-        onClick={() => {
-          navigate('/login')
-        }}
+        onClick={handleLogout}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-[#8F2925] hover:bg-red-500/10 transition-colors mt-2 border-t border-[#F6AD38]/50 font-bold tracking-tight"
       >
         <span>Cerrar Sesión</span> <FiLogOut />
