@@ -1,7 +1,7 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import NewPasswordForm from '../NewPasswordForm'
 import { AuthContext } from '../../../../context/AuthContext'
 import { BrowserRouter } from 'react-router-dom'
@@ -18,6 +18,11 @@ vi.mock('react-router-dom', async () => {
 })
 
 describe('NewPasswordForm', () => {
+  // Limpiar el historial y comportamiento de los mocks antes de cada test
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   const setup = () => {
     return render(
       <BrowserRouter>
@@ -36,8 +41,9 @@ describe('NewPasswordForm', () => {
     const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password999')
+    // Contraseñas válidas en formato pero diferentes entre sí
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmInput, 'Password999!')
     await user.click(submitButton)
 
     expect(await screen.findByText(/No coinciden/i)).toBeInTheDocument()
@@ -54,8 +60,9 @@ describe('NewPasswordForm', () => {
     const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password123')
+    // Se agrega el carácter especial "!" para pasar la validación
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmInput, 'Password123!')
     await user.click(submitButton)
 
     expect(
@@ -74,8 +81,8 @@ describe('NewPasswordForm', () => {
     const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password123')
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmInput, 'Password123!')
     await user.click(submitButton)
 
     const closeButton = await screen.findByRole('button', { name: /Cerrar/i })
@@ -98,8 +105,8 @@ describe('NewPasswordForm', () => {
     const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password123')
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmInput, 'Password123!')
     await user.click(submitButton)
 
     expect(await screen.findByText(/Error backend/i)).toBeInTheDocument()
@@ -116,8 +123,8 @@ describe('NewPasswordForm', () => {
     const confirmInput = screen.getByLabelText(/Confirmar contraseña/i)
     const submitButton = screen.getByRole('button', { name: /Guardar/i })
 
-    await user.type(passwordInput, 'Password123')
-    await user.type(confirmInput, 'Password123')
+    await user.type(passwordInput, 'Password123!')
+    await user.type(confirmInput, 'Password123!')
     await user.click(submitButton)
 
     expect(
