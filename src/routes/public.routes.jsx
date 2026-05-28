@@ -34,18 +34,19 @@ export const publicRoutes = (
     {/* Grupo de rutas conHeader */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
-      {/*<Route path="/profile" element={<Profile />} />*/}
 
       <Route path="/movie/:movieId" element={<MovieDetails />} />
 
+      <Route path="/selectSeats" element={<SelectSeats />} />
+
       {/* TEMPORAL: rutas de compra aquí mientras login funcione */}
-      <Route path="/buy/:movieId/:showtimeId" element={<SelectSeats />} />
+      {/*<Route path="/buy/:movieId/:showtimeId" element={<SelectSeats />} />
       <Route
         path="/buy/:movieId/:showtimeId/confectionery"
         element={<Confectionery />}
       />
       <Route path="/buy/:movieId/:showtimeId/payment" element={<Payment />} />
-      <Route path="/buy/success" element={<Success />} />
+      <Route path="/buy/success" element={<Success />} />*/}
     </Route>
 
     {/* Rutas sin Header */}

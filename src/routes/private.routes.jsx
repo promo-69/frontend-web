@@ -1,6 +1,7 @@
 import { Route } from 'react-router-dom'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
+import SelectSeats from '../pages/private/buy/SelectSeats'
 import { PrivateRoute } from './PrivateRoute'
 
 // mientras se crean las pages internas: compra boletos, pago. etc...
@@ -20,6 +21,14 @@ export const privateRoutes = (
       element={
         <PrivateRoute>
           <Profile />
+        </PrivateRoute>
+      }
+    />
+    <Route
+      path="/selectSeats"
+      element={
+        <PrivateRoute>
+          <SelectSeats />
         </PrivateRoute>
       }
     />
