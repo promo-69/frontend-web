@@ -10,7 +10,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import ModalMessage from '../ui/ModalMessage'
 import InputPassword from '../ui/InputPassword'
 
-// IMPORTACIÓN DIRECTA DE TU SERVICIO (Evita el choque con el Contexto)
 import { registerRequest } from '../../services/auth.service'
 
 function RegisterForm2() {
@@ -64,7 +63,7 @@ function RegisterForm2() {
       console.log('ENVIANDO DATOS AL SERVICIO...')
       const res = await registerRequest(payload)
 
-      // Se evalúa la respuesta según la estructura de Axios de tu Web Cliente
+      // Se evalúa la respuesta según la estructura de Axios
       if (!res || res.success === false) {
         setModalType('error')
         setModalMessage(res?.message || 'Error al registrar')
@@ -78,7 +77,7 @@ function RegisterForm2() {
       console.error('Error capturado en la petición de registro:', error)
 
       setModalType('error')
-      // Muestra el mensaje real del backend si existe (por ejemplo: "El correo ya existe")
+      
       setModalMessage(error.response?.data?.message || 'Error inesperado')
       setShowSuccessModal(true)
     } finally {
@@ -246,7 +245,9 @@ function RegisterForm2() {
             // Si guardó los datos redirige a la página de verificación de email
             if (modalType === 'success') {
               localStorage.removeItem('registerFormStep1')
-              navigate('/email-check')
+              navigate('/email-check', {
+                state: { email: step1Data?.email },
+              })
             }
           }}
         />

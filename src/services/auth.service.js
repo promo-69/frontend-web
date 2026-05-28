@@ -16,9 +16,6 @@ export const loginRequest = async (data) => {
 export const refreshSessionRequest = async () => {
   try {
     const response = await api.post('/auth/refresh')
-    // Si tu backend devuelve { data: { user: {...} } } usa: response.data.data.user
-    // Si devuelve { data: { data: { user: {...} } } } mantén la estructura anidada.
-    // Vamos a retornar todo el bloque de datos de la respuesta de forma segura:
     return response.data
   } catch (error) {
     if (error.response?.status !== 401) {
@@ -89,10 +86,10 @@ export const resetPasswordRequest = async ({ email, newPassword }) => {
 // ---------------------------------------------------------
 // VERIFY ACCOUNT
 // ---------------------------------------------------------
-export const verifyAccountRequest = async ({ email, token }) => {
+export const verifyAccountRequest = async ({ email, code }) => {
   const response = await api.post(
     '/auth/verify-signup',
-    { email, token },
+    { email, code },
   )
   return response.data
 }
