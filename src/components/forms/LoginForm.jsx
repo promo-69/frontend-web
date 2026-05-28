@@ -130,7 +130,7 @@ function LoginForm() {
 
             // login exitoso, redirige
             if (modalType === 'success') {
-              if (!res.user?.hasSelectedGenres) {
+              if (!user?.hasSelectedGenres) {
                 navigate('/favorites');
               } else {
                 navigate('/');

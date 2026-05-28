@@ -48,9 +48,19 @@ describe('authValidators', () => {
   test('validatePassword', () => {
     expect(validatePassword('')).toBe('Contraseña requerida')
     expect(validatePassword('abc')).toBe('Mínimo 5 caracteres')
+
+    // Ahora esta debe fallar porque le falta el número y el carácter especial
     expect(validatePassword('abcdef')).toBe(
-      'Debe incluir letras y al menos un número',
+      'Debe incluir letras, al menos un número y un carácter especial',
     )
-    expect(validatePassword('abc12')).toBe(true)
+
+    // Esta también debe fallar ahora porque le falta el carácter especial
+    expect(validatePassword('abc12')).toBe(
+      'Debe incluir letras, al menos un número y un carácter especial',
+    )
+
+    // CASOS CORRECTOS (Tienen letras, número, símbolo y mínimo 5 caracteres)
+    expect(validatePassword('abc12!')).toBe(true)
+    expect(validatePassword('Cineflix69*')).toBe(true)
   })
 })

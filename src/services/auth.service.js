@@ -86,10 +86,10 @@ export const resetPasswordRequest = async ({ email, newPassword }) => {
 // ---------------------------------------------------------
 // VERIFY ACCOUNT
 // ---------------------------------------------------------
-export const verifyAccountRequest = async ({ email, token }) => {
+export const verifyAccountRequest = async ({ email, code }) => {
   const response = await api.post(
     '/auth/verify-signup',
-    { email, token },
+    { email, code },
   )
   return response.data
 }

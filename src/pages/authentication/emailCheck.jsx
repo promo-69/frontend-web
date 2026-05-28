@@ -8,8 +8,16 @@ import { verifyAccountRequest } from '../../services/auth.service'
 function EmailCheck() {
   const navigate = useNavigate()
   const location = useLocation()
+  console.log('¿Qué viene exactamente en el state?:', location.state)
 
-  const email = location.state?.email || ''
+  // Guardar y mantener el email a salvo si se recarga la página
+  const [email] = useState(() => {
+    if (location.state?.email) {
+      sessionStorage.setItem('pending_email', location.state.email)
+      return location.state.email
+    }
+    return sessionStorage.getItem('pending_email') || ''
+  })
 
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,12 +25,20 @@ function EmailCheck() {
   const [error, setError] = useState(null)
 
   const handleVerify = async () => {
+    // Si por alguna razón extrema el email sigue vacío, alertamos visualmente antes de disparar el error
+    if (!email) {
+      setError(
+        'No se encontró un correo asociado. Por favor, regresa al registro.',
+      )
+      return
+    }
     setLoading(true)
     setError(null)
     setMessage(null)
 
     try {
-      const res = await verifyAccountRequest({ email, token: code })
+      console.log('DATOS ENVIADOS:', { email, code: code.trim() })
+      const res = await verifyAccountRequest({ email, code: code.trim() })
       setMessage('Cuenta verificada correctamente. Redirigiendo...')
 
       setTimeout(() => navigate('/login'), 2000)
