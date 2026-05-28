@@ -38,8 +38,9 @@ export const validateBirthdate = (value) => {
 
 export const validatePassword = (value) => {
   if (!value) return 'Contraseña requerida'
-  if (value.length < 8) return 'Mínimo 8 caracteres'
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) return 'Debe incluir mayúscula, minúscula y número'
+  if (value.length < 5) return 'Mínimo 5 caracteres'
+  if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{5,}$/.test(value))
+    return 'Debe incluir letras y al menos un número'
   return true
 }
 

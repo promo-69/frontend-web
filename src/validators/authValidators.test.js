@@ -47,10 +47,10 @@ describe('authValidators', () => {
 
   test('validatePassword', () => {
     expect(validatePassword('')).toBe('Contraseña requerida')
-    expect(validatePassword('abc123')).toBe('Mínimo 8 caracteres')
-    expect(validatePassword('abcdefgh')).toBe(
-      'Debe incluir mayúscula, minúscula y número',
+    expect(validatePassword('abc')).toBe('Mínimo 5 caracteres')
+    expect(validatePassword('abcdef')).toBe(
+      'Debe incluir letras y al menos un número',
     )
-    expect(validatePassword('Abcdef12')).toBe(true)
+    expect(validatePassword('abc12')).toBe(true)
   })
 })
