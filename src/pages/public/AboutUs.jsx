@@ -137,19 +137,56 @@ function AboutUs() {
       id: 'terminos',
       label: 'Términos y Condiciones',
       content: (
-        <div className="space-y-4">
-          <h3 className="text-xl md:text-2xl font-bold text-[#F6AD38]">Políticas de Uso</h3>
-          <div className="text-xs md:text-sm text-gray-300 space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            <p>
-              <strong>1. Adquisición de Boletos:</strong> Toda compra realizada a través de nuestro portal web 
-              o aplicación móvil es definitiva. No se realizan cambios ni devoluciones de dinero una vez emitido el código de barra o ticket digital.
+        <div className="space-y-4 animate-fadeIn text-left font-['Montserrat']">
+          <div className="border-l-4 border-[#F6AD38] pl-4 mb-4">
+            <h3 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight">
+              Contrato de Términos y <span className="text-[#F6AD38]">Condiciones de Uso</span>
+            </h3>
+            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mt-0.5">
+              Portal Web Oficial de Cineflix, C.A.
             </p>
-            <p>
-              <strong>2. Acceso a las Salas:</strong> Es indispensable presentar el boleto digital o impreso al ingresar. Cineflix se reserva el derecho de admisión de acuerdo con las clasificaciones por edad estipuladas por las leyes locales.
+          </div>
+
+          <div className="text-xs md:text-sm text-gray-300 space-y-5 bg-white/[0.01] border border-white/5 p-6 rounded-2xl leading-relaxed">
+            <p className="text-gray-400 italic border-b border-white/5 pb-2">
+              El presente contrato regula las disposiciones de acceso, navegación y uso del portal entre la sociedad mercantil CINEFLIX, C.A. y EL USUARIO. El acceso o registro implica la aceptación plena de estas cláusulas.
             </p>
-            <p>
-              <strong>3. Confitería:</strong> Por motivos de higiene y seguridad, se restringe el acceso a las salas con alimentos y bebidas que no hayan sido adquiridos en los puntos de venta oficiales de Cineflix.
-            </p>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">PRIMERA: OBJETO</h5>
+              <p>Regular las condiciones para la consulta de cartelera, compra de boletos, adquisición de productos de confitería, gestión de cuentas y participación en programas de fidelización (CinePuntos).</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">SEGUNDA: REGISTRO DEL USUARIO</h5>
+              <p>Para acceder a los servicios, EL USUARIO deberá crear una cuenta proporcionando información veraz y completa, incluyendo: Nombre y Apellido, Cédula de Identidad (V o E), Correo Electrónico, Número de Teléfono, Fecha de Nacimiento y Contraseña de acceso.</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">TERCERA: FINALIDAD Y TRATAMIENTO DE DATOS</h5>
+              <p>Los datos personales serán recopilados y tratados con el fin de procesar transacciones de compra, validar la identidad para prevención de fraudes, gestionar reservas, facturación, administrar el programa de beneficios y cumplir con las regulaciones de la República Bolivariana de Venezuela.</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">CUARTA: CONDICIONES DE COMPRA</h5>
+              <p>Las operaciones se expresarán en Bolívares (Bs.) o moneda extranjera vigente. Toda compra generará un comprobante digital (código QR o de reserva) válido únicamente para la función, fecha y hora seleccionadas, incluyendo los impuestos de ley.</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">QUINTA: POLÍTICA DE CANCELACIÓN Y REEMBOLSO</h5>
+              <p>Las compras realizadas a través del portal son definitivas. No se realizan cambios ni devoluciones de dinero, salvo por cancelación de la función por parte de CINEFLIX, fallas técnicas atribuibles a la plataforma o situaciones comprobadas de fuerza mayor.</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">SEXTA: CLASIFICACIÓN Y ADMISIÓN</h5>
+              <p>CINEFLIX se reserva el derecho de admisión de acuerdo con las clasificaciones por edad estipuladas por las autoridades competentes. Es responsabilidad del usuario verificar la clasificación antes de comprar; su incumplimiento no generará reembolsos.</p>
+            </div>
+
+            <div>
+              <h5 className="text-[#F6AD38] font-bold uppercase text-[11px] tracking-wider mb-1">SÉPTIMA: USO DEL PORTAL Y PROPIEDAD INTELECTUAL</h5>
+              <p>Queda prohibida la reproducción total o parcial del diseño, estructura, código fuente, marcas y logotipos propiedad exclusiva de CINEFLIX. El uso indebido o actividades fraudulentas acarrearán la suspensión inmediata de la cuenta.</p>
+            </div>
+
           </div>
         </div>
       ),
