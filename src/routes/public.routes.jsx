@@ -9,6 +9,7 @@ import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 import Empresa from '../pages/public/AboutUs';
+import CinemasInfo from '../pages/public/InfoCinemas';
 
 import MovieDetails from '../pages/public/MovieDetails';
 
@@ -42,5 +43,6 @@ export const publicRoutes = (
     <Route path="/email-check" element={<EmailCheck />} />
     <Route path="/verify-account" element={<VerifyAccount />} />
     <Route path="/empresa" element={<Empresa />} />
+    <Route path="/sucursales" element={<CinemasInfo />} />
   </>
 )
