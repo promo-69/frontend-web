@@ -1,5 +1,4 @@
 import React from 'react'
-import Header from '../../components/ui/Header' // Asegúrate de ajustar la ruta correcta hacia tu componente Header
 import { InfoTabs } from '../../components/ui/InfoTabs'
 import groupPeopleCinema from '../../assets/images/group-people-cinema.webp'
 import cinemaStuffPopcorn from '../../assets/images/cinema-stuff-around-popcorn-heart.webp'
@@ -160,14 +159,10 @@ function AboutUs() {
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex flex-col justify-between font-['Montserrat']">
       
-      {/* 1. Insertamos el Header aquí arriba */}
-      <Header />
       
-      {/* 2. Contenedor principal con espaciado superior reducido (pt-20 md:pt-24) */}
       <main className="flex-grow px-4 sm:px-8 md:px-16 pt-20 md:pt-24 pb-12">
         <div className="max-w-6xl mx-auto">
           
-          {/* Renderizado de las pestañas adaptativas */}
           <InfoTabs tabs={empresaTabs} />
           
         </div>

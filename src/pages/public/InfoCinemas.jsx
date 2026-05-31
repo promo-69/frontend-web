@@ -1,13 +1,7 @@
 import React from 'react'
-import Header from '../../components/ui/Header' // Ajusta la ruta según tu estructura
-// Descomenta estas líneas cuando tengas las imágenes listas en tus assets
-// import sucursalSanAntonio from '../../assets/images/sucursal-san-antonio.webp'
-// import sucursalLasTrinitarias from '../../assets/images/sucursal-las-trinitarias.webp'
 
 function InfoSucursales() {
-  // ==========================================
-  // PLANTILLA DE DATOS (Modifica esto con tu info real)
-  // ==========================================
+
   const sucursales = [
     {
       id: 1,
@@ -47,10 +41,6 @@ function InfoSucursales() {
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex flex-col justify-between font-['Montserrat']">
       
-      {/* 1. Header Superior */}
-      <Header />
-      
-      {/* 2. Contenedor Principal */}
       <main className="flex-grow px-4 sm:px-8 md:px-16 pt-20 md:pt-24 pb-12">
         <div className="max-w-6xl mx-auto space-y-10 animate-fadeIn">
           
