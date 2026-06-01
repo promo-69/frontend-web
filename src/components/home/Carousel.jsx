@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import poster1 from '../../assets/images/Cartelera/CumbresBorrascosas.jpg'
-import poster2 from '../../assets/images/cartelera/CastilloAmbulante.jpg'
-import poster3 from '../../assets/images/cartelera/Hoppers.jpg'
+import poster2 from '../../assets/images/Cartelera/CastilloAmbulante.jpg'
+import poster3 from '../../assets/images/Cartelera/Hoppers.jpg'
 import poster1portada from '../../assets/images/Cartelera/poster1portada.jpg'
-import poster2portada from '../../assets/images/cartelera/poster2portada.jpg'
-import poster3portada from '../../assets/images/cartelera/poster3portada.jpg'
+import poster2portada from '../../assets/images/Cartelera/poster2portada.jpg'
+import poster3portada from '../../assets/images/Cartelera/poster3portada.jpg'
 
-export default function MovieTheater() {
+export default function Carousel() {
   const movies = [
     {
       title: 'Cumbres Borrascosas',
