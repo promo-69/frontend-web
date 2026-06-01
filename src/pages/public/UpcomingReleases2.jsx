@@ -1,7 +1,7 @@
 import React from 'react';
-import { getCinemas } from '../../services/movies.service'
+import { getUpcomingMovies } from '../../services/movies.service'
 
-export default function UpcomingReleases() {
+export default function UpcomingReleases2() {
 
   const moviesToRender = billboardMovies.length < 8 
     ? [...billboardMovies, ...billboardMovies].slice(0, 8) 

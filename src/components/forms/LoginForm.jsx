@@ -45,13 +45,45 @@ function LoginForm() {
       const res = await login(payload)
 
       if (!res.success) {
-        setModalType('error');
-        setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
-        setShowModal(true);
-        return;
+        const lowerMessage = res.message?.toLowerCase() || ''
+
+        //  ESCENARIO 2: Cuenta existe pero "signup_verified_at" es null
+        // Detectamos si el mensaje del servidor hace referencia a que no está verificado
+        if (
+          lowerMessage.includes('verific') ||
+          lowerMessage.includes('activar')
+        ) {
+          setModalType('warning')
+          setModalMessage(
+            'Tu cuenta no ha sido verificada aún. Redirigiéndote para que ingreses tu código...',
+          )
+          setShowModal(true)
+          return
+        }
+
+        // ESCENARIO 3:el registro se borró automáticamente
+        if (
+          lowerMessage.includes('no encontrado') ||
+          lowerMessage.includes('registrado')
+        ) {
+          setModalType('error')
+          setModalMessage(
+            'Credenciales invalidas. Por favor, regístrate de nuevo.',
+          )
+          setShowModal(true)
+          return
+        }
+
+        // Error por defecto de credenciales/contraseña incorrecta
+        setModalType('error')
+        setModalMessage(
+          res.message || 'Usuario no encontrado / Credenciales inválidas',
+        )
+        setShowModal(true)
+        return
       }
 
-      //setLoggedUser(res.user)
+      //ESCENARIO 1: Cuenta existe y está verificada ("signup_verified_at" tiene fecha)
       // ÉXITO
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
@@ -90,7 +122,8 @@ function LoginForm() {
           label="Contraseña"
           register={register('password', {
             validate: (value) =>
-              validateLoginPassword(value) === true || validateLoginPassword(value),
+              validateLoginPassword(value) === true ||
+              validateLoginPassword(value),
           })}
           error={errors.password?.message}
           value={passwordValue}
@@ -126,15 +159,18 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
-            setShowModal(false);
+            setShowModal(false)
 
-            // login exitoso, redirige
+            // Redirecciones basadas en el tipo de respuesta que procesamos
             if (modalType === 'success') {
               if (!user?.hasSelectedGenres) {
-                navigate('/favorites');
+                navigate('/favorites')
               } else {
-                navigate('/');
+                navigate('/')
               }
+            } else if (modalType === 'warning') {
+              // Si el modal fue de advertencia por falta de verificación, mandamos a EmailCheck
+              navigate('/email-check', { state: { email: emailValue.trim() } })
             }
           }}
         />
