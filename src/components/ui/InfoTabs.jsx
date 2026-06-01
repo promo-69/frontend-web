@@ -13,11 +13,7 @@ export const InfoTabs = ({ tabs = [] }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              /* Explicación de clases clave:
-                - flex-1 y flex-col: reparte el espacio equitativamente y permite centrar texto verticalmente.
-                - text-[10px] sm:text-sm md:text-base: reduce drásticamente la letra en móviles.
-                - leading-tight o leading-none: evita que quede mucho espacio si el texto pasa a dos líneas.
-              */
+
               className={`flex-1 flex flex-col justify-center items-center text-center pb-3 px-1 sm:px-4 text-[10px] sm:text-sm md:text-base font-bold uppercase tracking-wider transition-all duration-300 relative focus:outline-none min-w-0 leading-tight md:leading-normal
                 ${isActive 
                   ? 'text-[#F6AD38]' 

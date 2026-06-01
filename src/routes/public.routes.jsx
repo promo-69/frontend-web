@@ -9,6 +9,8 @@ import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 import Empresa from '../pages/public/AboutUs';
+import CinemasInfo from '../pages/public/InfoCinemas';
+import UpcomingReleases from '../pages/public/UpcomingReleases';
 
 import MovieDetails from '../pages/public/MovieDetails';
 
@@ -31,6 +33,9 @@ export const publicRoutes = (
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/movie/:movieId" element={<MovieDetails />} />
+      <Route path="/empresa" element={<Empresa />} />
+      <Route path="/sucursales" element={<CinemasInfo />} />
+      <Route path="/cartelera" element={<UpcomingReleases />} />
 
     </Route>
 
@@ -41,6 +46,5 @@ export const publicRoutes = (
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/email-check" element={<EmailCheck />} />
     <Route path="/verify-account" element={<VerifyAccount />} />
-    <Route path="/empresa" element={<Empresa />} />
   </>
 )
