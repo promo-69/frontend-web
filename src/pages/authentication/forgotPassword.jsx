@@ -12,6 +12,7 @@ function ForgotPassword() {
   const [email, setEmail] = useState(' ')
 
   const navigate = useNavigate()
+  const [resetToken, setResetToken] = useState(null)
 
   return (
     <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
@@ -45,9 +46,19 @@ function ForgotPassword() {
             />
           )}
 
-          {step === 2 && <SendCode email={email} onNext={() => setStep(3)} />}
+          {step === 2 && (
+            <SendCode
+              email={email}
+              onNext={(token) => {
+                setResetToken(token)
+                setStep(3)
+              }}
+            />
+          )}
 
-          {step === 3 && <NewPasswordForm email={email} />}
+          {step === 3 && (
+            <NewPasswordForm email={email} resetToken={resetToken} />
+          )}
 
           {/* Footer */}
           <p className="text-white text-sm opacity-70 pt-6">

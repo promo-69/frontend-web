@@ -7,7 +7,7 @@ import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { validatePassword } from '../../../validators/authValidators'
 import ModalMessage from '../../ui/ModalMessage'
 
-function NewPasswordForm({ email, code }) {
+function NewPasswordForm({ email, resetToken }) {
   const navigate = useNavigate()
   const { resetPassword } = useContext(AuthContext)
   const [showPassword, setShowPassword] = useState(false)
@@ -29,9 +29,15 @@ function NewPasswordForm({ email, code }) {
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+    
+    console.log('Datos enviados al servicio auth:', {
+      email,
+      password: data.password,
+      resetToken,
+    })
 
     try {
-      const res = await resetPassword({ email, newPassword: data.password.trim(), code })
+      const res = await resetPassword({ email, newPassword: data.password.trim(), resetToken })
 
       if (!res.success) {
         setModalType('error')
