@@ -21,7 +21,6 @@ function LoginForm() {
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('error')
 
-  //const [loggedUser, setLoggedUser] = useState(null)
   const navigate = useNavigate()
 
   const {
@@ -31,15 +30,10 @@ function LoginForm() {
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
+  const emailValue = watch('email', '')
+  const passwordValue = watch('password', '')
+
   const submittedEmailRef = useRef('')
-
-  //const [redirectToVerification, setRedirectToVerification] = useState(false)
-
-  //const emailValue = watch('email')
-  //const passwordValue = watch('password')
-  //const emailValue = watch('email', '')
-  //const passwordValue = watch('password', '')
-
 
   const onSubmit = async (data) => {
     setIsLoading(true)
@@ -137,7 +131,7 @@ function LoginForm() {
               validateEmail(value) === true || validateEmail(value),
           })}
           error={errors.email?.message}
-          //value={emailValue}
+          value={emailValue}
         />
 
         {/* PASSWORD */}
@@ -150,7 +144,7 @@ function LoginForm() {
               validateLoginPassword(value),
           })}
           error={errors.password?.message}
-          //value={passwordValue}
+          value={passwordValue}
         />
 
         {/* LINK OLVIDASTE CONTRASEÑA */}
@@ -183,10 +177,9 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
-            console.log('EL MODAL SE CERRÓ MANUALMENTE POR EL USUARIO')
             setShowModal(false)
 
-            // Redirecciones basadas en el tipo de respuesta que procesamos
+            // Redirecciones basadas en el tipo de respuesta 
             if (modalType === 'warning') {
               navigate('/email-check', {
                 state: {

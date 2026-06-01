@@ -95,11 +95,10 @@ export function AuthProvider({ children }) {
 
       return { success: true, user: userData }
     } catch (error) {
-      // Usamos ?. para evitar que la consola rompa la app si response no existe
+      // ?. para evitar que la consola rompa la app
       console.log('ERROR COMPLETO LOGIN:', error?.response)
       console.error('CATCH INTERNO CONTEXTO - Error en login:', error)
 
-      // Retornamos de forma segura asegurando que NADA sea undefined
       return {
         success: false,
         message: error?.response?.data?.message || 'Error al iniciar sesión',
