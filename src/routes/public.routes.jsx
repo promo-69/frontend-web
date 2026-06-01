@@ -10,7 +10,7 @@ import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 import Empresa from '../pages/public/AboutUs';
 import CinemasInfo from '../pages/public/InfoCinemas';
-import UpcomingReleases from '../pages/public/UpcomingReleases';
+import CinemaReleases from '../pages/public/CinemaReleases';
 
 import MovieDetails from '../pages/public/MovieDetails';
 
@@ -35,7 +35,7 @@ export const publicRoutes = (
       <Route path="/movie/:movieId" element={<MovieDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
-      <Route path="/cartelera" element={<UpcomingReleases />} />
+      <Route path="/cartelera" element={<CinemaReleases />} />
 
     </Route>
 
