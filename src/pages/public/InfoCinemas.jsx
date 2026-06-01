@@ -60,17 +60,6 @@ function InfoSucursales() {
                     key={sucursal.id || sucursal.name} 
                     className="bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden shadow-xl hover:border-[#F6AD38]/40 transition-all duration-300 flex flex-col group"
                   >
-                    {/* Contenedor de la Imagen (Por defecto una cinemática de alta calidad) */}
-                    <div className="w-full h-48 overflow-hidden relative border-b border-white/5 bg-purple-950">
-                      <img 
-                        src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=800" 
-                        alt={sucursal.name} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                      />
-                      <div className="absolute top-3 right-3 px-3 py-1 bg-[#7B1A82]/80 backdrop-blur-sm border border-[#F6AD38]/30 rounded-full text-[10px] uppercase font-bold tracking-wider text-[#F6AD38]">
-                        Cineflix Premium
-                      </div>
-                    </div>
 
                     {/* Contenido de la Tarjeta por sucursal */}
                     <div className="p-6 flex flex-col flex-grow text-left space-y-4">
