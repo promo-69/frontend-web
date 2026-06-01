@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
 
   // 2. INICIAR SESIÓN
   const login = async (credentials) => {
-    showLoader()
+    
     try {
       const loginRes = await loginRequest(credentials)
       console.log(
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
       // Intentamos tomar el usuario directamente del login primero
       let userData = loginRes?.data?.user || loginRes?.data?.data?.user
 
-      // Fallback: Si tu backend no manda el usuario en el login, hacemos el refresh
+      // Fallback: Si el backend no manda el usuario en el login, hacemos el refresh
       if (!userData) {
         console.log(
           'DEBUG CONTEXTO - Buscando usuario vía refreshSessionRequest...',
@@ -95,14 +95,18 @@ export function AuthProvider({ children }) {
 
       return { success: true, user: userData }
     } catch (error) {
+      // Usamos ?. para evitar que la consola rompa la app si response no existe
+      console.log('ERROR COMPLETO LOGIN:', error?.response)
       console.error('CATCH INTERNO CONTEXTO - Error en login:', error)
+
+      // Retornamos de forma segura asegurando que NADA sea undefined
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al iniciar sesión',
+        message: error?.response?.data?.message || 'Error al iniciar sesión',
+        status: error?.response?.status || 500,
+        code: error?.response?.data?.code || 'UNKNOWN_ERROR',
       }
-    } finally {
-      hideLoader()
-    }
+    } 
   }
 
   //recuperar contraseña paso 1:enviar correo

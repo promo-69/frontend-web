@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
@@ -31,50 +31,74 @@ function LoginForm() {
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
-  const emailValue = watch('email')
-  const passwordValue = watch('password')
+  const submittedEmailRef = useRef('')
+
+  //const [redirectToVerification, setRedirectToVerification] = useState(false)
+
+  //const emailValue = watch('email')
+  //const passwordValue = watch('password')
+  //const emailValue = watch('email', '')
+  //const passwordValue = watch('password', '')
+
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+
+    submittedEmailRef.current = data.email.trim()
+
     const payload = {
-      email: data.email.trim(),
+      email: submittedEmailRef.current,
       password: data.password,
     }
 
     try {
       const res = await login(payload)
 
+      if (!res) {
+        setModalType('error')
+        setModalMessage('Hubo un problema de conexión con el servidor.')
+        setShowModal(true)
+        return
+      }
+
+      console.log('DEBUG LOGIN FORM - Respuesta procesada:', res)
+      console.log('LOGIN RESPONSE:', res)
+
       if (!res.success) {
         const lowerMessage = res.message?.toLowerCase() || ''
+        const errorCode = res.code || ''
 
-        //  ESCENARIO 2: Cuenta existe pero "signup_verified_at" es null
-        // Detectamos si el mensaje del servidor hace referencia a que no está verificado
+        // ⭐ DETECCIÓN DE CUENTA NO VERIFICADA
         if (
-          lowerMessage.includes('verific') ||
-          lowerMessage.includes('activar')
+          res.status === 401 ||
+          errorCode === 'UNVERIFIED_ACCOUNT' ||
+          lowerMessage.includes('no verificada')
         ) {
+          //setRedirectToVerification(true)
           setModalType('warning')
           setModalMessage(
-            'Tu cuenta no ha sido verificada aún. Redirigiéndote para que ingreses tu código...',
+            'Tu cuenta no ha sido verificada aún. Revisa tu correo ingresa el código',
           )
           setShowModal(true)
+
           return
         }
 
-        // ESCENARIO 3:el registro se borró automáticamente
+        // ⭐ CUENTA BORRADA AUTOMÁTICAMENTE
         if (
+          res.status === 404 ||
           lowerMessage.includes('no encontrado') ||
           lowerMessage.includes('registrado')
         ) {
           setModalType('error')
           setModalMessage(
-            'Credenciales invalidas. Por favor, regístrate de nuevo.',
+            'Credenciales inválidas. Por favor, regístrate de nuevo.',
           )
           setShowModal(true)
           return
         }
 
-        // Error por defecto de credenciales/contraseña incorrecta
+        // ⭐ ERROR GENÉRICO DE LOGIN
         setModalType('error')
         setModalMessage(
           res.message || 'Usuario no encontrado / Credenciales inválidas',
@@ -83,12 +107,12 @@ function LoginForm() {
         return
       }
 
-      //ESCENARIO 1: Cuenta existe y está verificada ("signup_verified_at" tiene fecha)
-      // ÉXITO
+      // ⭐ LOGIN EXITOSO
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
       setShowModal(true)
     } catch (error) {
+      console.error('ERROR LOGIN FORM:', error)
       setModalType('error')
       setModalMessage('Error inesperado')
       setShowModal(true)
@@ -113,7 +137,7 @@ function LoginForm() {
               validateEmail(value) === true || validateEmail(value),
           })}
           error={errors.email?.message}
-          value={emailValue}
+          //value={emailValue}
         />
 
         {/* PASSWORD */}
@@ -126,7 +150,7 @@ function LoginForm() {
               validateLoginPassword(value),
           })}
           error={errors.password?.message}
-          value={passwordValue}
+          //value={passwordValue}
         />
 
         {/* LINK OLVIDASTE CONTRASEÑA */}
@@ -159,19 +183,26 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
+            console.log('EL MODAL SE CERRÓ MANUALMENTE POR EL USUARIO')
             setShowModal(false)
 
             // Redirecciones basadas en el tipo de respuesta que procesamos
+            if (modalType === 'warning') {
+              navigate('/email-check', {
+                state: {
+                  email: submittedEmailRef.current,
+                },
+              })
+              return
+            }
+
             if (modalType === 'success') {
               if (!user?.hasSelectedGenres) {
                 navigate('/favorites')
               } else {
                 navigate('/')
               }
-            } else if (modalType === 'warning') {
-              // Si el modal fue de advertencia por falta de verificación, mandamos a EmailCheck
-              navigate('/email-check', { state: { email: emailValue.trim() } })
-            }
+            } 
           }}
         />
       )}
