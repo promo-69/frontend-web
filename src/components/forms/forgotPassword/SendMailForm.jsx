@@ -43,9 +43,10 @@ function SendMailForm({ onNext }) {
       // El correo de recuperación se envió correctamente.
       onNext(cleanEmail)
     } catch (error) {
-      setModalType('error')
-      setModalMessage('Error al conectar con el servidor')
-      setShowModal(true)
+    console.error("ERROR EN RECOVERY:", error)
+    setModalType('error')
+    setModalMessage('Error al conectar con el servidor')
+    setShowModal(true)
     } finally {
       setIsLoading(false)
     }

@@ -5,6 +5,10 @@ import {
   refreshSessionRequest,
 } from '../services/auth.service'
 import { useLoading } from './LoadingContext'
+import { sendRecoveryEmailRequest } from '../services/auth.service'
+import { verifyRecoveryCodeRequest } from '../services/auth.service'
+import { resetPasswordRequest } from '../services/auth.service'
+
 
 export const AuthContext = createContext()
 
@@ -101,6 +105,50 @@ export function AuthProvider({ children }) {
     }
   }
 
+  //recuperar contraseña paso 1:enviar correo
+  const sendRecoveryEmail = async (email) => {
+    try {
+      const res = await sendRecoveryEmailRequest(email)
+      return { success: true, data: res }
+    } catch (error) {
+      console.error('ERROR EN sendRecoveryEmail:', error)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'No se pudo enviar el correo',
+      }
+    }
+  }
+
+  //recuperar contraseña paso 2:validar código
+  const verifyRecoveryCode = async (email, code) => {
+    try {
+      const res = await verifyRecoveryCodeRequest(email, code)
+      return { success: true, data: res }
+    } catch (error) {
+      console.error('ERROR EN verifyRecoveryCode:', error)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Código inválido',
+      }
+    }
+  }
+
+  //recuperar contraseña paso 3:restablecer contraseña
+  const resetPassword = async ({ email, newPassword, resetToken }) => {
+    try {
+      const res = await resetPasswordRequest({ email, newPassword, resetToken })
+      return { success: true, data: res }
+    } catch (error) {
+      console.error('ERROR EN resetPassword:', error)
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || 'No se pudo cambiar la contraseña',
+      }
+    }
+  }
+
+
   // 3. CERRAR SESIÓN
   const logout = async () => {
     showLoader()
@@ -116,7 +164,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword }}>
       {children}
     </AuthContext.Provider>
   )

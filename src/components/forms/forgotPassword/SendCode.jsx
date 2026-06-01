@@ -30,7 +30,7 @@ function SendCode({ email, onNext }) {
         return
       }
 
-      onNext() // avanzar al paso 3
+      onNext(res.data.data.resetToken) // avanzar al paso 3
     } catch (error) {
       setModalType('error')
       setModalMessage('Error al conectar con el servidor')
