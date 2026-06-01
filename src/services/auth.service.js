@@ -54,7 +54,7 @@ export const registerRequest = async (data) => {
 // ---------------------------------------------------------
 export const sendRecoveryEmailRequest = async (email) => {
   const response = await api.post(
-    '/auth/forgot-password',
+    '/auth/forgot-password/2',
     { email },
     { withCredentials: true },
   )
@@ -66,7 +66,7 @@ export const sendRecoveryEmailRequest = async (email) => {
 // ---------------------------------------------------------
 export const verifyRecoveryCodeRequest = async (email, code) => {
   const response = await api.post(
-    '/auth/verify-reset-code',
+    '/auth/verify-reset-code/2',
     { email, code },
   )
   return response.data
@@ -75,10 +75,10 @@ export const verifyRecoveryCodeRequest = async (email, code) => {
 // ---------------------------------------------------------
 // RECOVERY: Paso 3 — Guardar nueva contraseña
 // ---------------------------------------------------------
-export const resetPasswordRequest = async ({ email, newPassword }) => {
+export const resetPasswordRequest = async ({ email, newPassword, resetToken }) => {
   const response = await api.post(
-    '/auth/reset-password',
-    { email, newPassword },
+    '/auth/reset-password/2',
+    { email, newPassword, resetToken },
   )
   return response.data
 }
