@@ -10,7 +10,7 @@ import EmailCheck from '../pages/authentication/emailCheck';
 import VerifyAccount from '../pages/authentication/verifyAccount';
 import Empresa from '../pages/public/AboutUs';
 import CinemasInfo from '../pages/public/InfoCinemas';
-import CinemaReleases from '../pages/public/CinemaReleases';
+import MoviesReleases from '../pages/public/MoviesReleases';
 
 import MovieDetails from '../pages/public/MovieDetails';
 
@@ -26,16 +26,15 @@ const PublicLayout = () => {
   );
 };
 
-// 2. Exportas las rutas organizadas
 export const publicRoutes = (
   <>
-    {/* Grupo de rutas conHeader */}
+    {/* Grupo de rutas con Header */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/movie/:movieId" element={<MovieDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
-      <Route path="/cartelera" element={<CinemaReleases />} />
+      <Route path="/cartelera" element={<MoviesReleases />} />
 
     </Route>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUpcomingMovies } from '../../services/movies.service';
 
-export default function CinemaReleases() {
+export default function MoviesReleases() {
   const [billboardMovies, setBillboardMovies] = useState([]);
   const [loading, setLoading] = useState(true);
 

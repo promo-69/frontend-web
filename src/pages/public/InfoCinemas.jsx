@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getCinemas } from '../../services/info.service' // Ajusta la ruta hacia donde exportaste tu función getCinemas
+import { getCinemas } from '../../services/info.service' 
 
 function InfoSucursales() {
   const [sucursales, setSucursales] = useState([])
