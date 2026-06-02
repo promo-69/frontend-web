@@ -7,7 +7,7 @@ const ModalMessage = ({ type = 'success', message, onClose }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      //*onClick={onClose} 
     >
       <div
         className="bg-[#231640] p-10 rounded-xl flex flex-col items-center justify-center border border-[#7B1A82] shadow-2xl max-w-sm w-full mx-4"
