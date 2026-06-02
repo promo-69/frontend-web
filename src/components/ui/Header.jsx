@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' // Nuevos iconos
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
@@ -8,13 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
 import { LoginIcon, LocationIcon, ProfileIcon } from '../ui/IconosProyect'
-
-const CITIES = [
-  { state: 'Carabobo', name: 'Valencia', id: 'val' },
-  { state: 'Lara', name: 'Barquisimeto', id: 'barq' },
-  { state: 'Caracas', name: 'Chacao', id: 'cha' },
-  { state: 'Anzoategui', name: 'Aragua de Barcelona', id: 'ara' },
-]
+import { getCinemas } from '../../services/info.service'
 
 const NAV_LINKS = [
   { name: 'Confitería', path: '/confiteria' },
@@ -25,6 +19,12 @@ const NAV_LINKS = [
 function Header() {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
+
+  // 🏙️ ESTADOS PARA LAS SUCURSALES DINÁMICAS
+  const [cinemas, setCinemas] = useState([]) // lista de la API
+  const [selectedCinema, setSelectedCinema] = useState(null) // Almacena el objeto completo del cine electo
+  const [isLoadingCinemas, setIsLoadingCinemas] = useState(true)
+
   const [isCityOpen, setIsCityOpen] = useState(false)
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -34,14 +34,40 @@ function Header() {
   const displayName =
     user?.firstName || user?.name || user?.email?.split('@')[0]
 
-
   const { logout } = useAuth()
+
+  // 🚀 LLAMADA A LA API AL MONTAR EL COMPONENTE
+  useEffect(() => {
+    const fetchCinemasData = async () => {
+      try {
+        setIsLoadingCinemas(true)
+        const data = await getCinemas() // Trae el array response.data.data
+        setCinemas(data)
+
+        if (data && data.length > 0) {
+          // Barquisimeto por defecto, si no, toma el primero
+          const defaultCinema = data.find(
+            (cine) =>
+              cine.name?.toLowerCase().includes('barquisimeto') ||
+              cine.city?.toLowerCase().includes('barquisimeto'),
+          )
+          setSelectedCinema(defaultCinema || data[0])
+        }
+      } catch (error) {
+        console.error('Error al cargar los cines en el Header:', error)
+      } finally {
+        setIsLoadingCinemas(false)
+      }
+    }
+
+    fetchCinemasData()
+  }, [])
 
   const handleLogout = async () => {
     await logout() // Ejecuta la petición al backend, borra el localStorage y limpia el estado 'user'
-    navigate('/login') 
+    navigate('/login')
   }
-    // Dropdown para Cartelera
+  // Dropdown para Cartelera
   const CarteleraDropdown = () => (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -73,23 +99,33 @@ function Header() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="absolute top-full mt-2 right-0 w-52 bg-[#7B1A82] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
+      className="absolute top-full mt-2 right-0 w-52 bg-[#7B1A82] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10 max-h-64 overflow-y-auto"
     >
-      {CITIES.map((city) => (
-        <button
-          key={city.id}
-          onClick={() => {
-            setSelectedCity(city.name)
-            setIsCityOpen(false)
-          }}
-          className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-[#231640]/40 transition-colors border-b border-white/5 last:border-none ${selectedCity === city.name ? 'bg-[#231640]/20' : ''}`}
-        >
-          <p className="font-bold uppercase text-[9px] text-[#F6AD38] opacity-90 leading-none mb-1">
-            {city.state}
-          </p>
-          <p className="text-sm text-white">{city.name}</p>
-        </button>
-      ))}
+      {isLoadingCinemas ? (
+        <div className="px-4 py-3 text-xs text-white/70 italic">
+          Cargando sucursales...
+        </div>
+      ) : cinemas.length === 0 ? (
+        <div className="px-4 py-3 text-xs text-white/70 italic">
+          No hay cines disponibles
+        </div>
+      ) : (
+        cinemas.map((cinema) => (
+          <button
+            key={cinema.id}
+            onClick={() => {
+              setSelectedCinema(cinema)
+              setIsCityOpen(false)
+            }}
+            className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-[#231640]/40 transition-colors border-b border-white/5 last:border-none ${selectedCinema?.id === cinema.id ? 'bg-[#231640]/40' : ''}`}
+          >
+            <p className="font-bold uppercase text-[9px] text-[#F6AD38] opacity-90 leading-none mb-1">
+              {cinema.city || cinema.location || 'Sucursal'}
+            </p>
+            <p className="text-sm text-white font-medium">{cinema.name}</p>
+          </button>
+        ))
+      )}
     </motion.div>
   )
 
@@ -217,7 +253,11 @@ function Header() {
             >
               <LocationIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F6AD38]" />
               <span className="w-[10ch] sm:w-auto sm:min-w-[8ch] max-w-[12ch] truncate text-left">
-                {selectedCity}
+                {isLoadingCinemas
+                  ? 'Cargando...'
+                  : selectedCinema?.name ||
+                    selectedCinema?.city ||
+                    'Barquisimeto'}
               </span>
             </button>
             <AnimatePresence>{isCityOpen && <CityDropdown />}</AnimatePresence>
