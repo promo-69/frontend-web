@@ -10,7 +10,12 @@ export const getMovieById = async (id) => {
   return response.data.data
 }
 
-export const getUpcomingMovies = async () => {
+export const getMoviesReleases = async () => {
   const response = await api.get('movies/showtimes')
+  return response.data.data
+}
+
+export const getUpcomingMovies = async () => {
+  const response = await api.get('movies/upcoming')
   return response.data.data
 }
