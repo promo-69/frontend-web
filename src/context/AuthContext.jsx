@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
 
   // 2. INICIAR SESIÓN
   const login = async (credentials) => {
-    showLoader()
+    
     try {
       const loginRes = await loginRequest(credentials)
       console.log(
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
       // Intentamos tomar el usuario directamente del login primero
       let userData = loginRes?.data?.user || loginRes?.data?.data?.user
 
-      // Fallback: Si tu backend no manda el usuario en el login, hacemos el refresh
+      // Fallback: Si el backend no manda el usuario en el login, hacemos el refresh
       if (!userData) {
         console.log(
           'DEBUG CONTEXTO - Buscando usuario vía refreshSessionRequest...',
@@ -95,14 +95,17 @@ export function AuthProvider({ children }) {
 
       return { success: true, user: userData }
     } catch (error) {
+      // ?. para evitar que la consola rompa la app
+      console.log('ERROR COMPLETO LOGIN:', error?.response)
       console.error('CATCH INTERNO CONTEXTO - Error en login:', error)
+
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al iniciar sesión',
+        message: error?.response?.data?.message || 'Error al iniciar sesión',
+        status: error?.response?.status || 500,
+        code: error?.response?.data?.code || 'UNKNOWN_ERROR',
       }
-    } finally {
-      hideLoader()
-    }
+    } 
   }
 
   //recuperar contraseña paso 1:enviar correo
@@ -163,8 +166,20 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // actualizar perfil de usuario 
+  const updateProfileState = (newEmail) => {
+    setUser((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        email: newEmail,
+        personalEmail: newEmail,
+      }
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState }}>
       {children}
     </AuthContext.Provider>
   )

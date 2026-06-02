@@ -4,9 +4,18 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 import Header from '../Header'
-import { AuthContext } from '../../../context/AuthContext' // Ajusta la ruta según tu carpeta
+import { AuthContext } from '../../../context/AuthContext'
 
-// Mock de AuthContext
+// 🏙️ Mock del servicio de cines
+vi.mock('../../../services/info.service', () => ({
+  getCinemas: vi.fn(() =>
+    Promise.resolve([
+      { id: 1, name: 'Cineflix Barquisimeto', city: 'Barquisimeto' },
+      { id: 2, name: 'Cineflix Valencia', city: 'Valencia' },
+    ]),
+  ),
+}))
+
 const mockAuthContext = {
   user: { name: 'Mary Sofia', role: 'ADMIN' },
   isLoggedIn: true,
@@ -32,6 +41,7 @@ describe('Componente Header', () => {
       isLoggedIn: false,
       user: null,
     })
+
     expect(
       screen.getByRole('button', { name: /INGRESAR/i }),
     ).toBeInTheDocument()
@@ -44,7 +54,7 @@ describe('Componente Header', () => {
     expect(
       screen.getByText(new RegExp(`¡Hola ${user}!`, 'i')),
     ).toBeInTheDocument()
-    // Verifica el badge del carrito (asumiendo que el "2" es el texto del badge)
+
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
@@ -54,6 +64,7 @@ describe('Componente Header', () => {
     const profileButton = screen.getByRole('button', {
       name: /¡Hola Mary Sofia!/i,
     })
+
     await userEvent.click(profileButton)
 
     expect(screen.getByText(/Historial de Compra/i)).toBeInTheDocument()
@@ -63,13 +74,22 @@ describe('Componente Header', () => {
   it('debe cambiar la ciudad seleccionada al usar el dropdown de ciudades', async () => {
     renderHeader(<Header />)
 
-    const cityButton = screen.getByText(/Barquisimeto/i)
+    // Esperar a que cargue la ciudad inicial
+    const cityButton = await screen.findByText(/Barquisimeto/i)
     await userEvent.click(cityButton)
 
-    const valenciaOption = screen.getByText(/Valencia/i)
+    // Seleccionar el botón correcto del dropdown
+    const allButtons = screen.getAllByRole('button')
+    const valenciaOption = allButtons.find((btn) =>
+      btn.textContent.includes('Valencia'),
+    )
+
+    expect(valenciaOption).toBeTruthy()
+
     await userEvent.click(valenciaOption)
 
-    const updatedButtons = screen.getAllByText(/Valencia/i)
-    expect(updatedButtons.length).toBeGreaterThan(0)
+    // Verificar que ahora aparece Valencia como ciudad seleccionada
+    const updatedCity = await screen.findByText(/Valencia/i)
+    expect(updatedCity).toBeInTheDocument()
   })
 })

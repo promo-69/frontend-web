@@ -93,3 +93,14 @@ export const verifyAccountRequest = async ({ email, code }) => {
   )
   return response.data
 }
+
+
+// ---------------------------------------------------------
+// UPDATE PROFILE
+// ---------------------------------------------------------
+export const updateProfileRequest = async (data) => {
+  const response = await api.patch('/users/me/profile', data, {
+    withCredentials: true,
+  })
+  return response.data
+}

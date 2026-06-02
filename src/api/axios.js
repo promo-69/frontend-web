@@ -29,6 +29,20 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // 🛡️ EXCEPCIÓN DE SEGURIDAD PARA CUENTAS NO VERIFICADAS
+    // Si es un 401 provocado por el login de una cuenta no verificada, NO ejecutes el refresh
+    const errorCode = error.response?.data?.code
+    const isLoginRequest =
+      originalRequest.url?.includes('/login') ||
+      originalRequest.url?.includes('/auth/login') 
+
+    if (
+      errorCode === 'UNVERIFIED_ACCOUNT' ||
+      (error.response?.status === 401 && isLoginRequest)
+    ) {
+      return Promise.reject(error) // Envía el error directo a LoginForm 
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       // CRÍTICO: Si la petición que falló ya era el refresh, no intentes refrescar otra vez
       if (originalRequest.url === '/auth/refresh') {
