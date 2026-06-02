@@ -166,8 +166,20 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // actualizar perfil de usuario 
+  const updateProfileState = (newEmail) => {
+    setUser((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        email: newEmail,
+        personalEmail: newEmail,
+      }
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState }}>
       {children}
     </AuthContext.Provider>
   )
