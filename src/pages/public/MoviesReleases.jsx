@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUpcomingMovies } from '../../services/movies.service';
+import { getMoviesReleases } from '../../services/movies.service';
 
 export default function MoviesReleases() {
   const [billboardMovies, setBillboardMovies] = useState([]);
@@ -8,7 +8,7 @@ export default function MoviesReleases() {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const data = await getUpcomingMovies();
+        const data = await getMoviesReleases();
         setBillboardMovies(data || []); 
       } catch (error) {
         console.error("Error cargando la cartelera:", error);
@@ -51,7 +51,7 @@ export default function MoviesReleases() {
               Peliculas en <span className="text-[#F6AD38]">Cartelera</span>
             </h3>
             <p className="text-xs md:text-sm text-gray-400 mt-2 uppercase tracking-wider font-semibold">
-              Explora nuestro catálogo de estrenos y disfruta de la mejor experiencia cinematográfica en CINEFLIX. ¡No te pierdas las últimas películas en cartelera!
+              Tu pase directo a las mejores historias. Explora las películas disponibles hoy en nuestras salas, consulta los horarios y asegura tus entradas para vivir la magia del cine ahora mismo.            
             </p>
           </div>
 
