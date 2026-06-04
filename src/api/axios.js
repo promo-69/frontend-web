@@ -1,50 +1,58 @@
+// src/api/axios.js
 import axios from 'axios'
 
-const api = axios.create({
+// ⭐ Instancia para endpoints públicos (NO usa cookies, NO usa refresh)
+export const apiPublic = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true,
   timeout: 10000,
   headers: {
     'x-client-channel': 'web',
   },
 })
 
+// ⭐ Instancia para endpoints privados (SÍ usa cookies y refresh)
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
+  timeout: 15000,
+  headers: {
+    'x-client-channel': 'web',
+  },
+})
+
+
 let isRefreshing = false
 let failedQueue = []
 
-// Modificado para pasar el error si el refresh falla
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
+    if (error) prom.reject(error)
+    else prom.resolve(token)
   })
   failedQueue = []
 }
 
+// ⭐ Interceptor SOLO para api (endpoints protegidos)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    // 🛡️ EXCEPCIÓN DE SEGURIDAD PARA CUENTAS NO VERIFICADAS
-    // Si es un 401 provocado por el login de una cuenta no verificada, NO ejecutes el refresh
+    // 🛡️ EXCEPCIÓN: si es login y la cuenta no está verificada → NO refrescar
     const errorCode = error.response?.data?.code
     const isLoginRequest =
       originalRequest.url?.includes('/login') ||
-      originalRequest.url?.includes('/auth/login') 
+      originalRequest.url?.includes('/auth/login')
 
     if (
       errorCode === 'UNVERIFIED_ACCOUNT' ||
       (error.response?.status === 401 && isLoginRequest)
     ) {
-      return Promise.reject(error) // Envía el error directo a LoginForm 
+      return Promise.reject(error)
     }
 
+    // 🛡️ Si es 401 y no se ha reintentado → refrescar
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // CRÍTICO: Si la petición que falló ya era el refresh, no intentes refrescar otra vez
       if (originalRequest.url === '/auth/refresh') {
         return Promise.reject(error)
       }
@@ -53,12 +61,8 @@ api.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
-          .then(() => {
-            return api(originalRequest)
-          })
-          .catch((err) => {
-            return Promise.reject(err)
-          })
+          .then(() => api(originalRequest))
+          .catch((err) => Promise.reject(err))
       }
 
       originalRequest._retry = true
@@ -72,11 +76,9 @@ api.interceptors.response.use(
 
         return api(originalRequest)
       } catch (err) {
-        // Si el refresh falla, cancelamos la cola pasándole el error
         processQueue(err, null)
         isRefreshing = false
 
-        // Limpiamos rastro del usuario local
         localStorage.removeItem('user_logged')
 
         if (typeof window !== 'undefined') {
