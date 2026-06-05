@@ -1,4 +1,5 @@
 import api from '../api/axios'
+import { apiPublic } from '../api/axios'
 
 export const getMovies = async () => {
   const response = await api.get('/movies')
@@ -11,11 +12,13 @@ export const getMovieById = async (id) => {
 }
 
 export const getMoviesReleases = async () => {
-  const response = await api.get('movies/showtimes')
+  console.log('INICIANDO PETICIÓN SHOWTIMES')
+  const response = await apiPublic.get('/movies/showtimes')
+  console.log('RESPUESTA SHOWTIMES:', response)
   return response.data.data
 }
 
 export const getUpcomingMovies = async () => {
-  const response = await api.get('movies/upcoming')
+  const response = await apiPublic.get('/movies/upcoming')
   return response.data.data
 }

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import {
@@ -21,7 +21,6 @@ function LoginForm() {
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('error')
 
-  //const [loggedUser, setLoggedUser] = useState(null)
   const navigate = useNavigate()
 
   const {
@@ -31,32 +30,83 @@ function LoginForm() {
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
-  const emailValue = watch('email')
-  const passwordValue = watch('password')
+  const emailValue = watch('email', '')
+  const passwordValue = watch('password', '')
+
+  const submittedEmailRef = useRef('')
 
   const onSubmit = async (data) => {
     setIsLoading(true)
+
+    submittedEmailRef.current = data.email.trim()
+
     const payload = {
-      email: data.email.trim(),
+      email: submittedEmailRef.current,
       password: data.password,
     }
 
     try {
       const res = await login(payload)
 
-      if (!res.success) {
-        setModalType('error');
-        setModalMessage(res.message || 'Usuario no encontrado / Credenciales inválidas');
-        setShowModal(true);
-        return;
+      if (!res) {
+        setModalType('error')
+        setModalMessage('Hubo un problema de conexión con el servidor.')
+        setShowModal(true)
+        return
       }
 
-      //setLoggedUser(res.user)
-      // ÉXITO
+      console.log('DEBUG LOGIN FORM - Respuesta procesada:', res)
+      console.log('LOGIN RESPONSE:', res)
+
+      if (!res.success) {
+        const lowerMessage = res.message?.toLowerCase() || ''
+        const errorCode = res.code || ''
+
+        // ⭐ DETECCIÓN DE CUENTA NO VERIFICADA
+        if (
+          res.status === 401 ||
+          errorCode === 'UNVERIFIED_ACCOUNT' ||
+          lowerMessage.includes('no verificada')
+        ) {
+          //setRedirectToVerification(true)
+          setModalType('warning')
+          setModalMessage(
+            'Tu cuenta no ha sido verificada aún. Revisa tu correo ingresa el código',
+          )
+          setShowModal(true)
+
+          return
+        }
+
+        // ⭐ CUENTA BORRADA AUTOMÁTICAMENTE
+        if (
+          res.status === 404 ||
+          lowerMessage.includes('no encontrado') ||
+          lowerMessage.includes('registrado')
+        ) {
+          setModalType('error')
+          setModalMessage(
+            'Credenciales inválidas. Por favor, regístrate de nuevo.',
+          )
+          setShowModal(true)
+          return
+        }
+
+        // ⭐ ERROR GENÉRICO DE LOGIN
+        setModalType('error')
+        setModalMessage(
+          res.message || 'Usuario no encontrado / Credenciales inválidas',
+        )
+        setShowModal(true)
+        return
+      }
+
+      // ⭐ LOGIN EXITOSO
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
       setShowModal(true)
     } catch (error) {
+      console.error('ERROR LOGIN FORM:', error)
       setModalType('error')
       setModalMessage('Error inesperado')
       setShowModal(true)
@@ -90,7 +140,8 @@ function LoginForm() {
           label="Contraseña"
           register={register('password', {
             validate: (value) =>
-              validateLoginPassword(value) === true || validateLoginPassword(value),
+              validateLoginPassword(value) === true ||
+              validateLoginPassword(value),
           })}
           error={errors.password?.message}
           value={passwordValue}
@@ -126,16 +177,25 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
-            setShowModal(false);
+            setShowModal(false)
 
-            // login exitoso, redirige
+            // Redirecciones basadas en el tipo de respuesta 
+            if (modalType === 'warning') {
+              navigate('/email-check', {
+                state: {
+                  email: submittedEmailRef.current,
+                },
+              })
+              return
+            }
+
             if (modalType === 'success') {
               if (!user?.hasSelectedGenres) {
-                navigate('/favorites');
+                navigate('/favorites')
               } else {
-                navigate('/');
+                navigate('/')
               }
-            }
+            } 
           }}
         />
       )}
