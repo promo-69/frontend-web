@@ -15,3 +15,8 @@ export const getShowtimeById = async (showtimeId) => {
   const response = await apiPublic.get(`/showtimes/${showtimeId}`)
   return response.data.data
 }
+
+export const getSeatMap = async (showtimeId) => {
+  const response = await apiPublic.get(`/showtimes/${showtimeId}/seat-map`)
+  return response.data.data 
+}
