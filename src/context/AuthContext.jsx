@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
         console.log(
           'DEBUG CONTEXTO: No hay usuario logueado en localStorage. Modo invitado activo.',
         )
+        setUser(null)
         return
       }
 
@@ -91,6 +92,7 @@ export function AuthProvider({ children }) {
       }
 
       setUser(userData)
+      localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('user_logged', 'true')
 
       return { success: true, user: userData }
