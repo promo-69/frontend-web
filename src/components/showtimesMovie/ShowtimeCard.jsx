@@ -1,9 +1,12 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import ModalMessage from '../ui/ModalMessage'
+import { useAuth } from '../../context/AuthContext'
 
 export default function ShowtimeCard({ showtime, movieId }) {
   const navigate = useNavigate()
+  const location = useLocation() 
+  const { user } = useAuth()
 
   const [showLoginModal, setShowLoginModal] = useState(false)
 
@@ -12,8 +15,8 @@ export default function ShowtimeCard({ showtime, movieId }) {
     const token = localStorage.getItem('token')
     console.log('TOKEN =>', token)
 
-    if (!token) {
-      console.log('NO HAY TOKEN, MOSTRAR MODAL')
+    if (!user) {
+      console.log('NO HAY USUARIO EN CONTEXTO, MOSTRAR MODAL')
       setShowLoginModal(true)
       return
     }
@@ -71,7 +74,7 @@ export default function ShowtimeCard({ showtime, movieId }) {
           onClose={() => {
             setShowLoginModal(false)
             navigate('/login', {
-              state: { redirectTo: `/selectSeats/${movieId}/${showtime.id}` },
+              state: { from: location.pathname },
             })
           }}
         />
