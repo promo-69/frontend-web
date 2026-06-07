@@ -26,7 +26,7 @@ const PAYMENT_METHODS = [
   },
 ]
 
-export default function Step4Payment({
+export default function StepPayment({
   movie,
   showtime,
   selectedSeats,
