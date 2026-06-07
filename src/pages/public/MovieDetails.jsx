@@ -1,21 +1,25 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getMovieById } from '../../services/movies.service'
-import Showtimes from '../../components/showtimesMovie/Showtimes'
-import SelectSeats from '../private/buy/selectSeats'
+import { getShowtimesByMovie } from '../../services/showtimes.service'
+import ShowtimesList from '../../components/showtimesMovie/ShowtimeList'
 
 export default function MovieDetails() {
   const { movieId } = useParams()
-  const navigate = useNavigate()
+  //const navigate = useNavigate()
 
   const [movie, setMovie] = useState(null)
+  const [showtimes, setShowtimes] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadMovie() {
       try {
         const response = await getMovieById(movieId)
+        const showtimesData = await getShowtimesByMovie(movieId)
+        console.log('SHOWTIMES:', showtimesData)
         setMovie(response)
+        setShowtimes(showtimesData?.rows || [])
       } catch (err) {
         console.error('Error cargando película:', err)
       } finally {
@@ -113,7 +117,7 @@ export default function MovieDetails() {
           </div>
         </div>
         {/* SECCIÓN DE FUNCIONES */}
-        <Showtimes movieId={movieId} cinemaId={1} />
+        <ShowtimesList showtimes={showtimes} movieId={movieId} />
       </div>
     </div>
   )
