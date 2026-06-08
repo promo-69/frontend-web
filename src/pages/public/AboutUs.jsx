@@ -1,4 +1,5 @@
 import React from 'react'
+import Footer from '../../components/ui/Footer'
 import { InfoTabs } from '../../components/ui/InfoTabs'
 import groupPeopleCinema from '../../assets/images/group-people-cinema.webp'
 import cinemaStuffPopcorn from '../../assets/images/cinema-stuff-around-popcorn-heart.webp'
@@ -206,9 +207,7 @@ function AboutUs() {
       </main>
 
       {/* Footer consistente */}
-      <footer className="py-8 text-center text-gray-500 border-t border-white/10 text-xs md:text-sm bg-[#231640]">
-        <p>&copy; 2026 CINEFLIX - Todos los derechos reservados.</p>
-      </footer>
+      <Footer />
     </div>
   )
 }

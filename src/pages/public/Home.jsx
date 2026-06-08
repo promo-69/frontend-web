@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import Footer from '../../components/ui/Footer'
 import Carousel from '../../components/home/Carousel'
 import HomeReleases from '../../components/home/HomeReleases'
 import HomeUpcoming from '../../components/home/HomeUpcoming'
@@ -66,9 +67,7 @@ export default function Home() {
         <HomeUpcoming movies={upcoming} />
       </main>
 
-      <footer className="py-12 text-center text-gray-500 border-t border-white/10">
-        <p>&copy; 2026 CINEFLIX - Todos los derechos reservados.</p>
-      </footer>
+      <Footer />
     </div>
   )
 }
