@@ -41,6 +41,7 @@ export const privateRoutes = (
         path="/buy/:movieId/:showtimeId/confectionery"
         element={<Confectionery />}
       />
+      
     </Route>
   </>
 )

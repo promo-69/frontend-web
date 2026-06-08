@@ -67,7 +67,9 @@ export default function OrderSummary() {
       {/* ⭐ Botones */}
       <div className="pt-4 space-y-3">
         <button
-          onClick={() => navigate('confectionery')}
+          onClick={() =>
+            navigate(`/buy/${cart.movie?.id}/${cart.showtime?.id}/confectionery`)
+          }
           className="w-full bg-[#D9982F] text-black py-2 rounded-lg font-bold"
         >
           Continuar → Confitería

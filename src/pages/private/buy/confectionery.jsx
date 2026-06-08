@@ -94,7 +94,13 @@ useEffect(() => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-6 p-6">
+    <div
+      className="grid grid-cols-3 gap-6 p-6"
+      style={{
+        background:
+          'linear-gradient(to bottom,#231640 0%,#7B1A82 50%,#231640 100%)',
+      }}
+    >
       {/* ⭐ Columna izquierda */}
       <div className="col-span-2 space-y-6">
         {/* Categorías */}
