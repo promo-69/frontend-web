@@ -25,7 +25,11 @@ export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
   // 🔥 Carrito global
-  const { addTicket, setMovie, setShowtime: setShowtimeCart } = useCart()
+  const {
+    addTicket,
+    removeTicket, setMovie,
+    setShowtime: setShowtimeCart,
+  } = useCart()
 
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
@@ -130,6 +134,25 @@ export default function SelectSeats() {
     if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
       return
     }
+
+    //mostrar en resumen  
+    if (seat.status === 'available') {
+      // Seleccionar asiento → agregar al carrito
+      addTicket({
+        seatId: seat.id,
+        row: seat.row,
+        column: seat.column,
+        price: Number(showtime.price),
+        movieId,
+        showtimeId,
+      })
+    } else if (seat.status === 'selected') {
+      // Deseleccionar asiento → quitar del carrito
+      removeTicket(seat.id)
+    }
+
+
+
 
     // 🔥 Enviar al backend
     if (socket) {
