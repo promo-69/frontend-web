@@ -8,7 +8,9 @@ import {
 import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
-import Summary from '../../../components/selectSeats/Sumary'
+import OrderSummary from '../../../components/selectSeats/OrderSummary'
+import { useCart } from '../../../context/CartContext'
+
 
 let user = null
 try {
@@ -22,6 +24,8 @@ try {
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
+  // 🔥 Carrito global
+  const { addTicket, setMovie, setShowtime: setShowtimeCart } = useCart()
 
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
@@ -43,8 +47,10 @@ export default function SelectSeats() {
       try {
         const st = await getShowtimeById(showtimeId)
         const map = await getSeatMap(showtimeId)
-
         setShowtime(st)
+        setShowtimeCart(st)
+        setMovie(st.movie)
+
         setSeats(map.seats || [])
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
@@ -119,6 +125,11 @@ export default function SelectSeats() {
 
     if (!seat) return
     if (seat.status === 'sold' || seat.status === 'locked') return
+
+    // NO permitir seleccionar más asientos que ticketsNeeded
+    if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
+      return
+    }
 
     // 🔥 Enviar al backend
     if (socket) {
@@ -219,6 +230,18 @@ export default function SelectSeats() {
       )
     }
 
+    selectedSeats.forEach((s) => {
+      addTicket({
+        seatId: s.id,
+        row: s.row,
+        column: s.column,
+        price: Number(showtime.price),
+        movieId,
+        showtimeId,
+      })
+    })
+
+
     navigate('confectionery', {
       state: {
         movieId,
@@ -254,7 +277,6 @@ export default function SelectSeats() {
     >
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <ShowtimeHeader showtime={showtime} />
-
         {/* 🔥 Temporizador */}
         {selectedSeats.length > 0 && (
           <p className="text-center text-yellow-300 font-bold text-xl">
@@ -262,20 +284,32 @@ export default function SelectSeats() {
             {String(timeLeft % 60).padStart(2, '0')}
           </p>
         )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-6">
+            {/* SUMARY contador de boletos */}
+            <div className="bg-[#2D1748]/50 border border-white/10 rounded-2xl p-6 shadow-xl">
+              <h2 className="text-gray-300 text-lg font-bold mb-1">
+                Selecciona tus boletos
+              </h2>
+              <p className="text-white">Boletos:</p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() =>
+                    setTicketsNeeded((prev) => Math.max(1, prev - 1))
+                  }
+                >
+                  -
+                </button>
+                <span>{ticketsNeeded}</span>
+                <button onClick={() => setTicketsNeeded((prev) => prev + 1)}>
+                  +
+                </button>
+              </div>
+            </div>
             <SeatMap seats={seats} onToggle={toggleSeat} />
             <SeatLegend />
           </div>
-
-          <Summary
-            showtime={showtime}
-            ticketsNeeded={ticketsNeeded}
-            setTicketsNeeded={setTicketsNeeded}
-            selectedSeats={selectedSeats}
-            onNext={handleNext}
-          />
+          <OrderSummary />
         </div>
       </div>
     </div>

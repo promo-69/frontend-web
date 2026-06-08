@@ -10,18 +10,20 @@ import { AuthContext } from '../../context/AuthContext'
 import InputPassword from '../ui/InputPassword'
 import InputText from '../ui/InputText'
 import ModalMessage from '../ui/ModalMessage'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { login, user } = useContext(AuthContext)
+  const { login } = useContext(AuthContext)
 
   const [showModal, setShowModal] = useState(false)
   const [modalMessage, setModalMessage] = useState('')
   const [modalType, setModalType] = useState('error')
 
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRoute = location.state?.from || '/'
 
   const {
     register,
@@ -102,9 +104,10 @@ function LoginForm() {
       }
 
       // ⭐ LOGIN EXITOSO
+      const loggedUser = res.user
       setModalType('success')
       setModalMessage('Inicio de sesión exitoso')
-      setShowModal(true)
+      setShowModal(loggedUser)
     } catch (error) {
       console.error('ERROR LOGIN FORM:', error)
       setModalType('error')
@@ -177,6 +180,8 @@ function LoginForm() {
           type={modalType}
           message={modalMessage}
           onClose={() => {
+            const userContextData =
+              typeof showModal === 'object' ? showModal : null
             setShowModal(false)
 
             // Redirecciones basadas en el tipo de respuesta 
@@ -190,11 +195,7 @@ function LoginForm() {
             }
 
             if (modalType === 'success') {
-              if (!user?.hasSelectedGenres) {
-                navigate('/favorites')
-              } else {
-                navigate('/')
-              }
+                navigate(fromRoute, { replace: true })
             } 
           }}
         />
