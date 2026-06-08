@@ -12,8 +12,8 @@ export default function ShowtimeCard({ showtime, movieId }) {
 
   const handleClick = () => {
     
-    const token = localStorage.getItem('token')
-    console.log('TOKEN =>', token)
+    //const token = localStorage.getItem('token')
+    //console.log('TOKEN =>', token)
 
     if (!user) {
       console.log('NO HAY USUARIO EN CONTEXTO, MOSTRAR MODAL')
@@ -61,11 +61,6 @@ export default function ShowtimeCard({ showtime, movieId }) {
           {showtime.language?.description}
         </p>
 
-        {/* Precio */}
-        <p className="text-white font-bold mt-2">
-          {showtime.currency?.symbol}
-          {showtime.price}
-        </p>
       </div>
       {showLoginModal && (
         <ModalMessage

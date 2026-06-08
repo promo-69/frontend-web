@@ -1,8 +1,10 @@
 import { useCart } from '../../context/CartContext'
+import { useNavigate } from 'react-router-dom'
 
 export default function OrderSummary() {
   const { cart, getTotals } = useCart()
   const totals = getTotals()
+  const navigate = useNavigate()
 
   return (
     <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-4 shadow-lg">
@@ -61,6 +63,29 @@ export default function OrderSummary() {
         <p className="text-xl font-bold text-[#F6AD38]">
           Total: ${totals.total.toFixed(2)}
         </p>
+      </div>
+      {/* ⭐ Botones */}
+      <div className="pt-4 space-y-3">
+        <button
+          onClick={() => navigate('confectionery')}
+          className="w-full bg-[#D9982F] text-black py-2 rounded-lg font-bold"
+        >
+          Continuar → Confitería
+        </button>
+
+        <button
+          onClick={() => navigate('/checkout')}
+          className="w-full bg-gray-500 text-white py-2 rounded-lg"
+        >
+          Omitir confitería
+        </button>
+
+        <button
+          onClick={() => navigate(`/movie/${cart.movie?.id}`)}
+          className="w-full bg-transparent border border-white py-2 rounded-lg text-white"
+        >
+          ← Atrás
+        </button>
       </div>
     </div>
   )
