@@ -36,8 +36,7 @@ export default function Home() {
 
         setReleases(releasesResponse || [])
         setUpcoming(upcomingResponse?.rows || [])
-        setEvents(eventsResponse || [])
-      } catch (error) {
+        setEvents(eventsResponse?.rows || [])      } catch (error) {
         console.error('ERROR HOME:', error)
         setError(true)
       } finally {
