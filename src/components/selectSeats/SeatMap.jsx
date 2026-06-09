@@ -37,7 +37,14 @@ export default function SeatMap({ seats, onToggle }) {
               return (
                 <div
                   key={seat.id}
-                  onClick={() => onToggle(seat.id)}
+                  onClick={() => {
+                    if (
+                      seat.status === 'available' ||
+                      seat.status === 'selected'
+                    ) {
+                      onToggle(seat.id)
+                    }
+                  }}
                   className={`w-7 h-7 rounded-md transition-transform ${color}`}
                 />
               )

@@ -3,27 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
 
-//import PopcornImg from '../../../assets/images/candy/popcorn.png'
-//import SodaImg from '../../../assets/images/candy/soda.png'
-//import ComboImg from '../../../assets/images/candy/combo.png'
-
 import {
   getConcessionProducts,
   getConcessionCombos,
 } from '../../../services/concessions.service'
-
 
 const CATEGORIES = ['Todos', 'Popcorn', 'Drinks', 'Combos', 'Candies']
 
 export default function Confectionery() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
-  const { addProduct } = useCart()
+
+  // 🛒 Extraemos addProduct y el cinema seleccionado del CartContext
+  const { addProduct, cart } = useCart()
+  const cinemaId = cart?.cinemaId || 1 // Fallback al cine 1 si no está definido
 
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // ⭐ Mapeo de categorías 
+  // ⭐ Mapeo de categorías del Backend
   const mapCategory = (catId) => {
     switch (catId) {
       case 1:
@@ -37,49 +36,65 @@ export default function Confectionery() {
     }
   }
 
-  // ⭐ Cargar productos + combos desde API
-useEffect(() => {
-  const load = async () => {
-    try {
-      //despertar render
-      //await api.get('/health')
+  // ⭐ Cargar productos + combos filtrados por sucursal desde API
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
 
-      const [products, combos] = await Promise.all([
-        getConcessionProducts(),
-        getConcessionCombos(),
-      ])
+        // Enviamos el cinemaId dinámico a ambos llamados 🚀
+        const [productsData, combosData] = await Promise.all([
+          getConcessionProducts(cinemaId),
+          getConcessionCombos(cinemaId),
+        ])
 
-      // ⭐ Mapear productos
-      const mappedProducts = products.map((p) => ({
-        id: `prod_${p.id}`,
-        originalId: p.id,
-        name: p.name,
-        price: p.price ?? 5,
-        category: mapCategory(p.product_category),
-        image: p.image_url || PopcornImg,
-        type: 'product',
-      }))
+        // 🛡️ Aseguramos que trabajamos con arreglos limpios
+        const products = Array.isArray(productsData) ? productsData : []
+        const combos = Array.isArray(combosData) ? combosData : []
 
-      // ⭐ Mapear combos
-      const mappedCombos = combos.map((c) => ({
-        id: `combo_${c.id}`,
-        originalId: c.id,
-        name: c.name,
-        price: c.price,
-        category: 'Combos',
-        image: ComboImg,
-        type: 'combo',
-      }))
+        // ⭐ Mapear productos respetando la estructura de precios (pricing.final_price)
+        const mappedProducts = products.map((p) => {
+          // Extraemos el precio numérico del objeto pricing del backend
+          const rawPrice = p.pricing?.final_price ?? p.price ?? 0
+          return {
+            id: `prod_${p.id}`,
+            originalId: p.id,
+            name: p.name,
+            price:
+              typeof rawPrice === 'string' ? parseFloat(rawPrice) : rawPrice,
+            category: mapCategory(p.product_category),
+            image: p.image_url,
+            type: 'product',
+          }
+        })
 
-      setItems([...mappedProducts, ...mappedCombos])
-    } catch (err) {
-      console.error('Error cargando confitería:', err)
+        // ⭐ Mapear combos respetando pricing.final_price
+        const mappedCombos = combos.map((c) => {
+          const rawPrice = c.pricing?.final_price ?? c.price ?? 0
+          return {
+            id: `combo_${c.id}`,
+            originalId: c.id,
+            name: c.name,
+            price:
+              typeof rawPrice === 'string' ? parseFloat(rawPrice) : rawPrice,
+            category: 'Combos',
+            image: c.image_url,
+            type: 'combo',
+          }
+        })
+
+        setItems([...mappedProducts, ...mappedCombos])
+      } catch (err) {
+        console.error('Error cargando confitería de la sucursal:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
 
-  load()
-}, [])
-
+    if (cinemaId) {
+      load()
+    }
+  }, [cinemaId]) 
 
   const filtered =
     selectedCategory === 'Todos'
@@ -96,12 +111,22 @@ useEffect(() => {
     })
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white bg-[#231640]">
+        <p className="text-xl font-semibold animate-pulse">
+          Cargando confitería de la sucursal...
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
-      className="grid grid-cols-3 gap-6 p-6"
+      className="grid grid-cols-3 gap-6 p-6 min-h-screen"
       style={{
         background:
-          'linear-gradient(to bottom,#231640 0%,#7B1A82 50%,#231640 100%)',
+          'linear-gradient(to bottom, #231640 0%, #7B1A82 50%, #231640 100%)',
       }}
     >
       {/* ⭐ Columna izquierda */}
@@ -123,39 +148,47 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* Productos */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filtered.map((p) => (
-            <div
-              key={p.id}
-              className="bg-[#1f1533] border border-gray-700 rounded-2xl overflow-hidden hover:shadow-md transition-all flex flex-col"
-            >
-              <div className="h-40 bg-gray-900 flex items-center justify-center">
-                <img
-                  src={p.image}
-                  alt={p.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="p-4 flex flex-col flex-1 space-y-3 text-white">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold">{p.name}</h3>
-                  <span className="text-yellow-400 font-bold">
-                    ${p.price.toFixed(2)}
-                  </span>
+        {/* Productos en cuadrícula */}
+        {filtered.length === 0 ? (
+          <p className="text-gray-400 text-center py-10">
+            No hay productos disponibles en esta categoría para esta sucursal.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filtered.map((p) => (
+              <div
+                key={p.id}
+                className="bg-[#1f1533] border border-gray-700 rounded-2xl overflow-hidden hover:shadow-md transition-all flex flex-col"
+              >
+                <div className="h-44 bg-gray-900 flex items-center justify-center">
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <button
-                  onClick={() => handleAdd(p)}
-                  className="mt-auto w-full bg-yellow-500 hover:bg-yellow-600 text-black py-2 rounded-xl font-semibold"
-                >
-                  Agregar
-                </button>
+                <div className="p-4 flex flex-col flex-1 space-y-3 text-white">
+                  <div className="flex justify-between items-start gap-2">
+                    <h3 className="font-bold text-sm sm:text-base line-clamp-2">
+                      {p.name}
+                    </h3>
+                    <span className="text-yellow-400 font-bold whitespace-nowrap">
+                      ${p.price.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => handleAdd(p)}
+                    className="mt-auto w-full bg-yellow-500 hover:bg-yellow-600 text-black py-2 rounded-xl font-semibold transition-colors"
+                  >
+                    Agregar
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ⭐ Columna derecha — Carrito */}

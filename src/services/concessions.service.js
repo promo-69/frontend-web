@@ -1,11 +1,17 @@
 import api from '../api/axios'
 
-export const getConcessionProducts = async () => {
-  const res = await api.get('/concessions/products')
-  return res.data.data 
+// 🍿 Obtener productos por sucursal
+export const getConcessionProducts = async (cinemaId) => {
+  const res = await api.get(`/concessions/products/available`, {
+    params: { cinemaId },
+  })
+  return res.data?.data || res.data || []
 }
 
-export const getConcessionCombos = async () => {
-  const res = await api.get('/concessions/combos')
-  return res.data.data
+// 🥤 Obtener combos por sucursal
+export const getConcessionCombos = async (cinemaId) => {
+  const res = await api.get(`/concessions/combos/available`, {
+    params: { cinemaId },
+  })
+  return res.data?.data || res.data || []
 }
