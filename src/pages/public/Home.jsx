@@ -4,7 +4,8 @@ import Footer from '../../components/ui/Footer'
 import Carousel from '../../components/home/Carousel'
 import HomeReleases from '../../components/home/HomeReleases'
 import HomeUpcoming from '../../components/home/HomeUpcoming'
-
+import HomeEvents from '../../components/home/HomeEvents'
+import {getEvents} from '../../services/events.service'
 import {
   getMoviesReleases,
   getUpcomingMovies,
@@ -13,6 +14,7 @@ import {
 export default function Home() {
   const [releases, setReleases] = useState([])
   const [upcoming, setUpcoming] = useState([])
+  const [events, setEvents] = useState([])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -28,8 +30,13 @@ export default function Home() {
 
         console.log('UPCOMING:', upcomingResponse)
 
+        const eventsResponse = await getEvents()
+
+        console.log('EVENTS:', eventsResponse)
+
         setReleases(releasesResponse || [])
         setUpcoming(upcomingResponse?.rows || [])
+        setEvents(eventsResponse || [])
       } catch (error) {
         console.error('ERROR HOME:', error)
         setError(true)
@@ -65,6 +72,8 @@ export default function Home() {
         <HomeReleases movies={releases} />
 
         <HomeUpcoming movies={upcoming} />
+
+        <HomeEvents movies={events} />
       </main>
 
       <Footer />
