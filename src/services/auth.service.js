@@ -14,13 +14,18 @@ export const loginRequest = async (data) => {
 // OBTENER USUARIO ACTUAL 
 // ---------------------------------------------------------
 export const refreshSessionRequest = async () => {
+  // Compute full refresh path to match cookie Path set by backend (avoid /test mismatch)
+  const CONFIGURED_API = import.meta.env.VITE_API_URL || ''
+  const API_ROOT = CONFIGURED_API
+  const REFRESH_FULL_PATH = import.meta.env.VITE_REFRESH_URL || `${API_ROOT}/auth/refresh`
   try {
-    const response = await api.post('/auth/refresh')
+    const response = await api.post(REFRESH_FULL_PATH)
     return response.data
   } catch (error) {
-    if (error.response?.status !== 401) {
-      console.error('Error técnico en el servidor:', error)
-    }
+    // Log detallado para diagnosticar respuestas 500/unauthorized en refresh
+    const status = error.response?.status
+    const data = error.response?.data
+    console.error('refreshSessionRequest error:', { status, data, message: error.message })
     return null
   }
 }
