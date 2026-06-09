@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ShoppingBag, X, SkipForward } from 'lucide-react'
 
-export default function Step3Confectionery({
+export default function StepConfectionery({
   products,
   combos,
   onNext,

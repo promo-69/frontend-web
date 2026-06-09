@@ -5,6 +5,7 @@ import Header from '../components/ui/Header'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
 import SelectSeats from '../pages/private/buy/selectSeats'
+import Confectionery from '../pages/private/buy/confectionery'
 
 const PrivateLayout = () => {
   const { user } = useContext(AuthContext)
@@ -29,12 +30,18 @@ export const privateRoutes = (
     <Route element={<PrivateLayout />}>
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/confectionery" element={<Confectionery />} />
 
       {/* Flujo de compra completo protegido */}
       <Route
         path="/selectSeats/:movieId/:showtimeId"
         element={<SelectSeats />}
       />
+      <Route
+        path="/buy/:movieId/:showtimeId/confectionery"
+        element={<Confectionery />}
+      />
+      
     </Route>
   </>
 )

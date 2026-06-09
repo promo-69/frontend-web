@@ -12,6 +12,11 @@ export const getShowtimesByMovie = async (movieId) => {
 }
 
 export const getShowtimeById = async (showtimeId) => {
-  const response = await apiPublic.get(`/showtimes/${showtimeId}`)
+  const response = await api.get(`/showtimes/${showtimeId}`)
   return response.data.data
+}
+
+export const getSeatMap = async (showtimeId) => {
+  const response = await api.get(`/showtimes/${showtimeId}/seat-map`)
+  return response.data.data 
 }

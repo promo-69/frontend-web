@@ -19,7 +19,7 @@ export default function MovieDetails() {
         const showtimesData = await getShowtimesByMovie(movieId)
         console.log('SHOWTIMES:', showtimesData)
         setMovie(response)
-        setShowtimes(showtimesData || [])
+        setShowtimes(showtimesData?.rows || [])
       } catch (err) {
         console.error('Error cargando película:', err)
       } finally {

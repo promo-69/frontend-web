@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Footer from '../../components/ui/Footer';
 import { getUpcomingMovies } from '../../services/movies.service';
 
 export default function MoviesUpComing() {
@@ -80,9 +81,7 @@ export default function MoviesUpComing() {
         <div className="flex-grow flex items-center justify-center">
           <p className="text-lg animate-pulse">Cargando próximos estrenos...</p>
         </div>
-        <footer className="py-8 text-center text-gray-500 border-t border-white/10 text-xs md:text-sm bg-[#231640]">
-          <p>&copy; 2026 CINEFLIX - Todos los derechos reservados.</p>
-        </footer>
+        <Footer />
       </div>
     );
   }
@@ -185,9 +184,7 @@ export default function MoviesUpComing() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-gray-500 border-t border-white/10 text-xs md:text-sm bg-[#231640] flex-shrink-0">
-        <p>&copy; 2026 CINEFLIX - Todos los derechos reservados.</p>
-      </footer>
+      <Footer />
 
     </div>
   );
