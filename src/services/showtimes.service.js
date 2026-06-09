@@ -10,7 +10,7 @@ export const getShowtimesByMovieAndCinema = async (cinemaId, movieId) => {
 
 // ⭐ 2) Detalle de función por sucursal
 export const getShowtimeById = async (cinemaId, showtimeId) => {
-  const res = await apiPublic.get(
+  const res = await api.get(
     `/cinemas/${cinemaId}/showtimes/${showtimeId}`,
   )
   return res.data.data

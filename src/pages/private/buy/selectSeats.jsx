@@ -22,6 +22,7 @@ export default function SelectSeats() {
     removeTicket,
     setMovie,
     setShowtime: setShowtimeCart,
+    cart,
   } = useCart()
 
   const [showtime, setShowtime] = useState(null)
@@ -42,8 +43,16 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
-        const st = await getShowtimeById(showtimeId)
-        const map = await getSeatMap(showtimeId)
+        console.log('→ Cargando showtime:', {
+          cinemaId: cart.cinema?.id,
+          showtimeId,
+        })
+
+        const st = await getShowtimeById(cart.cinema.id, showtimeId)
+        console.log('→ Showtime cargado:', st)
+
+        const map = await getSeatMap(cart.cinema.id, showtimeId)
+        console.log('→ Seats recibidos:', map.seats)
 
         setShowtime(st)
         setShowtimeCart(st)
@@ -57,8 +66,8 @@ export default function SelectSeats() {
       }
     }
 
-    load()
-  }, [showtimeId])
+    if (cart.cinema?.id) load()
+  }, [showtimeId, cart.cinema])
 
   // ============================
   // 2) Conectar Socket.IO
@@ -79,7 +88,7 @@ export default function SelectSeats() {
       console.log('Socket conectado:', socket.id)
 
       // ⭐ Unirse al showtime
-      socket.emit('joinshowtime', { showtimeId: Number(showtimeId) })
+      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
     })
 
     socket.on('disconnect', () => {
@@ -108,6 +117,7 @@ export default function SelectSeats() {
     })
 
     socket.on('joinerror', ({ message }) => {
+      console.error('❌ Error al unirse a la sala:', message)
       alert(message)
       navigate('/')
     })
@@ -235,6 +245,7 @@ export default function SelectSeats() {
       </div>
     )
   }
+
 
   return (
     <div

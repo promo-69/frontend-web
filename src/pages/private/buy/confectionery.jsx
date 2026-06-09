@@ -3,10 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
 
-//import PopcornImg from '../../../assets/images/candy/popcorn.png'
-//import SodaImg from '../../../assets/images/candy/soda.png'
-//import ComboImg from '../../../assets/images/candy/combo.png'
-
 import {
   getConcessionProducts,
   getConcessionCombos,
