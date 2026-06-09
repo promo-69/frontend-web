@@ -1,7 +1,7 @@
 import { useCart } from '../../context/CartContext'
 import { useNavigate } from 'react-router-dom'
 
-export default function OrderSummary() {
+export default function OrderSummary({onNext}) {
   const { cart, getTotals } = useCart()
   const totals = getTotals()
   const navigate = useNavigate()
@@ -67,9 +67,7 @@ export default function OrderSummary() {
       {/* ⭐ Botones */}
       <div className="pt-4 space-y-3">
         <button
-          onClick={() =>
-            navigate(`/buy/${cart.movie?.id}/${cart.showtime?.id}/confectionery`)
-          }
+          onClick={onNext}
           className="w-full bg-[#D9982F] text-black py-2 rounded-lg font-bold"
         >
           Continuar → Confitería
