@@ -11,7 +11,7 @@ import { LoginIcon, LocationIcon, ProfileIcon } from '../ui/IconosProyect'
 import { getCinemas } from '../../services/info.service'
 
 const NAV_LINKS = [
-  { name: 'Confitería', path: '/confiteria' },
+  { name: 'Confitería', path: '/confectionery' },
   { name: 'Sucursales', path: '/sucursales' },
   { name: 'Empresa', path: '/empresa' },
 ]
@@ -41,7 +41,7 @@ function Header() {
     const fetchCinemasData = async () => {
       try {
         setIsLoadingCinemas(true)
-        const data = await getCinemas() // Trae el array response.data.data
+        const data = await getCinemas() 
         setCinemas(data)
 
         if (data && data.length > 0) {

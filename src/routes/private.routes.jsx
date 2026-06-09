@@ -30,7 +30,6 @@ export const privateRoutes = (
     <Route element={<PrivateLayout />}>
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/confectionery" element={<Confectionery />} />
 
       {/* Flujo de compra completo protegido */}
       <Route
