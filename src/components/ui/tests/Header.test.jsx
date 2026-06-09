@@ -16,6 +16,17 @@ vi.mock('../../../services/info.service', () => ({
   ),
 }))
 
+// 🛒 ⭐ ADAPTADO: Estructura real de objetos con tickets y products
+vi.mock('../../../context/CartContext', () => ({
+  useCart: vi.fn(() => ({
+    cart: {
+      tickets: [{ id: 101, seat: 'A-1' }], // 1 Ticket
+      products: [{ id: 201, name: 'Combo Cotufas', quantity: 1 }], // 1 Producto
+    }, // 1 + 1 = 2 (Mantiene verde tu aserción del segundo test)
+    setCinema: vi.fn(),
+  })),
+}))
+
 const mockAuthContext = {
   user: { name: 'Mary Sofia', role: 'ADMIN' },
   isLoggedIn: true,
@@ -55,6 +66,7 @@ describe('Componente Header', () => {
       screen.getByText(new RegExp(`¡Hola ${user}!`, 'i')),
     ).toBeInTheDocument()
 
+    // Este expect buscará el "2" que resulta de sumar tickets.length + products.length
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 

@@ -14,6 +14,7 @@ export const AuthContext = createContext()
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [initializing, setInitializing] = useState(true)
   const { showLoader, hideLoader } = useLoading()
 
   // 1. CARGAR SESIÓN INICIAL (Se ejecuta al recargar la página)
@@ -24,6 +25,7 @@ export function AuthProvider({ children }) {
           'DEBUG CONTEXTO: No hay usuario logueado en localStorage. Modo invitado activo.',
         )
         setUser(null)
+        setInitializing(false)
         return
       }
 
@@ -55,10 +57,29 @@ export function AuthProvider({ children }) {
         setUser(null)
       } finally {
         hideLoader()
+        setInitializing(false)
       }
     }
 
     initSession()
+  }, [])
+
+  // Escuchar eventos de logout emitidos por el interceptor (p.ej. refresh fallido)
+  useEffect(() => {
+    const handleExternalLogout = () => {
+      localStorage.removeItem('user_logged')
+      setUser(null)
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:logout', handleExternalLogout)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth:logout', handleExternalLogout)
+      }
+    }
   }, [])
 
   // 2. INICIAR SESIÓN
@@ -181,8 +202,20 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState }}>
-      {children}
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        login,
+        logout,
+        sendRecoveryEmail,
+        verifyRecoveryCode,
+        resetPassword,
+        updateProfileState,
+        initializing,
+      }}
+    >
+      {initializing ? null : children}
     </AuthContext.Provider>
   )
 }
