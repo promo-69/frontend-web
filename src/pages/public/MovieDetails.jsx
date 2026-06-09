@@ -1,38 +1,64 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+
 import { getMovieById } from '../../services/movies.service'
-import { getShowtimesByMovie } from '../../services/showtimes.service'
+import { getShowtimesByMovieAndCinema } from '../../services/showtimes.service'
+
 import ShowtimesList from '../../components/showtimesMovie/ShowtimeList'
+import { useCart } from '../../context/CartContext'
 
 export default function MovieDetails() {
   const { movieId } = useParams()
-  //const navigate = useNavigate()
+  const { cart } = useCart() // obtener sucursal seleccionada
 
   const [movie, setMovie] = useState(null)
   const [showtimes, setShowtimes] = useState([])
   const [loading, setLoading] = useState(true)
 
+  console.log('→ cinema from cart:', cart.cinema)
+  console.log('[MOVIEDETAILS] cinemaId:', cart.cinema?.id)
+  console.log('[MOVIEDETAILS] movieId:', movieId)
+
   useEffect(() => {
     async function loadMovie() {
       try {
-        const response = await getMovieById(movieId)
-        const showtimesData = await getShowtimesByMovie(movieId)
-        console.log('SHOWTIMES:', showtimesData)
-        setMovie(response)
-        setShowtimes(showtimesData?.rows || [])
+        if (!cart.cinema?.id) {
+          console.log('Esperando cinema…')
+          return
+        }
+
+        console.log('✔ Cinema listo:', cart.cinema)
+
+        // 1) Cargar película SIEMPRE
+        const movieData = await getMovieById(movieId)
+        setMovie(movieData)
+
+        // 2) Intentar cargar funciones
+        try {
+          const showtimesData = await getShowtimesByMovieAndCinema(
+            cart.cinema.id,
+            movieId,
+          )
+          setShowtimes(showtimesData?.rows || [])
+        } catch (err) {
+          console.warn('⚠ No hay funciones en esta sucursal:', err)
+          setShowtimes([]) 
+        }
       } catch (err) {
-        console.error('Error cargando película:', err)
+        console.error('❌ Error cargando película REAL:', err)
+        setMovie(null)
       } finally {
         setLoading(false)
       }
     }
 
     loadMovie()
-  }, [movieId])
+  }, [movieId, cart.cinema])
 
-  if (loading) {
+
+  if (loading || !cart.cinema) {
     return (
-      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
+      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex items-center justify-center">
         <p className="text-xl opacity-70">Cargando película...</p>
       </div>
     )
@@ -40,22 +66,33 @@ export default function MovieDetails() {
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
+      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex items-center justify-center">
         <p className="text-xl opacity-70">Película no encontrada</p>
+      </div>
+    )
+  }
+
+  // Si la película existe pero no tiene funciones en esta sucursal
+  if (movie && showtimes.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex items-center justify-center flex-col gap-4">
+        <p className="text-xl opacity-70 text-center">
+          Esta película no está disponible en la sucursal seleccionada.
+        </p>
+        <p className="text-sm opacity-60 text-center">
+          Selecciona otra sucursal para ver funciones disponibles.
+        </p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
-      {/* CONTENEDOR PRINCIPAL */}
       <div className="max-w-6xl mx-auto px-6 md:px-10 pt-10">
         {/* POSTER + INFO */}
         <div className="flex flex-col md:flex-row gap-10">
-          {/* POSTER */}
           <div className="w-full md:w-1/3">
             <div className="w-full aspect-[2/3] bg-white/10 rounded-2xl border border-white/10 shadow-xl flex items-center justify-center text-gray-400 text-lg">
-              {/* poster_url */}
               <img
                 src={movie.poster_url}
                 className="w-full h-full object-cover rounded-2xl"
@@ -63,7 +100,6 @@ export default function MovieDetails() {
             </div>
           </div>
 
-          {/* INFORMACIÓN PRINCIPAL */}
           <div className="w-full md:w-2/3">
             <h1 className="text-4xl md:text-6xl font-bold italic mb-6 leading-tight">
               {movie.title}
@@ -73,7 +109,7 @@ export default function MovieDetails() {
               {movie.synopsis}
             </p>
 
-            {/* DATOS ORGANIZADOS */}
+            {/* DATOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#231640] p-6 rounded-2xl border border-white/10">
               <div>
                 <p className="text-gray-400 text-sm">Duración</p>
@@ -110,10 +146,10 @@ export default function MovieDetails() {
             </div>
           </div>
         </div>
-        {/* SECCIÓN DE FUNCIONES */}
+
+        {/* ⭐ FUNCIONES FILTRADAS POR SUCURSAL */}
         <ShowtimesList showtimes={showtimes} movieId={movieId} />
       </div>
     </div>
   )
 }
-

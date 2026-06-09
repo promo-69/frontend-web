@@ -9,7 +9,12 @@ export function CartProvider({ children }) {
     products: [],
     movie: null,
     showtime: null,
+    cinema: null,
   })
+
+  const setCinema = (cinema) => {
+    setCart((prev) => ({ ...prev, cinema }))
+  }
 
   // 🧊 Persistencia: cargar carrito desde localStorage
   useEffect(() => {
@@ -119,6 +124,7 @@ export function CartProvider({ children }) {
     <CartContext.Provider
       value={{
         cart,
+        setCinema,
         addTicket,
         removeTicket,
         addProduct,
