@@ -27,9 +27,12 @@ export default function SeatMap({ seats, onToggle }) {
               const color =
                 seat.status === 'sold'
                   ? 'bg-gray-600 cursor-not-allowed'
-                  : seat.status === 'selected'
-                    ? 'bg-[#F6AD38]'
-                    : 'bg-[#713182] hover:bg-[#913a9e] cursor-pointer'
+                  : seat.status === 'locked'
+                    ? 'bg-yellow-500 cursor-not-allowed'
+                    : seat.status === 'selected'
+                      ? 'bg-[#F6AD38]'
+                      : 'bg-[#713182] hover:bg-[#913a9e] cursor-pointer'
+
 
               return (
                 <div

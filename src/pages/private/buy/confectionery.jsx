@@ -41,6 +41,9 @@ export default function Confectionery() {
 useEffect(() => {
   const load = async () => {
     try {
+      //despertar render
+      //await api.get('/health')
+
       const [products, combos] = await Promise.all([
         getConcessionProducts(),
         getConcessionCombos(),

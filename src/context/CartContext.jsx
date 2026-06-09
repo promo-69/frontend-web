@@ -24,13 +24,19 @@ export function CartProvider({ children }) {
     localStorage.setItem('cine_cart', JSON.stringify(cart))
   }, [cart])
 
-  // 🎟️ Agregar boletos
+  // Agregar boletos
   const addTicket = (ticket) => {
-    setCart((prev) => ({
-      ...prev,
-      tickets: [...prev.tickets, ticket],
-    }))
+    setCart((prev) => {
+      const exists = prev.tickets.find((t) => t.seatId === ticket.seatId)
+      if (exists) return prev
+
+      return {
+        ...prev,
+        tickets: [...prev.tickets, ticket],
+      }
+    })
   }
+
 
   // ❌ Quitar boleto
   const removeTicket = (seatId) => {
