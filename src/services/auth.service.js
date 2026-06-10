@@ -14,12 +14,8 @@ export const loginRequest = async (data) => {
 // OBTENER USUARIO ACTUAL 
 // ---------------------------------------------------------
 export const refreshSessionRequest = async () => {
-  // Compute full refresh path to match cookie Path set by backend (avoid /test mismatch)
-  const CONFIGURED_API = import.meta.env.VITE_API_URL || ''
-  const API_ROOT = CONFIGURED_API
-  const REFRESH_FULL_PATH = import.meta.env.VITE_REFRESH_URL || `${API_ROOT}/auth/refresh`
   try {
-    const response = await api.post(REFRESH_FULL_PATH)
+    const response = await api.post('auth/refresh')
     return response.data
   } catch (error) {
     // Log detallado para diagnosticar respuestas 500/unauthorized en refresh
