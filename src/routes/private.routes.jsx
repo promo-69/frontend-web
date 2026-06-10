@@ -4,6 +4,9 @@ import { AuthContext } from '../context/AuthContext' // Ajusta la ruta a tu cont
 import Header from '../components/ui/Header'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
+import Loyalty from '../pages/private/user/loyalty'
+import MyOrders from '../pages/private/user/myOrders'
+import OrderTicket from '../pages/private/user/orderTicket'
 import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
 
@@ -30,6 +33,9 @@ export const privateRoutes = (
     <Route element={<PrivateLayout />}>
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/fidelidad" element={<Loyalty />} />
+      <Route path="/mis-compras" element={<MyOrders />} />
+      <Route path="/mis-compras/:orderId/ticket" element={<OrderTicket />} />
 
       {/* Flujo de compra completo protegido */}
       <Route
