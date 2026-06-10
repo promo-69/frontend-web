@@ -118,7 +118,7 @@ export default function OrderSummary({ onNext, mode = 'flow' }) {
               onClick={onNext}
               className="w-full bg-[#D9982F] text-black py-2 rounded-lg font-bold hover:bg-[#be8225] transition-colors"
             >
-              Continuar → Confirmar Orden
+              Continuar → Confiteria
             </button>
 
             <button
