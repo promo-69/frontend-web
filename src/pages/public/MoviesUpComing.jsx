@@ -12,7 +12,6 @@ export default function MoviesUpComing() {
         const response = await getUpcomingMovies();
         console.log("Respuesta exacta de la API:", response);
         
-        // Extracción ultra segura del arreglo de filas (rows)
         let moviesData = [];
         if (response?.data?.rows) {
           moviesData = response.data.rows;
@@ -52,10 +51,9 @@ export default function MoviesUpComing() {
         return groups;
       }
 
-      // Separamos "2026-06-01" en partes de forma manual y segura
       const parts = movie.release_date.split('-');
       const year = parts[0];
-      const monthIndex = parseInt(parts[1], 10) - 1; // El mes 06 pasa a ser índice 5 (Junio)
+      const monthIndex = parseInt(parts[1], 10) - 1; 
 
       if (monthIndex >= 0 && monthIndex < 12) {
         const formattedMonth = `${mesesEspanol[monthIndex]} ${year}`;
