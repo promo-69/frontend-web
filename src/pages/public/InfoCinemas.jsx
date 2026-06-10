@@ -75,7 +75,7 @@ function InfoSucursales() {
                       <div className="space-y-1">
                         <span className="text-[11px] text-[#F6AD38] uppercase font-bold tracking-wider block">Ubicación</span>
                         <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
-                          Sede Oficial Cineflix. Consulta carteleras y taquillas disponibles directamente en el establecimiento.
+                          {sucursal.address || 'Dirección no disponible'}
                         </p>
                       </div>
 
