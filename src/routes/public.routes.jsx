@@ -14,6 +14,7 @@ import MoviesReleases from '../pages/public/MoviesReleases';
 import MoviesUpcoming from '../pages/public/MoviesUpComing';
 
 import MovieDetails from '../pages/public/MovieDetails';
+import Confectionery from '../pages/private/buy/confectionery';
 
 
 const PublicLayout = () => {
@@ -37,7 +38,7 @@ export const publicRoutes = (
       <Route path="/sucursales" element={<CinemasInfo />} />
       <Route path="/cartelera" element={<MoviesReleases />} />
       <Route path="/estrenos" element={<MoviesUpcoming />} />
-
+      <Route path="/confectionery" element={<Confectionery />} />
     </Route>
 
     {/* Rutas sin Header */}

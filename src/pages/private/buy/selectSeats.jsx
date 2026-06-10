@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { io } from 'socket.io-client'
+
 import {
   getShowtimeById,
   getSeatMap,
@@ -11,24 +13,16 @@ import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { useCart } from '../../../context/CartContext'
 
-
-let user = null
-try {
-  const raw = localStorage.getItem('user')
-  user = raw && raw !== 'undefined' ? JSON.parse(raw) : null
-} catch {
-  user = null
-}
-
-
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
-  // 🔥 Carrito global
+
   const {
     addTicket,
-    removeTicket, setMovie,
+    removeTicket,
+    setMovie,
     setShowtime: setShowtimeCart,
+    cart,
   } = useCart()
 
   const [showtime, setShowtime] = useState(null)
@@ -36,11 +30,11 @@ export default function SelectSeats() {
   const [loading, setLoading] = useState(true)
   const [ticketsNeeded, setTicketsNeeded] = useState(1)
 
-  // 🔥 WebSocket + temporizador
-  const [socket, setSocket] = useState(null)
-  const [timeLeft, setTimeLeft] = useState(300) // 5 minutos
+  const [timeLeft, setTimeLeft] = useState(300)
 
-  // 🔥 Usuario real
+  // ⭐ Socket.IO
+  const socketRef = useRef(null)
+
   const user = JSON.parse(localStorage.getItem('user'))
 
   // ============================
@@ -49,8 +43,17 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
-        const st = await getShowtimeById(showtimeId)
-        const map = await getSeatMap(showtimeId)
+        console.log('→ Cargando showtime:', {
+          cinemaId: cart.cinema?.id,
+          showtimeId,
+        })
+
+        const st = await getShowtimeById(cart.cinema.id, showtimeId)
+        console.log('→ Showtime cargado:', st)
+
+        const map = await getSeatMap(cart.cinema.id, showtimeId)
+        console.log('→ Seats recibidos:', map.seats)
+
         setShowtime(st)
         setShowtimeCart(st)
         setMovie(st.movie)
@@ -63,123 +66,133 @@ export default function SelectSeats() {
       }
     }
 
-    load()
-  }, [showtimeId])
+    if (cart.cinema?.id) load()
+  }, [showtimeId, cart.cinema])
 
   // ============================
-  // 2) Conectar WebSocket
+  // 2) Conectar Socket.IO
   // ============================
   useEffect(() => {
     if (!showtimeId) return
 
-    // URL DEL BACKEND VA AQUI:
-    const WS_URL = `ws://AQUI_VA_LA_URL/ws/showtime/${showtimeId}`
+    const socket = io(import.meta.env.VITE_WS_URL, {
+      transports: ['websocket'],
+      auth: {
+        token: localStorage.getItem('token'),
+      },
+    })
 
-    const ws = new WebSocket(WS_URL)
-    setSocket(ws)
+    socketRef.current = socket
 
-    ws.onopen = () => console.log('WS conectado')
-    ws.onclose = () => console.log('WS desconectado')
+    socket.on('connect', () => {
+      console.log('Socket conectado:', socket.id)
 
-    return () => ws.close()
+      // ⭐ Unirse al showtime
+      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
+    })
+
+    socket.on('disconnect', () => {
+      console.log('Socket desconectado')
+    })
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.emit('leaveshowtime', {
+          showtimeId: Number(showtimeId),
+        })
+        socketRef.current.disconnect()
+      }
+    }
   }, [showtimeId])
 
   // ============================
-  // 3) Escuchar eventos del servidor
+  // 3) Escuchar eventos del backend
   // ============================
   useEffect(() => {
+    const socket = socketRef.current
     if (!socket) return
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data)
+    socket.on('joinsuccess', () => {
+      console.log('Entraste a la sala correctamente')
+    })
 
-      if (data.type === 'lock') {
-        setSeats((prev) =>
-          prev.map((s) =>
-            s.id === data.seatId ? { ...s, status: 'locked' } : s,
-          ),
-        )
-      }
+    socket.on('joinerror', ({ message }) => {
+      console.error('❌ Error al unirse a la sala:', message)
+      alert(message)
+      navigate('/')
+    })
 
-      if (data.type === 'unlock') {
-        setSeats((prev) =>
-          prev.map((s) =>
-            s.id === data.seatId ? { ...s, status: 'available' } : s,
-          ),
-        )
-      }
+    socket.on('seatlocksuccess', ({ seatId }) => {
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
+      )
+    })
 
-      if (data.type === 'sold') {
-        setSeats((prev) =>
-          prev.map((s) =>
-            data.seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
-          ),
-        )
-      }
+    socket.on('seatlockerror', ({ seatId, message }) => {
+      alert(message)
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
+      )
+    })
+
+    socket.on('seatlockedbyother', ({ seatId }) => {
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
+      )
+    })
+
+    socket.on('seatunlocked', ({ seatId }) => {
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
+      )
+    })
+
+    socket.on('seatssoldfinal', ({ seatIds }) => {
+      setSeats((prev) =>
+        prev.map((s) =>
+          seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
+        ),
+      )
+    })
+
+    socket.on('quoteexpired', () => {
+      alert('Tu tiempo de compra expiró')
+      navigate('/')
+    })
+
+    return () => {
+      socket.off()
     }
-  }, [socket])
+  }, [])
 
   // ============================
-  // 4) Seleccionar / deseleccionar asiento
+  // 4) Seleccionar asiento
   // ============================
   const selectedSeats = seats.filter((s) => s.status === 'selected')
 
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
-
     if (!seat) return
+
     if (seat.status === 'sold' || seat.status === 'locked') return
 
-    // NO permitir seleccionar más asientos que ticketsNeeded
     if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
       return
     }
 
-    //mostrar en resumen  
+    const socket = socketRef.current
+    if (!socket) return
+
     if (seat.status === 'available') {
-      // Seleccionar asiento → agregar al carrito
-      addTicket({
-        seatId: seat.id,
-        row: seat.row,
-        column: seat.column,
-        price: Number(showtime.price),
-        movieId,
-        showtimeId,
-      })
+      socket.emit('lockseat', { seatId })
     } else if (seat.status === 'selected') {
-      // Deseleccionar asiento → quitar del carrito
+      socket.emit('unlockseat', { seatId })
       removeTicket(seat.id)
     }
-
-
-
-
-    // 🔥 Enviar al backend
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: seat.status === 'available' ? 'lock' : 'unlock',
-          seatId,
-          userId: user?.userId,
-        }),
-      )
-    }
-
-    // 🔥 Actualizar localmente
-    setSeats((prev) =>
-      prev.map((s) =>
-        s.id === seatId
-          ? {
-              ...s,
-              status: s.status === 'available' ? 'selected' : 'available',
-            }
-          : s,
-      ),
-    )
   }
 
   // ============================
-  // 5) Temporizador de bloqueo
+  // 5) Temporizador
   // ============================
   useEffect(() => {
     if (selectedSeats.length === 0) return
@@ -199,18 +212,12 @@ export default function SelectSeats() {
   }, [selectedSeats])
 
   const handleTimeExpired = () => {
-    console.log('Tiempo expirado, liberando asientos…')
+    const socket = socketRef.current
+    if (!socket) return
 
-    if (socket) {
-      selectedSeats.forEach((s) => {
-        socket.send(
-          JSON.stringify({
-            type: 'unlock',
-            seatId: s.id,
-          }),
-        )
-      })
-    }
+    selectedSeats.forEach((s) => {
+      socket.emit('unlockseat', { seatId: s.id })
+    })
 
     setSeats((prev) =>
       prev.map((s) =>
@@ -222,58 +229,10 @@ export default function SelectSeats() {
   }
 
   // ============================
-  // 6) Liberar asientos al salir
-  // ============================
-  useEffect(() => {
-    return () => {
-      if (socket) {
-        const selected = seats.filter((s) => s.status === 'selected')
-        selected.forEach((s) => {
-          socket.send(
-            JSON.stringify({
-              type: 'unlock',
-              seatId: s.id,
-            }),
-          )
-        })
-      }
-    }
-  }, [socket, seats])
-
-  // ============================
-  // 7) Pasar a confitería
+  // 6) Continuar a confitería
   // ============================
   const handleNext = () => {
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: 'confirm',
-          seatIds: selectedSeats.map((s) => s.id),
-        }),
-      )
-    }
-
-    selectedSeats.forEach((s) => {
-      addTicket({
-        seatId: s.id,
-        row: s.row,
-        column: s.column,
-        price: Number(showtime.price),
-        movieId,
-        showtimeId,
-      })
-    })
-
-
-    navigate('confectionery', {
-      state: {
-        movieId,
-        showtime,
-        selectedSeats,
-        ticketsNeeded,
-        totalPrice: ticketsNeeded * Number(showtime.price),
-      },
-    })
+    navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
   }
 
   // ============================
@@ -287,9 +246,7 @@ export default function SelectSeats() {
     )
   }
 
-  // ============================
-  // UI
-  // ============================
+
   return (
     <div
       className="min-h-screen text-white pb-20"
@@ -300,39 +257,21 @@ export default function SelectSeats() {
     >
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <ShowtimeHeader showtime={showtime} />
-        {/* 🔥 Temporizador */}
+
         {selectedSeats.length > 0 && (
           <p className="text-center text-yellow-300 font-bold text-xl">
             Tiempo restante: {Math.floor(timeLeft / 60)}:
             {String(timeLeft % 60).padStart(2, '0')}
           </p>
         )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-6">
-            {/* SUMARY contador de boletos */}
-            <div className="bg-[#2D1748]/50 border border-white/10 rounded-2xl p-6 shadow-xl">
-              <h2 className="text-gray-300 text-lg font-bold mb-1">
-                Selecciona tus boletos
-              </h2>
-              <p className="text-white">Boletos:</p>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() =>
-                    setTicketsNeeded((prev) => Math.max(1, prev - 1))
-                  }
-                >
-                  -
-                </button>
-                <span>{ticketsNeeded}</span>
-                <button onClick={() => setTicketsNeeded((prev) => prev + 1)}>
-                  +
-                </button>
-              </div>
-            </div>
             <SeatMap seats={seats} onToggle={toggleSeat} />
             <SeatLegend />
           </div>
-          <OrderSummary />
+
+          <OrderSummary onNext={handleNext} />
         </div>
       </div>
     </div>

@@ -2,23 +2,25 @@ import React, { useState, useContext, useEffect } from 'react'
 import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' // Nuevos iconos
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
-import { AuthContext } from '../../context/AuthContext'
+//import { AuthContext } from '../../context/AuthContext'
 import { useAuth } from '../../context/AuthContext'
-
+import { useCart } from '../../context/CartContext'
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
 import { LoginIcon, LocationIcon, ProfileIcon } from '../ui/IconosProyect'
 import { getCinemas } from '../../services/info.service'
 
 const NAV_LINKS = [
-  { name: 'Confitería', path: '/confiteria' },
+  { name: 'Confitería', path: '/confectionery' },
   { name: 'Sucursales', path: '/sucursales' },
   { name: 'Empresa', path: '/empresa' },
 ]
 
 function Header() {
   const navigate = useNavigate()
-  const { user } = useContext(AuthContext)
+  const { user, logout } = useAuth()
+
+  const { cart, setCinema } = useCart()
 
   // 🏙️ ESTADOS PARA LAS SUCURSALES DINÁMICAS
   const [cinemas, setCinemas] = useState([]) // lista de la API
@@ -28,30 +30,46 @@ function Header() {
   const [isCityOpen, setIsCityOpen] = useState(false)
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [selectedCity, setSelectedCity] = useState('Barquisimeto')
+  //const [selectedCity, setSelectedCity] = useState('Barquisimeto')
 
   const isLoggedIn = !!user
   const displayName =
     user?.firstName || user?.name || user?.email?.split('@')[0]
 
-  const { logout } = useAuth()
-
-  // 🚀 LLAMADA A LA API AL MONTAR EL COMPONENTE
+  // 🚀 CARGAR SUCURSALES + CARGAR SUCURSAL GUARDADA
   useEffect(() => {
     const fetchCinemasData = async () => {
       try {
         setIsLoadingCinemas(true)
-        const data = await getCinemas() // Trae el array response.data.data
+        const data = await getCinemas()
         setCinemas(data)
 
+        // 1) Revisar si hay sucursal guardada
+        const saved = localStorage.getItem('cine_cinema')
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          console.log(
+            '%c[HEADER] ✔ Usando sucursal guardada:',
+            'color: green',
+            parsed,
+          )
+          setSelectedCinema(parsed)
+          setCinema(parsed)
+          return
+        }
+
+        // 2) Si no hay guardada, seleccionar una por defecto
         if (data && data.length > 0) {
-          // Barquisimeto por defecto, si no, toma el primero
           const defaultCinema = data.find(
             (cine) =>
               cine.name?.toLowerCase().includes('barquisimeto') ||
               cine.city?.toLowerCase().includes('barquisimeto'),
           )
-          setSelectedCinema(defaultCinema || data[0])
+
+          const chosen = defaultCinema || data[0]
+          setSelectedCinema(chosen)
+          setCinema(chosen)
+          localStorage.setItem('cine_cinema', JSON.stringify(chosen))
         }
       } catch (error) {
         console.error('Error al cargar los cines en el Header:', error)
@@ -64,7 +82,7 @@ function Header() {
   }, [])
 
   const handleLogout = async () => {
-    await logout() // Ejecuta la petición al backend, borra el localStorage y limpia el estado 'user'
+    await logout() // limpia el estado 'user' y el token 
     navigate('/login')
   }
   // Dropdown para Cartelera
@@ -92,7 +110,7 @@ function Header() {
     </motion.div>
   )
 
-  //Dropdown para Locaciones/Sucursales
+  //Dropdown Sucursales
   const CityDropdown = () => (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -115,9 +133,13 @@ function Header() {
             key={cinema.id}
             onClick={() => {
               setSelectedCinema(cinema)
+              setCinema(cinema) // ⭐ Guardar en CartContext
+              localStorage.setItem('cine_cinema', JSON.stringify(cinema)) // ⭐ Persistir
               setIsCityOpen(false)
             }}
-            className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-[#231640]/40 transition-colors border-b border-white/5 last:border-none ${selectedCinema?.id === cinema.id ? 'bg-[#231640]/40' : ''}`}
+            className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-[#231640]/40 transition-colors border-b border-white/5 last:border-none ${
+              selectedCinema?.id === cinema.id ? 'bg-[#231640]/40' : ''
+            }`}
           >
             <p className="font-bold uppercase text-[9px] text-[#F6AD38] opacity-90 leading-none mb-1">
               {cinema.city || cinema.location || 'Sucursal'}
@@ -149,6 +171,13 @@ function Header() {
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
       >
         Perfil
+      </Link>
+      <Link
+        to="/fidelidad"
+        onClick={() => setIsUserMenuOpen(false)}
+        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+      >
+        Fidelidad
       </Link>
       <Link
         to="/mis-compras"
@@ -206,27 +235,34 @@ function Header() {
           />
         </div>
 
-        {/* NAVEGACIÓN PRINCIPAL */}
+        {/* NAV */}
         <nav className="order-3 md:order-2 w-full md:w-auto">
           <ul className="flex flex-wrap justify-center items-center gap-x-3 sm:gap-x-5 md:gap-x-6 lg:gap-x-8 text-[9px] sm:text-[11px] lg:text-sm font-bold uppercase tracking-wider">
+            {/* CARTELERA DROPDOWN */}
             <li className="relative">
               <button
                 onClick={() => {
                   setIsCarteleraOpen(!isCarteleraOpen)
                   setIsUserMenuOpen(false)
                 }}
-                className={`flex items-center gap-1 hover:text-[#F6AD38] transition-colors whitespace-nowrap ${isCarteleraOpen ? 'text-[#F6AD38]' : ''}`}
+                className={`flex items-center gap-1 hover:text-[#F6AD38] transition-colors whitespace-nowrap ${
+                  isCarteleraOpen ? 'text-[#F6AD38]' : ''
+                }`}
               >
-                CARTELERA{' '}
+                CARTELERA
                 <FiChevronDown
-                  className={`transition-transform duration-200 ${isCarteleraOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform duration-200 ${
+                    isCarteleraOpen ? 'rotate-180' : ''
+                  }`}
                 />
               </button>
+
               <AnimatePresence>
                 {isCarteleraOpen && <CarteleraDropdown />}
               </AnimatePresence>
             </li>
 
+            {/* LINKS */}
             {NAV_LINKS.map((link) => (
               <li key={link.name}>
                 <Link
@@ -240,8 +276,9 @@ function Header() {
           </ul>
         </nav>
 
-        {/* ACCIONES - Locacion */}
+        {/* ACCIONES */}
         <div className="order-2 md:order-3 flex items-center gap-2 md:gap-4 min-w-0">
+          {/* ⭐ SUCURSAL */}
           <div className="relative">
             <button
               onClick={() => {
@@ -255,38 +292,38 @@ function Header() {
               <span className="w-[10ch] sm:w-auto sm:min-w-[8ch] max-w-[12ch] truncate text-left">
                 {isLoadingCinemas
                   ? 'Cargando...'
-                  : selectedCinema?.name ||
-                    selectedCinema?.city ||
-                    'Barquisimeto'}
+                  : selectedCinema?.name || 'Sucursal'}
               </span>
             </button>
+
             <AnimatePresence>{isCityOpen && <CityDropdown />}</AnimatePresence>
           </div>
 
-          {/* LOGIN */}
+          {/* LOGIN / PERFIL */}
           {!isLoggedIn ? (
             <button
               onClick={() => navigate('/login')}
               className="flex items-center gap-1 border border-[#F6AD38] text-[#F6AD38] px-2 sm:px-3 md:px-5 py-1 rounded-full font-bold text-[8px] sm:text-[10px] md:text-sm hover:bg-[#F6AD38] hover:text-[#2A154B] transition-all whitespace-nowrap"
             >
-              <span>INGRESAR</span>{' '}
+              INGRESAR
               <LoginIcon className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 shrink-0" />
             </button>
           ) : (
-            /*MODO LOGUEADO*/
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0">
-              {/* CARRITO AMARILLO */}
-              <div
-                className="relative cursor-pointer group shrink-0"
-                onClick={() => navigate('/carrito')}
+              {/* ⭐ CARRITO */}
+              <button
+                onClick={() => navigate('/cart')}
+                className="relative hover:text-[#F6AD38]"
               >
-                <FiShoppingCart className="text-2xl lg:text-3xl text-[#F6AD38] hover:scale-110 transition-transform" />
-                <span className="absolute -top-1 -right-1 bg-[#A133A9] text-[#F6AD38] text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                  2
-                </span>
-              </div>
+                <FiShoppingCart size={22} />
+                {cart.tickets.length + cart.products.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#F6AD38] text-black text-xs font-bold px-2 py-0.5 rounded-full">
+                    {cart.tickets.length + cart.products.length}
+                  </span>
+                )}
+              </button>
 
-              {/* GRUPO PERFIL*/}
+              {/* ⭐ PERFIL */}
               <div className="relative">
                 <button
                   onClick={() => {
@@ -296,19 +333,19 @@ function Header() {
                   }}
                   className="flex items-center gap-2 cursor-pointer group shrink-0"
                 >
-                  <ProfileIcon className="w-9 h-9 md:w-8 md:h-8 text-[#F6AD38] hover:opacity-80 transition-opacity" />
+                  <ProfileIcon className="w-9 h-9 md:w-8 md:h-8 text-[#F6AD38]" />
 
-                  {/* 🔥 Saludo: Visible en pantallas grandes, Montserrat Bold */}
-                  <span className="hidden lg:block text-xl font-['Montserrat'] font-bold tracking-tight text-white whitespace-nowrap">
+                  <span className="hidden lg:block text-xl font-bold tracking-tight text-white whitespace-nowrap">
                     ¡Hola {displayName}!
                   </span>
 
                   <FiChevronDown
-                    className={`text-[#F6AD38] text-2xl transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                    className={`text-[#F6AD38] text-2xl transition-transform ${
+                      isUserMenuOpen ? 'rotate-180' : ''
+                    }`}
                   />
                 </button>
 
-                {/* Desplegable de Usuario */}
                 <AnimatePresence>
                   {isUserMenuOpen && <UserMenuDropdown />}
                 </AnimatePresence>
@@ -319,6 +356,7 @@ function Header() {
       </div>
     </header>
   )
+
 }
 
 export default Header
