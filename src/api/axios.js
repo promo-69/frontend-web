@@ -1,19 +1,11 @@
 // src/api/axios.js
 import axios from 'axios'
-// Base URL configurada en .env puede apuntar a un path de pruebas (p.ej. /api/v1/test).
-// Algunas cookies de refresh pueden estar emitidas en un path diferente (/api/v1/auth/refresh).
-const CONFIGURED_API = import.meta.env.VITE_API_URL || ''
-const API_ROOT = CONFIGURED_API.endsWith('/test')
-  ? CONFIGURED_API.replace('/test', '')
-  : CONFIGURED_API
-// Allow explicit override for the refresh URL (keeps VITE_API_URL with 
-// its `/test` suffix untouched). If not provided, derive the refresh URL
-// from the API root (removing `/test` when present).
-const REFRESH_FULL_PATH = import.meta.env.VITE_REFRESH_URL || `${API_ROOT}/auth/refresh`
+// Usar ruta de refresh relativa estándar; el backend ya está corregido.
+const BASE_API = import.meta.env.VITE_API_URL || ''
 
 // ⭐ Instancia para endpoints públicos (NO usa cookies, NO usa refresh)
 export const apiPublic = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: BASE_API,
   timeout: 10000,
   headers: {
     'x-client-channel': 'web',
@@ -22,7 +14,7 @@ export const apiPublic = axios.create({
 
 // ⭐ Instancia para endpoints privados (SÍ usa cookies y refresh)
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: BASE_API,
   withCredentials: true,
   timeout: 15000,
   headers: {
@@ -31,15 +23,23 @@ const api = axios.create({
 })
 
 
-let isRefreshing = false
-let failedQueue = []
+// Use a single refresh promise to coordinate concurrent 401 handlers
+let refreshPromise = null
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error)
-    else prom.resolve(token)
-  })
-  failedQueue = []
+export const performRefresh = () => {
+  if (refreshPromise) return refreshPromise
+  refreshPromise = api
+    .post('/auth/refresh')
+    .then((refreshRes) => {
+      refreshPromise = null
+      return refreshRes
+    })
+    .catch((err) => {
+      refreshPromise = null
+      throw err
+    })
+
+  return refreshPromise
 }
 
 // ⭐ Interceptor SOLO para api (endpoints protegidos)
@@ -67,24 +67,16 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        })
-          .then(() => api(originalRequest))
-          .catch((err) => Promise.reject(err))
+      // Si ya hay una promesa de refresh en curso, esperarla
+      if (refreshPromise) {
+        originalRequest._retry = true
+        return refreshPromise.then(() => api(originalRequest)).catch((err) => Promise.reject(err))
       }
 
+      // No hay refresh en curso: iniciarlo y almacenar la promesa
       originalRequest._retry = true
-      isRefreshing = true
-
       try {
-        // Use the full refresh path so the cookie path matches (RT cookie)
-        await api.post(REFRESH_FULL_PATH)
-
-        processQueue(null)
-        isRefreshing = false
-
+        await performRefresh()
         return api(originalRequest)
       } catch (err) {
         // Log para depuración cuando el refresh falla dentro del interceptor
@@ -93,8 +85,6 @@ api.interceptors.response.use(
         } catch (e) {
           console.error('Interceptor refresh failed (no response):', err)
         }
-        processQueue(err, null)
-        isRefreshing = false
 
         // Only perform logout flow when refresh explicitly returns 401 (invalid session).
         const status = err.response?.status
@@ -108,7 +98,6 @@ api.interceptors.response.use(
             }
           }
         } else {
-          // For other errors (500, etc.) don't clear localStorage; let the app retry or wait.
           console.warn('Refresh failed with status', status, '- not logging out.')
         }
 
