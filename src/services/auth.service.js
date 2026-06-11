@@ -1,4 +1,4 @@
-import api from '../api/axios'
+import api, { performRefresh } from '../api/axios'
 
 // ---------------------------------------------------------
 // LOGIN (backend envía cookies HttpOnly)
@@ -7,7 +7,7 @@ export const loginRequest = async (data) => {
   const response = await api.post('/auth/login', data, {
     withCredentials: true,
   })
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -15,8 +15,8 @@ export const loginRequest = async (data) => {
 // ---------------------------------------------------------
 export const refreshSessionRequest = async () => {
   try {
-    const response = await api.post('auth/refresh')
-    return response.data
+    const response = await performRefresh()
+    return response
   } catch (error) {
     // Log detallado para diagnosticar respuestas 500/unauthorized en refresh
     const status = error.response?.status
@@ -37,7 +37,7 @@ export const logoutRequest = async () => {
       withCredentials: true,
     },
   )
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -47,7 +47,7 @@ export const registerRequest = async (data) => {
   const response = await api.post('/auth/signup', data, {
     withCredentials: true,
   })
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -59,7 +59,7 @@ export const sendRecoveryEmailRequest = async (email) => {
     { email },
     { withCredentials: true },
   )
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -70,7 +70,7 @@ export const verifyRecoveryCodeRequest = async (email, code) => {
     '/auth/verify-reset-code/2',
     { email, code },
   )
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -81,7 +81,7 @@ export const resetPasswordRequest = async ({ email, newPassword, resetToken }) =
     '/auth/reset-password/2',
     { email, newPassword, resetToken },
   )
-  return response.data
+  return response
 }
 
 // ---------------------------------------------------------
@@ -92,7 +92,7 @@ export const verifyAccountRequest = async ({ email, code }) => {
     '/auth/verify-signup',
     { email, code },
   )
-  return response.data
+  return response
 }
 
 
@@ -103,5 +103,5 @@ export const updateProfileRequest = async (data) => {
   const response = await api.patch('/users/me/profile', data, {
     withCredentials: true,
   })
-  return response.data
+  return response
 }
