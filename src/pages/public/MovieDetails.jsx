@@ -7,9 +7,11 @@ import { getShowtimesByMovieAndCinema } from '../../services/showtimes.service'
 import ShowtimesList from '../../components/showtimesMovie/ShowtimeList'
 import { useCart } from '../../context/CartContext'
 
+import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
+
 export default function MovieDetails() {
   const { movieId } = useParams()
-  const { cart } = useCart() // obtener sucursal seleccionada
+  const { cart } = useCart() 
 
   const [movie, setMovie] = useState(null)
   const [showtimes, setShowtimes] = useState([])
@@ -29,11 +31,9 @@ export default function MovieDetails() {
 
         console.log('✔ Cinema listo:', cart.cinema)
 
-        // 1) Cargar película SIEMPRE
         const movieData = await getMovieById(movieId)
         setMovie(movieData)
 
-        // 2) Intentar cargar funciones
         try {
           const showtimesData = await getShowtimesByMovieAndCinema(
             cart.cinema.id,
@@ -137,13 +137,35 @@ export default function MovieDetails() {
                 <p className="text-white font-semibold">{movie.release_date}</p>
               </div>
 
+              {/* GÉNEROS (CORREGIDO) */}
               <div className="md:col-span-2">
-                <p className="text-gray-400 text-sm">Géneros</p>
-                <p className="text-white font-semibold">
-                  {movie.genres?.map((g) => g.description).join(', ')}
-                </p>
+                <p className="text-gray-400 text-sm mb-2">Géneros</p>
+                <div className="flex flex-wrap gap-2">
+                  {movie.genres && movie.genres.length > 0 ? (
+                    movie.genres.map((g, index) => (
+                      <span 
+                        key={g.id || index} 
+                        className="px-3 py-1 bg-white/10 text-white text-xs font-medium rounded-full border border-white/20 shadow-sm"
+                      >
+                        {g._Genres?.description}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 italic text-sm">No especificados</span>
+                  )}
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* SECCIÓN DEL TRÁILER OFICIAL */}
+        <div className="mb-14">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            🎬 Tráiler Oficial
+          </h2>
+          <div className="max-w-4xl">
+            <TrailerPlayer url={movie.trailer_url} /> 
           </div>
         </div>
 

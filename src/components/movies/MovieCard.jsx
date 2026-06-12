@@ -22,7 +22,7 @@ export default function MovieCard({ movie, upcoming = false }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
           <span
             className={`font-bold text-xs px-2 py-1.5 rounded-xl w-full text-center shadow-md ${
-              upcoming ? 'bg-white text-[#231640]' : 'bg-[#f4b400] text-white'
+              upcoming ? 'bg-white text-[#231640]' : 'bg-white text-[#231640]'
             }`}
           >
             {upcoming ? 'Próximamente' : 'Ver Detalles'}
