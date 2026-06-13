@@ -17,7 +17,7 @@ export default function MovieDetails() {
   const [showtimes, setShowtimes] = useState([])
   const [loading, setLoading] = useState(true)
   
-  // ⭐ Estado para controlar la visibilidad del modal del tráiler
+  // Estado para controlar la visibilidad del modal del tráiler
   const [isTrailerOpen, setIsTrailerOpen] = useState(false)
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function MovieDetails() {
             cart.cinema.id,
             movieId,
           )
-          setShowtimes(showtimesData?.rows || [])
+          setShowtimes(showtimesData || [])
         } catch (err) {
           console.warn('⚠ No hay funciones en esta sucursal:', err)
           setShowtimes([]) 
@@ -68,19 +68,8 @@ export default function MovieDetails() {
     )
   }
 
-  if (movie && showtimes.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex items-center justify-center flex-col gap-4">
-        <p className="text-xl opacity-70 text-center">
-          Esta película no está disponible en la sucursal seleccionada.
-        </p>
-        <p className="text-sm opacity-60 text-center">
-          Selecciona otra sucursal para ver funciones disponibles.
-        </p>
-      </div>
-    )
-  }
-
+  const isUpcoming = movie.lifecycle_state?.description === 'Próximamente'
+  
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
       <div className="max-w-6xl mx-auto px-6 md:px-10 pt-10">
