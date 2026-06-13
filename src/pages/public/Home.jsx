@@ -11,7 +11,12 @@ import {
   getUpcomingMovies,
 } from '../../services/movies.service'
 
+// ✅ IMPORTACIONES COMPLEMENTARIAS PARA AUTONOMÍA DE ESTADO
+import { useCart } from '../../context/CartContext'
+import { getCinemas } from '../../services/info.service'
+
 export default function Home() {
+  const { cart, setCinema } = useCart()
   const [releases, setReleases] = useState([])
   const [upcoming, setUpcoming] = useState([])
   const [events, setEvents] = useState([])
@@ -22,6 +27,30 @@ export default function Home() {
   useEffect(() => {
     async function loadHome() {
       try {
+        // 🏙️ INICIALIZACIÓN SILENCIOSA DE SUCURSAL
+        // Garantiza el estado del carrito e inventario downstream sin depender del Header
+        if (!cart.cinema) {
+          const savedCinema = localStorage.getItem('cine_cinema')
+          
+          if (savedCinema) {
+            setCinema(JSON.parse(savedCinema))
+          } else {
+            const cinemasData = await getCinemas()
+            if (cinemasData && cinemasData.length > 0) {
+              // Mantenemos Barquisimeto como fallback seguro inicial
+              const defaultCinema = cinemasData.find(
+                (cine) =>
+                  cine.name?.toLowerCase().includes('barquisimeto') ||
+                  cine.city?.toLowerCase().includes('barquisimeto')
+              )
+              const chosen = defaultCinema || cinemasData[0]
+              setCinema(chosen)
+              localStorage.setItem('cine_cinema', JSON.stringify(chosen))
+            }
+          }
+        }
+
+        // 🎬 CARGA DE DATOS MULTI-REPOSITORIO
         const releasesData = await getMoviesReleases()
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
@@ -43,7 +72,7 @@ export default function Home() {
     }
 
     loadHome()
-  }, [])
+  }, [cart.cinema, setCinema])
 
   if (loading) {
     return (

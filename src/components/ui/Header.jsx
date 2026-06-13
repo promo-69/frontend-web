@@ -1,14 +1,13 @@
-import React, { useState, useContext, useEffect } from 'react'
-import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' // Nuevos iconos
+import React, { useState } from 'react'
+import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi' 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
-//import { AuthContext } from '../../context/AuthContext'
 import { useAuth } from '../../context/AuthContext'
 import { useCart } from '../../context/CartContext'
+
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
-import { LoginIcon, LocationIcon, ProfileIcon } from '../ui/IconosProyect'
-import { getCinemas } from '../../services/info.service'
+import { LoginIcon, ProfileIcon } from '../ui/IconosProyect'
 
 const NAV_LINKS = [
   { name: 'Confitería', path: '/confectionery' },
@@ -19,72 +18,20 @@ const NAV_LINKS = [
 function Header() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { cart } = useCart()
 
-  const { cart, setCinema } = useCart()
-
-  // 🏙️ ESTADOS PARA LAS SUCURSALES DINÁMICAS
-  const [cinemas, setCinemas] = useState([]) // lista de la API
-  const [selectedCinema, setSelectedCinema] = useState(null) // Almacena el objeto completo del cine electo
-  const [isLoadingCinemas, setIsLoadingCinemas] = useState(true)
-
-  const [isCityOpen, setIsCityOpen] = useState(false)
+  // MENÚS DESPLEGABLES
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  //const [selectedCity, setSelectedCity] = useState('Barquisimeto')
 
   const isLoggedIn = !!user
-  const displayName =
-    user?.firstName || user?.name || user?.email?.split('@')[0]
-
-  // 🚀 CARGAR SUCURSALES + CARGAR SUCURSAL GUARDADA
-  useEffect(() => {
-    const fetchCinemasData = async () => {
-      try {
-        setIsLoadingCinemas(true)
-        const data = await getCinemas()
-        setCinemas(data)
-
-        // 1) Revisar si hay sucursal guardada
-        const saved = localStorage.getItem('cine_cinema')
-        if (saved) {
-          const parsed = JSON.parse(saved)
-          console.log(
-            '%c[HEADER] ✔ Usando sucursal guardada:',
-            'color: green',
-            parsed,
-          )
-          setSelectedCinema(parsed)
-          setCinema(parsed)
-          return
-        }
-
-        // 2) Si no hay guardada, seleccionar una por defecto
-        if (data && data.length > 0) {
-          const defaultCinema = data.find(
-            (cine) =>
-              cine.name?.toLowerCase().includes('barquisimeto') ||
-              cine.city?.toLowerCase().includes('barquisimeto'),
-          )
-
-          const chosen = defaultCinema || data[0]
-          setSelectedCinema(chosen)
-          setCinema(chosen)
-          localStorage.setItem('cine_cinema', JSON.stringify(chosen))
-        }
-      } catch (error) {
-        console.error('Error al cargar los cines en el Header:', error)
-      } finally {
-        setIsLoadingCinemas(false)
-      }
-    }
-
-    fetchCinemasData()
-  }, [])
+  const displayName = user?.firstName || user?.name || user?.email?.split('@')[0]
 
   const handleLogout = async () => {
-    await logout() // limpia el estado 'user' y el token 
+    await logout() 
     navigate('/login')
   }
+
   // Dropdown para Cartelera
   const CarteleraDropdown = () => (
     <motion.div
@@ -107,47 +54,13 @@ function Header() {
       >
         Estrenos
       </Link>
-    </motion.div>
-  )
-
-  //Dropdown Sucursales
-  const CityDropdown = () => (
-    <motion.div
-      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
-      className="absolute top-full mt-2 right-0 w-52 bg-[#7B1A82] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10 max-h-64 overflow-y-auto"
-    >
-      {isLoadingCinemas ? (
-        <div className="px-4 py-3 text-xs text-white/70 italic">
-          Cargando sucursales...
-        </div>
-      ) : cinemas.length === 0 ? (
-        <div className="px-4 py-3 text-xs text-white/70 italic">
-          No hay cines disponibles
-        </div>
-      ) : (
-        cinemas.map((cinema) => (
-          <button
-            key={cinema.id}
-            onClick={() => {
-              setSelectedCinema(cinema)
-              setCinema(cinema) // ⭐ Guardar en CartContext
-              localStorage.setItem('cine_cinema', JSON.stringify(cinema)) // ⭐ Persistir
-              setIsCityOpen(false)
-            }}
-            className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-[#231640]/40 transition-colors border-b border-white/5 last:border-none ${
-              selectedCinema?.id === cinema.id ? 'bg-[#231640]/40' : ''
-            }`}
-          >
-            <p className="font-bold uppercase text-[9px] text-[#F6AD38] opacity-90 leading-none mb-1">
-              {cinema.city || cinema.location || 'Sucursal'}
-            </p>
-            <p className="text-sm text-white font-medium">{cinema.name}</p>
-          </button>
-        ))
-      )}
+      <Link
+        to="/eventos"
+        onClick={() => setIsCarteleraOpen(false)}
+        className="block px-4 py-3 text-sm text-white hover:bg-[#231640]/40 transition-colors border-b border-white/5 font-bold uppercase tracking-tighter"
+      >
+        EVENTOS
+      </Link>
     </motion.div>
   )
 
@@ -189,11 +102,17 @@ function Header() {
       <Link
         to="/canje-premios"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight"
+        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
       >
         Canje de Premios
       </Link>
-
+      <Link
+        to="/fidelidad"
+        onClick={() => setIsUserMenuOpen(false)}
+        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight"
+      >
+        Alquiler de Salas
+      </Link>
       <button
         onClick={handleLogout}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-[#8F2925] hover:bg-red-500/10 transition-colors mt-2 border-t border-[#F6AD38]/50 font-bold tracking-tight"
@@ -204,16 +123,15 @@ function Header() {
   )
 
   return (
-    <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat']">
+    <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
       {/* OVERLAY */}
       <AnimatePresence>
-        {(isCityOpen || isCarteleraOpen || isUserMenuOpen) && (
+        {(isCarteleraOpen || isUserMenuOpen) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => {
-              setIsCityOpen(false)
               setIsCarteleraOpen(false)
               setIsUserMenuOpen(false)
             }}
@@ -222,7 +140,8 @@ function Header() {
         )}
       </AnimatePresence>
 
-      <div className="relative z-[60] flex flex-wrap md:flex-nowrap items-center justify-between px-4 max-w-7xl mx-auto py-3 md:py-0 md:h-20 gap-y-3">
+      {/* ✅ MODIFICADO: py-2 en móviles y h-16 en pantallas medianas/grandes para hacerlo más delgado */}
+      <div className="relative z-[60] flex flex-wrap md:flex-nowrap items-center justify-between px-4 max-w-7xl mx-auto py-2 md:py-0 md:h-16 gap-y-2">
         {/* LOGO */}
         <div
           className="flex shrink-0 items-center cursor-pointer hover:opacity-80 transition-opacity"
@@ -278,27 +197,6 @@ function Header() {
 
         {/* ACCIONES */}
         <div className="order-2 md:order-3 flex items-center gap-2 md:gap-4 min-w-0">
-          {/* ⭐ SUCURSAL */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setIsCityOpen(!isCityOpen)
-                setIsCarteleraOpen(false)
-                setIsUserMenuOpen(false)
-              }}
-              className="flex items-center gap-1.5 bg-[#7B1A82] px-2 sm:px-3 md:px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] lg:text-xs font-bold transition-all hover:bg-[#8e2296] active:scale-95 whitespace-nowrap"
-            >
-              <LocationIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F6AD38]" />
-              <span className="w-[10ch] sm:w-auto sm:min-w-[8ch] max-w-[12ch] truncate text-left">
-                {isLoadingCinemas
-                  ? 'Cargando...'
-                  : selectedCinema?.name || 'Sucursal'}
-              </span>
-            </button>
-
-            <AnimatePresence>{isCityOpen && <CityDropdown />}</AnimatePresence>
-          </div>
-
           {/* LOGIN / PERFIL */}
           {!isLoggedIn ? (
             <button
@@ -310,7 +208,7 @@ function Header() {
             </button>
           ) : (
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0">
-              {/* ⭐ CARRITO */}
+              {/* CARRITO */}
               <button
                 onClick={() => navigate('/cart')}
                 className="relative hover:text-[#F6AD38]"
@@ -323,19 +221,19 @@ function Header() {
                 )}
               </button>
 
-              {/* ⭐ PERFIL */}
+              {/* PERFIL */}
               <div className="relative">
                 <button
                   onClick={() => {
                     setIsUserMenuOpen(!isUserMenuOpen)
-                    setIsCityOpen(false)
                     setIsCarteleraOpen(false)
                   }}
                   className="flex items-center gap-2 cursor-pointer group shrink-0"
                 >
                   <ProfileIcon className="w-9 h-9 md:w-8 md:h-8 text-[#F6AD38]" />
 
-                  <span className="hidden lg:block text-xl font-bold tracking-tight text-white whitespace-nowrap">
+                  {/* ✅ MODIFICADO: Ajustado a text-lg para balancear la tipografía en la barra reducida */}
+                  <span className="hidden lg:block text-lg font-bold tracking-tight text-white whitespace-nowrap">
                     ¡Hola {displayName}!
                   </span>
 
@@ -356,7 +254,6 @@ function Header() {
       </div>
     </header>
   )
-
 }
 
 export default Header
