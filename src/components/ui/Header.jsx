@@ -41,21 +41,21 @@ function Header() {
       className="absolute top-full mt-2 left-0 w-44 bg-[#7B1A82] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
     >
       <Link
-        to="/cartelera"
+        to="/billboard"
         onClick={() => setIsCarteleraOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#231640]/40 transition-colors border-b border-white/5 font-bold uppercase tracking-tighter"
       >
         CARTELERA
       </Link>
       <Link
-        to="/estrenos"
+        to="/upcoming"
         onClick={() => setIsCarteleraOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#231640]/40 transition-colors font-bold uppercase tracking-tighter"
       >
         Estrenos
       </Link>
       <Link
-        to="/eventos"
+        to="/events"
         onClick={() => setIsCarteleraOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#231640]/40 transition-colors border-b border-white/5 font-bold uppercase tracking-tighter"
       >
@@ -86,28 +86,28 @@ function Header() {
         Perfil
       </Link>
       <Link
-        to="/fidelidad"
+        to="/fidelity"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
       >
         Fidelidad
       </Link>
       <Link
-        to="/mis-compras"
+        to="/my-orders"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
       >
         Historial de Compra
       </Link>
       <Link
-        to="/canje-premios"
+        to="/loyalty-prices"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
       >
         Canje de Premios
       </Link>
       <Link
-        to="/fidelidad"
+        to="/room-rent"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight"
       >

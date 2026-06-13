@@ -33,9 +33,9 @@ export const privateRoutes = (
     <Route element={<PrivateLayout />}>
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/fidelidad" element={<Loyalty />} />
-      <Route path="/mis-compras" element={<MyOrders />} />
-      <Route path="/mis-compras/:orderId/ticket" element={<OrderTicket />} />
+      <Route path="/fidelity" element={<Loyalty />} />
+      <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
 
       {/* Flujo de compra completo protegido */}
       <Route
