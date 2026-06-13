@@ -32,10 +32,6 @@ export function AuthProvider({ children }) {
       showLoader()
       try {
         const resData = await refreshSessionRequest()
-        console.log(
-          'DEBUG CONTEXTO - Respuesta cruda del backend en initSession:',
-          resData,
-        )
 
         if (resData && resData.data?.user) {
           setUser(resData.data.user)
@@ -97,9 +93,6 @@ export function AuthProvider({ children }) {
 
       // Fallback: Si el backend no manda el usuario en el login, hacemos el refresh
       if (!userData) {
-        console.log(
-          'DEBUG CONTEXTO - Buscando usuario vía refreshSessionRequest...',
-        )
         const resData = await refreshSessionRequest()
         userData = resData?.data?.user || resData?.data?.data?.user
       }
