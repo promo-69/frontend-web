@@ -33,7 +33,7 @@ export const publicRoutes = (
     {/* Grupo de rutas con Header */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
-      <Route path="/movie/:movieId" element={<MovieDetails />} />
+      <Route path="/movies/:movieSlug" element={<MovieDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
       <Route path="/billboard" element={<MoviesReleases />} />

@@ -15,6 +15,16 @@ export const getMoviesNowPlaying = async (genre) => {
   return response.data?.data || []
 }
 
+// Toda la cartelera activa - Mary
+
+
+// Peliculas y funciones por sucursales - Mary
+export const getMoviesByCinema = async (cinemaId) => {
+  const response = await apiPublic.get(`/showtimes/billboard/${cinemaId}`)
+  return response.data?.data || []
+}
+
+// Endpoint para obtener la información detallada de una película por su ID - Mary
 export const getMovieById = async (id) => {
   const response = await api.get(`/movies/${id}`)
   return response.data?.data || []
