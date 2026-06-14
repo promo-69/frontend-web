@@ -1,34 +1,63 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
 
 export default function OrderSuccess() {
   const { state } = useLocation()
   const navigate = useNavigate()
-  // fallback to sessionStorage in case location.state was lost
-  let stored = null
-  try {
-    const raw = sessionStorage.getItem('last_order')
-    if (raw) stored = JSON.parse(raw)
-  } catch (e) {
-    console.warn('Could not parse last_order from sessionStorage', e)
-  }
 
-  const orderId = state?.orderId ?? stored?.orderId
-  const qrCode = state?.qrCode ?? stored?.qrCode
+  const [localOrder, setLocalOrder] = useState(() => {
+    // initialize from location.state if available
+    if (state?.orderId || state?.qrCode) return { orderId: state?.orderId, qrCode: state?.qrCode }
+    try {
+      const raw = sessionStorage.getItem('last_order')
+      if (raw) return JSON.parse(raw)
+    } catch (e) {
+      console.warn('Could not parse last_order from sessionStorage', e)
+    }
+    return null
+  })
 
-  const fallback = stored
-
-  // clear fallback after mount (avoid side-effects during render — StrictMode mounts twice in dev)
+  // If not present, poll sessionStorage briefly to allow previous page or socket to write it.
   useEffect(() => {
-    if (fallback) {
+    if (localOrder) {
+      // clear persisted fallback once we've consumed it
       try {
         sessionStorage.removeItem('last_order')
       } catch (e) {
         // ignore
       }
+      return
     }
-  }, [fallback])
+
+    let attempts = 0
+    const maxAttempts = 10
+    const interval = 200
+    const id = setInterval(() => {
+      attempts += 1
+      try {
+        const raw = sessionStorage.getItem('last_order')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          setLocalOrder(parsed)
+          try { sessionStorage.removeItem('last_order') } catch (e) {}
+          clearInterval(id)
+          return
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(id)
+      }
+    }, interval)
+
+    return () => clearInterval(id)
+  }, [localOrder])
+
+  const orderId = state?.orderId ?? localOrder?.orderId
+  const qrCode = state?.qrCode ?? localOrder?.qrCode
 
   console.log('OrderSuccess state:', { state, orderId, qrCode })
 

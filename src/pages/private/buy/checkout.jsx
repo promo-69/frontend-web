@@ -33,6 +33,7 @@ export default function Checkout() {
   // Datos del formulario de pago
   const [paymentMethod, setPaymentMethod] = useState('transfer') // 'card', 'transfer', etc.
   const [referenceNumber, setReferenceNumber] = useState('')
+  const [referenceError, setReferenceError] = useState(null)
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(null)
 
@@ -177,9 +178,13 @@ export default function Checkout() {
   }
 
   const handlePaymentSubmit = async (e) => {
-    e.preventDefault()
-    if (!referenceNumber.trim()) {
-      setError('Por favor, ingresa el número de referencia de la transacción.')
+    e.preventDefault?.()
+    setReferenceError(null)
+
+    const { valid, message } = validateReference(paymentMethod, referenceNumber)
+    if (!valid) {
+      setReferenceError(message)
+      setError(message)
       return
     }
 
@@ -230,8 +235,10 @@ export default function Checkout() {
         } catch (e) {
           console.warn('Could not write last_order to sessionStorage', e)
         }
-        clearCart()
+        // Navigate first to avoid Checkout's "cart empty => navigate('/')" effect
         navigate('/order-success', { state: { orderId, qrCode } })
+        // Clear cart after a short delay to allow OrderSuccess to mount/read state
+        setTimeout(() => clearCart(), 300)
         return
       }
 
@@ -259,6 +266,51 @@ export default function Checkout() {
     } finally {
       setPaying(false)
     }
+  }
+
+  const validateReference = (method, ref) => {
+    const value = (ref || '').toString().trim()
+    if (!value) {
+      return { valid: false, message: 'Por favor, ingresa el número de referencia de la transacción.' }
+    }
+
+    if (method === 'transfer') {
+      // Sólo dígitos, 10-12 caracteres
+      if (!/^\d{10,12}$/.test(value)) {
+        return { valid: false, message: 'Referencia de transferencia inválida. Debe contener entre 10 y 12 dígitos.' }
+      }
+    }
+
+    if (method === 'mobile') {
+      // Sólo dígitos, 7-11 caracteres
+      if (!/^\d{7,11}$/.test(value)) {
+        return { valid: false, message: 'Referencia de Pago Móvil inválida. Debe contener entre 7 y 11 dígitos.' }
+      }
+    }
+
+    if (method === 'card') {
+      // Alfanumérico aceptado, 6-30 caracteres
+      if (!/^[A-Za-z0-9\-\_\s]{6,30}$/.test(value)) {
+        return { valid: false, message: 'Referencia de tarjeta inválida. Use 6-30 caracteres alfanuméricos.' }
+      }
+    }
+
+    return { valid: true }
+  }
+
+  const handleReferenceChange = (val) => {
+    // Sanitize input depending on payment method
+    if (paymentMethod === 'transfer' || paymentMethod === 'mobile') {
+      // Keep only digits
+      const digits = (val || '').replace(/\D/g, '')
+      setReferenceNumber(digits)
+      setReferenceError(null)
+      setError(null)
+      return
+    }
+    setReferenceNumber(val)
+    setReferenceError(null)
+    setError(null)
   }
 
   // Conectar socket para liberar asientos si es necesario y escuchar pagos en la room del usuario
@@ -291,8 +343,9 @@ export default function Checkout() {
       } catch (e) {
         console.warn('Could not write last_order to sessionStorage (socket)', e)
       }
-      clearCart()
+      // Navigate before clearing cart to avoid other mounted components from redirecting
       navigate('/order-success', { state: { orderId, qrCode } })
+      setTimeout(() => clearCart(), 300)
     })
 
     socket.on('billing_required', (payload) => {
@@ -371,7 +424,12 @@ export default function Checkout() {
                   <button
                     key={method.id}
                     type="button"
-                    onClick={() => setPaymentMethod(method.id)}
+                    onClick={() => {
+                      setPaymentMethod(method.id)
+                      setReferenceNumber('')
+                      setReferenceError(null)
+                      setError(null)
+                    }}
                     className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all font-medium ${
                       paymentMethod === method.id
                         ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400 shadow-md shadow-yellow-500/10'
@@ -393,12 +451,24 @@ export default function Checkout() {
                 </label>
                 <input
                   type="text"
+                  inputMode={paymentMethod === 'card' ? 'text' : 'numeric'}
+                  pattern={paymentMethod === 'card' ? undefined : '\\d*'}
                   value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder="Ej: TRX12345678"
+                  onChange={(e) => handleReferenceChange(e.target.value)}
+                  placeholder={
+                    paymentMethod === 'transfer'
+                      ? 'Ej: 0123456789 (10-12 dígitos)'
+                      : paymentMethod === 'mobile'
+                      ? 'Ej: 04125555555 (7-11 dígitos)'
+                      : 'Ej: TRX-1234AB (6-30 caracteres)'
+                  }
+                  aria-invalid={referenceError ? 'true' : 'false'}
                   className="w-full bg-[#2a1b4e] border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-gray-500"
                   required
                 />
+                {referenceError && (
+                  <p className="mt-2 text-xs text-red-300">{referenceError}</p>
+                )}
               </div>
 
               <div>

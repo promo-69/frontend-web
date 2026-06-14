@@ -9,6 +9,8 @@ import {
   getConcessionCombos,
 } from '../../../services/concessions.service'
 
+import { getCinemas } from '../../../services/info.service'
+
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
 
 // Cache de concesiones por cinemaId para evitar peticiones duplicadas
@@ -29,7 +31,11 @@ export default function Confectionery() {
   const navigate = useNavigate()
 
   const isFlowCompra = Boolean(movieId && showtimeId) // true si viene de asientos, false si viene del Header
-  const { addProduct, updateQuantity, removeProduct, cart } = useCart()
+  const { addProduct, updateQuantity, removeProduct, cart, setCinema } = useCart()
+
+  const [cinemas, setCinemas] = useState([])
+  const [loadingCinemas, setLoadingCinemas] = useState(false)
+  const [cinemasError, setCinemasError] = useState(null)
 
   // Si es flujo de compra, usamos el cine de la compra. Si es público, usamos el cine seleccionado en el Header
   const socketRef = useRef(null)
@@ -50,7 +56,7 @@ export default function Confectionery() {
 
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelError, setCancelError] = useState(null)
   const [cancelAttempts, setCancelAttempts] = useState(0)
@@ -71,6 +77,22 @@ export default function Confectionery() {
 
   // ⭐ Cargar productos + combos filtrados por sucursal
   useEffect(() => {
+    // Cargar sucursales (selector moved here from Header)
+    const loadCinemas = async () => {
+      try {
+        setLoadingCinemas(true)
+        const data = await getCinemas()
+        setCinemas(data || [])
+      } catch (err) {
+        console.error('Error cargando sucursales en confitería:', err)
+        setCinemasError('No se pudieron cargar sucursales')
+      } finally {
+        setLoadingCinemas(false)
+      }
+    }
+
+    loadCinemas()
+
     const normalizeResponse = (response) => {
       if (!response) return []
       if (Array.isArray(response)) return response
@@ -369,6 +391,38 @@ export default function Confectionery() {
       }}
     >
       <div className="lg:col-span-2 space-y-6">
+        {/* Selector de Sucursal (moved from Header) */}
+        <div className="mb-4">
+          {loadingCinemas ? (
+            <div className="text-gray-300 text-sm">Cargando sucursales...</div>
+          ) : cinemasError ? (
+            <div className="text-red-300 text-sm">{cinemasError}</div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <label className="text-xs text-gray-300 uppercase font-bold">Sucursal</label>
+              <div className="relative">
+                <select
+                  value={cart?.cinema?.id ?? ''}
+                  onChange={(e) => {
+                    const id = e.target.value
+                    const selected = cinemas.find((c) => String(c.id) === String(id))
+                    setCinema(selected || null)
+                  }}
+                  className="appearance-none bg-white/[0.03] border border-white/10 text-white px-4 py-2 rounded-full pr-8 focus:outline-none hover:bg-white/[0.05]"
+                >
+                  <option value="">Seleccionar sucursal</option>
+                  {cinemas.map((c) => (
+                    <option key={c.id} value={c.id} className="text-black">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">▾</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Categorías */}
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-700">
           {CATEGORIES.map((cat) => (
