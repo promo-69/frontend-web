@@ -36,8 +36,8 @@ export const publicRoutes = (
       <Route path="/movie/:movieId" element={<MovieDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
-      <Route path="/cartelera" element={<MoviesReleases />} />
-      <Route path="/estrenos" element={<MoviesUpcoming />} />
+      <Route path="/billboard" element={<MoviesReleases />} />
+      <Route path="/upcoming" element={<MoviesUpcoming />} />
       <Route path="/confectionery" element={<Confectionery />} />
     </Route>
 
