@@ -6,3 +6,9 @@ export const getEvents = async () => {
   return response.data.data 
 }
 
+// Obtener la informacion del Evento con el id - Mary
+export const getEventById = async (id) => {
+  const response = await api.get(`/special-events/${eventId}`)
+  return response.data.data
+}
+

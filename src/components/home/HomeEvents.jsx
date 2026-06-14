@@ -1,13 +1,13 @@
-import MovieCard from '../../components/movies/MovieCard'
+import MovieCard from '../../components/movies/EventCard'
 
-export default function HomeEvents({ movies = [] }) {
-  if (!movies.length) return null
+export default function HomeEvents({ events = [] }) {
+  if (!events.length) return null
 
   return (
     <div className="flex gap-6 pb-4">
-      {movies.map((movie) => (
+      {events.map((events) => (
         <div
-          key={movie.id}
+          key={events.id}
           className="
             movie-carousel-card
             flex-shrink-0
@@ -16,7 +16,7 @@ export default function HomeEvents({ movies = [] }) {
             min-w-[180px]
           "
           >
-          <MovieCard movie={movie} upcoming />
+          <MovieCard movie={events} upcoming />
         </div>
       ))}
     </div>

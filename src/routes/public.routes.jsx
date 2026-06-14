@@ -14,6 +14,7 @@ import MoviesReleases from '../pages/public/MoviesReleases';
 import MoviesUpcoming from '../pages/public/MoviesUpComing';
 
 import MovieDetails from '../pages/public/MovieDetails';
+import EventDetails from '../pages/public/EventsDetails';
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
 import Confectionery from '../pages/private/buy/confectionery';
 
@@ -35,6 +36,7 @@ export const publicRoutes = (
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/movies/:movieSlug" element={<MovieDetails />} />
+      <Route path="/special-events/:eventSlug" element={<MovieDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
       <Route path="/sucursales/:cinemaSlug" element={<CinemaDetails />} />
