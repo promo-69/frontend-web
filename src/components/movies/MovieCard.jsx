@@ -11,8 +11,7 @@ export default function MovieCard({ movie, upcoming = false }) {
       <div className="aspect-[2/3] w-full bg-white/5 rounded-2xl border border-white/10 shadow-lg overflow-hidden relative group-hover:border-[#f4b400]/50 transition-all duration-300">
         <img
           src={
-            movie.poster_url ||
-            'https://via.placeholder.com/400x600?text=Cineflix'
+            movie.poster_url
           }
           alt={movie.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

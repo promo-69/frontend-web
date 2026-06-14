@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 import Footer from '../../components/ui/Footer'
 import Carousel from '../../components/home/Carousel'
@@ -11,12 +12,7 @@ import {
   getUpcomingMovies,
 } from '../../services/movies.service'
 
-// ✅ IMPORTACIONES COMPLEMENTARIAS PARA AUTONOMÍA DE ESTADO
-import { useCart } from '../../context/CartContext'
-import { getCinemas } from '../../services/info.service'
-
 export default function Home() {
-  const { cart, setCinema } = useCart()
   const [releases, setReleases] = useState([])
   const [upcoming, setUpcoming] = useState([])
   const [events, setEvents] = useState([])
@@ -24,45 +20,21 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
+  // 📐 Referencias para controlar el scroll horizontal de cada sección
+  const releasesRef = useRef(null)
+  const upcomingRef = useRef(null)
+  const eventsRef = useRef(null)
+
   useEffect(() => {
     async function loadHome() {
       try {
-        // 🏙️ INICIALIZACIÓN SILENCIOSA DE SUCURSAL
-        // Garantiza el estado del carrito e inventario downstream sin depender del Header
-        if (!cart.cinema) {
-          const savedCinema = localStorage.getItem('cine_cinema')
-          
-          if (savedCinema) {
-            setCinema(JSON.parse(savedCinema))
-          } else {
-            const cinemasData = await getCinemas()
-            if (cinemasData && cinemasData.length > 0) {
-              // Mantenemos Barquisimeto como fallback seguro inicial
-              const defaultCinema = cinemasData.find(
-                (cine) =>
-                  cine.name?.toLowerCase().includes('barquisimeto') ||
-                  cine.city?.toLowerCase().includes('barquisimeto')
-              )
-              const chosen = defaultCinema || cinemasData[0]
-              setCinema(chosen)
-              localStorage.setItem('cine_cinema', JSON.stringify(chosen))
-            }
-          }
-        }
-
-        // 🎬 CARGA DE DATOS MULTI-REPOSITORIO
         const releasesData = await getMoviesReleases()
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
-        console.log('RELEASES CARGADOS:', releasesData)
-        console.log('UPCOMING CARGADOS:', upcomingData)
-        console.log('EVENTS CARGADOS:', eventsData)
-
-        setReleases(releasesData)
-        setUpcoming(upcomingData)
-        setEvents(eventsData)
-
+        setReleases(releasesData || [])
+        setUpcoming(upcomingData || [])
+        setEvents(eventsData || [])
       } catch (error) {
         console.error('ERROR EN CAPA VISUAL HOME:', error)
         setError(true)
@@ -72,12 +44,31 @@ export default function Home() {
     }
 
     loadHome()
-  }, [cart.cinema, setCinema])
+  }, [])
+
+  const handleScroll = (ref, direction) => {
+    if (!ref.current) return
+
+    const firstCard = ref.current.querySelector('.movie-carousel-card')
+
+    if (!firstCard) return
+
+    const gap = 24
+
+    const scrollAmount = firstCard.offsetWidth + gap
+
+    ref.current.scrollBy({
+      left: direction === 'left'
+        ? -scrollAmount
+        : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#231640] text-white flex justify-center items-center">
-        <p className="animate-pulse">Cargando cartelera...</p>
+        <p className="animate-pulse tracking-widest uppercase font-bold text-sm">Cargando cartelera...</p>
       </div>
     )
   }
@@ -85,22 +76,145 @@ export default function Home() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#231640] text-white flex justify-center items-center">
-        <p>No se pudieron cargar las películas ni los eventos.</p>
+        <p className="bg-red-500/10 border border-red-500/20 px-6 py-4 rounded-2xl text-red-400">
+          No se pudieron cargar las películas ni los eventos.
+        </p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
-      {/* El carrusel se mantiene intacto */}
+
+      {/* Esto esconde el scrollbar de los minicarruseles - Mary */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none !important;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none !important;  /* IE y Edge */
+          scrollbar-width: none !important;  /* Firefox */
+        }
+      `}</style>
+
       <Carousel />
 
-      <main className="px-6 md:px-16 py-12">
-        <HomeReleases movies={releases} />
+      <main className="px-6 md:px-16 py-12 flex flex-col gap-16">
+        
+        {/* CARTELERA EN ESTRENO */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              🎬 Cartelera en Estreno
+            </h2>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button 
+                onClick={() => handleScroll(releasesRef, 'left')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={() => handleScroll(releasesRef, 'right')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronRight size={20} />
+              </button>
+              <a 
+                href="/billboard" 
+                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+              >
+                Ver más
+              </a>
+            </div>
+          </div>
+          
+          <div
+            ref={releasesRef}
+            className="
+              overflow-x-auto
+              overflow-y-hidden
+              hide-scrollbar
+              scroll-smooth
+              w-full
+            "
+          >
+            <HomeReleases movies={releases} />
+          </div>
+        </section>
 
-        <HomeUpcoming movies={upcoming} />
+        {/*PRÓXIMOS ESTRENOS  */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              ✨ Próximos Estrenos
+            </h2>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button 
+                onClick={() => handleScroll(upcomingRef, 'left')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={() => handleScroll(upcomingRef, 'right')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronRight size={20} />
+              </button>
+              <a 
+                href="/upcoming" 
+                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+              >
+                Ver más
+              </a>
+            </div>
+          </div>
 
-        <HomeEvents movies={events} />
+          <div
+            ref={upcomingRef}
+            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
+          >
+            <HomeUpcoming movies={upcoming} />
+          </div>
+        </section>
+
+        {/* SECCIÓN: PRÓXIMOS EVENTOS */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              🗓️ Próximos Eventos
+            </h2>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button 
+                onClick={() => handleScroll(eventsRef, 'left')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={() => handleScroll(eventsRef, 'right')}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              >
+                <FiChevronRight size={20} />
+              </button>
+              <a 
+                href="/eventos" 
+                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+              >
+                Ver más
+              </a>
+            </div>
+          </div>
+
+          <div
+            ref={eventsRef}
+            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
+          >
+            <HomeEvents movies={events} />
+          </div>
+        </section>
+
       </main>
 
       <Footer />
