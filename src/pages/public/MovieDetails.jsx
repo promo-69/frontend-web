@@ -39,7 +39,7 @@ export default function MovieDetails() {
             cart.cinema.id,
             movieId,
           )
-          setShowtimes(showtimesData?.rows || [])
+          setShowtimes(showtimesData || [])
         } catch (err) {
           console.warn('⚠ No hay funciones en esta sucursal:', err)
           setShowtimes([]) 

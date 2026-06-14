@@ -6,6 +6,12 @@ import {
   getShowtimeById,
   getSeatMap,
 } from '../../../services/showtimes.service'
+import {
+  initializeOrderQuote,
+  deleteOrderSessionWithRetries,
+  getOrderSession,
+  getOrderSessionDetails,
+} from '../../../services/orders.service'
 
 import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
@@ -22,6 +28,7 @@ export default function SelectSeats() {
     removeTicket,
     setMovie,
     setShowtime: setShowtimeCart,
+    clearCart,
     cart,
   } = useCart()
 
@@ -32,8 +39,9 @@ export default function SelectSeats() {
 
   const [timeLeft, setTimeLeft] = useState(300)
 
-  // ⭐ Socket.IO
+  // Socket.IO
   const socketRef = useRef(null)
+  const quoteInitializedRef = useRef(false)
 
   const user = JSON.parse(localStorage.getItem('user'))
 
@@ -68,6 +76,41 @@ export default function SelectSeats() {
 
     if (cart.cinema?.id) load()
   }, [showtimeId, cart.cinema])
+
+  // Inicializar cotización / sesión de compra en el backend
+  useEffect(() => {
+    const initQuote = async () => {
+      try {
+        if (!cart.cinema?.id || quoteInitializedRef.current) return
+
+        quoteInitializedRef.current = true
+
+        const existingSession = await getOrderSession()
+        const sessionStatus = existingSession?.data?.session?.status
+
+        if (sessionStatus === 'pending_payment') {
+          const expires =
+            existingSession?.data?.session?.expires_in ||
+            existingSession?.data?.session?.expires ||
+            300
+          setTimeLeft(expires)
+          return
+        }
+
+        const resp = await initializeOrderQuote({
+          cinema: cart.cinema.id,
+          customerId: user?.id,
+        })
+
+        const expires = resp?.data?.expires_in || resp?.data?.expires || 300
+        setTimeLeft(expires)
+      } catch (err) {
+        console.warn('No se pudo iniciar la cotización:', err)
+      }
+    }
+
+    initQuote()
+  }, [cart.cinema])
 
   // ============================
   // 2) Conectar Socket.IO
@@ -191,11 +234,16 @@ export default function SelectSeats() {
     }
   }
 
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState(null)
+  const [cancelAttempts, setCancelAttempts] = useState(0)
+  const [hasCancelled, setHasCancelled] = useState(false)
+
   // ============================
   // 5) Temporizador
   // ============================
   useEffect(() => {
-    if (selectedSeats.length === 0) return
+    if (selectedSeats.length === 0 || hasCancelled) return
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -209,9 +257,9 @@ export default function SelectSeats() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [selectedSeats])
+  }, [selectedSeats, hasCancelled])
 
-  const handleTimeExpired = () => {
+  const releaseLocksAndLeave = () => {
     const socket = socketRef.current
     if (!socket) return
 
@@ -219,13 +267,76 @@ export default function SelectSeats() {
       socket.emit('unlockseat', { seatId: s.id })
     })
 
+    socket.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
+  }
+
+  const resetLockedSeatsLocal = () => {
     setSeats((prev) =>
       prev.map((s) =>
         s.status === 'selected' ? { ...s, status: 'available' } : s,
       ),
     )
+  }
 
-    setTimeLeft(300)
+  const confirmCancellationSuccess = async () => {
+    try {
+      const details = await getOrderSessionDetails()
+      const session = details?.data?.session
+      return !session || session?.status !== 'pending_payment'
+    } catch (err) {
+      console.warn('No se pudo verificar la sesión después de cancelar:', err)
+      return false
+    }
+  }
+
+  const handleCancelOrder = async (reason = 'manual') => {
+    if (hasCancelled) return
+
+    setIsCancelling(true)
+    setCancelError(null)
+    setCancelAttempts((prev) => prev + 1)
+
+    try {
+      releaseLocksAndLeave()
+      resetLockedSeatsLocal()
+      setTimeLeft(0)
+
+      const details = await getOrderSessionDetails()
+      const orderId = details?.data?.order?.id
+      const orderStatus = details?.data?.order?.order_status
+
+      if (orderId && orderStatus !== null) {
+        console.log('Cancelación: orden existente pendiente o en proceso', {
+          orderId,
+          orderStatus,
+          reason,
+        })
+      }
+
+      await deleteOrderSessionWithRetries()
+      const cancelled = await confirmCancellationSuccess()
+
+      if (!cancelled) {
+        throw new Error('No fue posible confirmar la cancelación en el servidor')
+      }
+
+      setHasCancelled(true)
+      clearCart()
+      navigate('/')
+    } catch (err) {
+      console.error('Error cancelando orden:', err)
+      setCancelError(
+        'No fue posible cancelar automáticamente. Pulsa Forzar cancelación o contacta soporte.',
+      )
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const handleTimeExpired = () => {
+    if (hasCancelled) return
+
+    handleCancelOrder('ttl_expired')
   }
 
   // ============================
@@ -259,10 +370,35 @@ export default function SelectSeats() {
         <ShowtimeHeader showtime={showtime} />
 
         {selectedSeats.length > 0 && (
-          <p className="text-center text-yellow-300 font-bold text-xl">
-            Tiempo restante: {Math.floor(timeLeft / 60)}:
-            {String(timeLeft % 60).padStart(2, '0')}
-          </p>
+          <div className="space-y-4">
+            <p className="text-center text-yellow-300 font-bold text-xl">
+              Tiempo restante: {Math.floor(timeLeft / 60)}:
+              {String(timeLeft % 60).padStart(2, '0')}
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => handleCancelOrder('manual')}
+                disabled={isCancelling}
+                className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition"
+              >
+                {isCancelling ? 'Cancelando...' : 'Cancelar compra'}
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={isCancelling}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+              >
+                Continuar confitería
+              </button>
+            </div>
+
+            {cancelError && (
+              <p className="text-center text-red-400 text-sm">
+                {cancelError}
+              </p>
+            )}
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">

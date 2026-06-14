@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { useRef } from 'react'
+import QRCode from 'react-qr-code'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 
@@ -9,6 +11,46 @@ export default function SuccessQR() {
 
   // Extraemos los datos enviados a través del estado de navegación
   const { orderId, qrCode } = location.state || {}
+
+  const qrRef = useRef(null)
+
+  const downloadQr = async () => {
+    try {
+      const svg = qrRef.current?.querySelector('svg')
+      if (!svg) return
+      const serializer = new XMLSerializer()
+      const svgString = serializer.serializeToString(svg)
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const img = new Image()
+      const size = 600
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob((blobPng) => {
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(blobPng)
+          a.download = `order-${orderId || 'qr'}.png`
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }, 'image/png')
+      }
+      img.onerror = (e) => {
+        console.error('Error loading SVG as image for download', e)
+        URL.revokeObjectURL(url)
+      }
+      img.src = url
+    } catch (e) {
+      console.error('downloadQr failed', e)
+    }
+  }
 
   useEffect(() => {
     if (orderId) {
@@ -59,22 +101,43 @@ export default function SuccessQR() {
         {/* Cuerpo del Ticket: Renderizado del QR */}
         <div className="p-6 flex flex-col items-center bg-black/10">
           <div className="bg-white p-4 rounded-2xl shadow-inner shadow-black/40 transition-transform hover:scale-105 duration-300">
-            {/* Validamos si el qrCode viene en formato base64 o si es una URL directa */}
-            <img
-              src={
-                qrCode?.startsWith('data:')
-                  ? qrCode
-                  : `data:image/png;base64,${qrCode}`
-              }
-              alt={`Código QR de la orden ${orderId}`}
-              className="w-48 h-48 object-contain"
-              onError={(e) => {
-                console.error('Error cargando la imagen del código QR.')
-                // Placeholder genérico en caso de falla de renderizado del string de backend
-                e.target.src =
-                  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CineflixOrder'
-              }}
-            />
+              {/* Build a safe QR image source: data URL, remote URL, or generate via public API */}
+              {(() => {
+                if (!qrCode) return null
+                const trimmed = String(qrCode).trim()
+                if (!trimmed) return null
+                const isToken = !trimmed.startsWith('data:') && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')
+                if (isToken) {
+                  return (
+                    <div className="mb-4 flex items-center justify-center">
+                      <div ref={qrRef} className="bg-white p-2 rounded-md inline-block">
+                        <QRCode value={trimmed} size={192} />
+                      </div>
+                      <div className="ml-4">
+                        <button onClick={downloadQr} className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">Descargar QR</button>
+                      </div>
+                    </div>
+                  )
+                }
+                const src = trimmed.startsWith('data:') ? trimmed : `data:image/png;base64,${trimmed}`
+                return (
+                  <div className="mb-4">
+                    <div ref={qrRef}>
+                      <img
+                        src={src}
+                        alt={`Código QR de la orden ${orderId}`}
+                        className="w-48 h-48 object-contain"
+                        onError={(e) => {
+                          console.error('Error cargando la imagen del código QR.', e)
+                        }}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <button onClick={downloadQr} className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">Descargar QR</button>
+                    </div>
+                  </div>
+                )
+              })()}
           </div>
 
           <p className="text-xs text-gray-400 text-center mt-5 max-w-[240px] leading-relaxed">
