@@ -1,6 +1,6 @@
 import api from '../api/axios'
 
-//GET - Toda la lista de Sucursales
+// Toda la lista de Sucursales - Mary
 export const getCinemas = async () => {
   const response = await api.get('/cinemas')
   return response.data.data 

@@ -5,7 +5,7 @@ import { getMovieById } from '../../services/movies.service'
 import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
 
 export default function MovieDetails() {
-  const { movieId } = useParams()
+  const { movieSlug } = useParams()
 
   const [movie, setMovie] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -14,6 +14,14 @@ export default function MovieDetails() {
   useEffect(() => {
     async function loadMovie() {
       try {
+        const movieId = movieSlug ? movieSlug.split('-')[0] : null
+
+        if (!movieId || isNaN(movieId)) {
+          setMovie(null)
+          setLoading(false)
+          return
+        }
+
         const movieData = await getMovieById(movieId)
         setMovie(movieData)
       } catch (err) {
@@ -25,7 +33,7 @@ export default function MovieDetails() {
     }
 
     loadMovie()
-  }, [movieId])
+  }, [movieSlug]) // 3. El efecto ahora reacciona si cambia el slug completo
 
   if (loading) {
     return (
@@ -48,7 +56,6 @@ export default function MovieDetails() {
       <div className="max-w-6xl mx-auto px-6 sm:px-8 md:px-10 pt-6 md:pt-10">
         
         {/* POSTER + INFO */}
-        {/* ⚡ CAMBIO AQUÍ: Agregado sm:items-center para centrar verticalmente el póster y los textos en tablets */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-6 md:gap-10 mb-10">
           
           {/* Contenedor del Póster */}
