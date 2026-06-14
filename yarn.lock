@@ -4048,6 +4048,7 @@ __metadata:
     react-dom: "npm:^19.2.0"
     react-hook-form: "npm:^7.72.0"
     react-icons: "npm:^5.6.0"
+    react-qr-code: "npm:^2.2.0"
     react-router-dom: "npm:^7.13.2"
     socket.io-client: "npm:^4.8.3"
     tailwindcss: "npm:3"
@@ -6520,6 +6521,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"qrcode-generator@npm:^2.0.4":
+  version: 2.0.4
+  resolution: "qrcode-generator@npm:2.0.4"
+  checksum: 10c0/52dc3894bda6afecf09cb36aba9c181f3c4641fcbeac40c2af05d68da1383e3a1c7354bd3dc8c5e2a199d2e62314bbdec8cb4fbbd00bcfda40de56bb36bfdb17
+  languageName: node
+  linkType: hard
+
 "queue-microtask@npm:^1.2.2":
   version: 1.2.3
   resolution: "queue-microtask@npm:1.2.3"
@@ -6574,6 +6582,18 @@ __metadata:
   version: 18.3.1
   resolution: "react-is@npm:18.3.1"
   checksum: 10c0/f2f1e60010c683479e74c63f96b09fb41603527cd131a9959e2aee1e5a8b0caf270b365e5ca77d4a6b18aae659b60a86150bb3979073528877029b35aecd2072
+  languageName: node
+  linkType: hard
+
+"react-qr-code@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "react-qr-code@npm:2.2.0"
+  dependencies:
+    prop-types: "npm:^15.8.1"
+    qrcode-generator: "npm:^2.0.4"
+  peerDependencies:
+    react: "*"
+  checksum: 10c0/895b9bfe0d41467b375d271acf18a036dec1711b45990ba5afd770678fab068c9d8651b92c6c50f48f8d11664a0b4651a9e051450ae33b68f2876f9dc684a3be
   languageName: node
   linkType: hard
 

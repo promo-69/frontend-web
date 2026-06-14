@@ -24,6 +24,18 @@ export default function MovieDetails() {
 
         const movieData = await getMovieById(movieId)
         setMovie(movieData)
+
+        // 2) Intentar cargar funciones
+        try {
+          const showtimesData = await getShowtimesByMovieAndCinema(
+            cart.cinema.id,
+            movieId,
+          )
+          setShowtimes(showtimesData || [])
+        } catch (err) {
+          console.warn('⚠ No hay funciones en esta sucursal:', err)
+          setShowtimes([]) 
+        }
       } catch (err) {
         console.error('❌ Error cargando película REAL:', err)
         setMovie(null)

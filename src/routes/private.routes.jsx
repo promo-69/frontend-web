@@ -9,6 +9,8 @@ import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
 import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
+import Checkout from '../pages/private/buy/checkout'
+import OrderSuccess from '../pages/private/buy/orderSuccess'
 
 const PrivateLayout = () => {
   const { user } = useContext(AuthContext)
@@ -46,6 +48,11 @@ export const privateRoutes = (
         path="/buy/:movieId/:showtimeId/confectionery"
         element={<Confectionery />}
       />
+      <Route
+        path="/buy/:movieId/:showtimeId/checkout"
+        element={<Checkout />}
+      />
+      <Route path="/order-success" element={<OrderSuccess />} />
       
     </Route>
   </>
