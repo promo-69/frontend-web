@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-//import { io } from 'socket.io-client'
-
 import {
   getShowtimeById,
   getSeatMap,
 } from '../../../services/showtimes.service'
+
+import socketService from '../../../services/socket.service'
 
 import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
@@ -32,10 +32,7 @@ export default function SelectSeats() {
 
   const [timeLeft, setTimeLeft] = useState(300)
 
-  // ⭐ Socket.IO
-  const socketRef = useRef(null)
-
-  const user = JSON.parse(localStorage.getItem('user'))
+  // ⭐ Socket.IO 
 
   // ============================
   // 1) Cargar showtime + mapa
@@ -70,100 +67,72 @@ export default function SelectSeats() {
   }, [showtimeId, cart.cinema])
 
   // ============================
-  // 2) Conectar Socket.IO
+  // 2) Conectar Socket.IO 
   // ============================
   useEffect(() => {
     if (!showtimeId) return
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: {
-        token: localStorage.getItem('token'),
-      },
-    })
+    const token = localStorage.getItem('token')
+    const socket = socketService.connect(token)
 
-    socketRef.current = socket
+    const onConnect = () => {
+      console.log('Socket conectado:', socket?.id)
+      socketService.joinShowtime(showtimeId)
+    }
 
-    socket.on('connect', () => {
-      console.log('Socket conectado:', socket.id)
-
-      // ⭐ Unirse al showtime
-      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
-    })
-
-    socket.on('disconnect', () => {
+    const onDisconnect = () => {
       console.log('Socket desconectado')
-    })
+    }
+
+    socketService.on('connect', onConnect)
+    socketService.on('disconnect', onDisconnect)
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', {
-          showtimeId: Number(showtimeId),
-        })
-        socketRef.current.disconnect()
-      }
+      socketService.off('connect', onConnect)
+      socketService.off('disconnect', onDisconnect)
+      socketService.leaveShowtime(showtimeId)
+      socketService.disconnect()
     }
   }, [showtimeId])
 
   // ============================
-  // 3) Escuchar eventos del backend
+  // 3) Escuchar eventos del backend (vía socketService)
   // ============================
   useEffect(() => {
-    const socket = socketRef.current
-    if (!socket) return
+    if (!showtimeId) return
 
-    socket.on('joinsuccess', () => {
-      console.log('Entraste a la sala correctamente')
-    })
-
-    socket.on('joinerror', ({ message }) => {
+    const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
+    const onJoinError = ({ message }) => {
       console.error('❌ Error al unirse a la sala:', message)
       alert(message)
       navigate('/')
-    })
-
-    socket.on('seatlocksuccess', ({ seatId }) => {
-      setSeats((prev) =>
-        prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
-      )
-    })
-
-    socket.on('seatlockerror', ({ seatId, message }) => {
+    }
+    const onSeatLockError = ({ seatId, message }) => {
       alert(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-    })
-
-    socket.on('seatlockedbyother', ({ seatId }) => {
-      setSeats((prev) =>
-        prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
-      )
-    })
-
-    socket.on('seatunlocked', ({ seatId }) => {
-      setSeats((prev) =>
-        prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
-      )
-    })
-
-    socket.on('seatssoldfinal', ({ seatIds }) => {
+    }
+    const onSeatsUnlocked = ({ seatIds }) => {
       setSeats((prev) =>
         prev.map((s) =>
-          seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
+          seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
         ),
       )
-    })
+    }
 
-    socket.on('quoteexpired', () => {
-      alert('Tu tiempo de compra expiró')
-      navigate('/')
-    })
+    socketService.on('join_success', onJoinSuccess)
+    socketService.on('join_error', onJoinError)
+    socketService.on('seat_lock_error', onSeatLockError)
+    socketService.on('seats_unlocked', onSeatsUnlocked)
 
     return () => {
-      socket.off()
+      socketService.off('join_success', onJoinSuccess)
+      socketService.off('join_error', onJoinError)
+      socketService.off('seat_lock_error', onSeatLockError)
+      socketService.off('seats_unlocked', onSeatsUnlocked)
     }
-  }, [])
+  }, [showtimeId, navigate])
 
   // ============================
   // 4) Seleccionar asiento
@@ -180,13 +149,20 @@ export default function SelectSeats() {
       return
     }
 
-    const socket = socketRef.current
-    if (!socket) return
-
     if (seat.status === 'available') {
-      socket.emit('lockseat', { seatId })
+      setSeats((prev) =>
+        prev.map((s) =>
+          s.id === seatId ? { ...s, status: 'selected' } : s,
+        ),
+      )
+      socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
-      socket.emit('unlockseat', { seatId })
+      setSeats((prev) =>
+        prev.map((s) =>
+          s.id === seatId ? { ...s, status: 'available' } : s,
+        ),
+      )
+      socketService.emit('unlock_seat', { seatId })
       removeTicket(seat.id)
     }
   }
@@ -212,11 +188,8 @@ export default function SelectSeats() {
   }, [selectedSeats])
 
   const handleTimeExpired = () => {
-    const socket = socketRef.current
-    if (!socket) return
-
     selectedSeats.forEach((s) => {
-      socket.emit('unlockseat', { seatId: s.id })
+      socketService.emit('unlock_seat', { seatId: s.id })
     })
 
     setSeats((prev) =>
