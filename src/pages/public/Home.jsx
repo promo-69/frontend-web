@@ -8,7 +8,7 @@ import HomeUpcoming from '../../components/home/HomeUpcoming'
 import HomeEvents from '../../components/home/HomeEvents'
 import { getEvents } from '../../services/events.service'
 import {
-  getMoviesReleases,
+  getMoviesNowPlaying,
   getUpcomingMovies,
 } from '../../services/movies.service'
 
@@ -20,7 +20,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  // 📐 Referencias para controlar el scroll horizontal de cada sección
+  // Referencias para controlar el scroll horizontal de cada sección
   const releasesRef = useRef(null)
   const upcomingRef = useRef(null)
   const eventsRef = useRef(null)
@@ -28,7 +28,7 @@ export default function Home() {
   useEffect(() => {
     async function loadHome() {
       try {
-        const releasesData = await getMoviesReleases()
+        const releasesData = await getMoviesNowPlaying()
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
@@ -104,7 +104,7 @@ export default function Home() {
         {/* CARTELERA EN ESTRENO */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
               🎬 Cartelera en Estreno
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -146,7 +146,7 @@ export default function Home() {
         {/*PRÓXIMOS ESTRENOS  */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
               ✨ Próximos Estrenos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -182,7 +182,7 @@ export default function Home() {
         {/* SECCIÓN: PRÓXIMOS EVENTOS */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
               🗓️ Próximos Eventos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
