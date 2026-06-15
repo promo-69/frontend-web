@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   getShowtimeById,
   getSeatMap,
@@ -22,7 +22,6 @@ import { useCart } from '../../../context/CartContext'
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const {
     addTicket,
@@ -39,6 +38,7 @@ export default function SelectSeats() {
   const [ticketsNeeded, setTicketsNeeded] = useState(1)
   const [timeLeft, setTimeLeft] = useState(300)
 
+  // Estados de manejo de cancelación 
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelError, setCancelError] = useState(null)
   const [cancelAttempts, setCancelAttempts] = useState(0)
@@ -47,21 +47,21 @@ export default function SelectSeats() {
   const quoteInitializedRef = useRef(false)
   const user = JSON.parse(localStorage.getItem('user'))
 
-  // effectiveCinemaId: prefer cart.cinema, fallback to navigation state (passed from ShowtimeCard)
-  const effectiveCinemaId = cart?.cinema?.id || location?.state?.cinemaId || cart?.cinemaId
-
   // ============================
   // 1) Cargar showtime + mapa (HTTP)
   // ============================
   useEffect(() => {
     async function load() {
       try {
-        console.log('→ Cargando showtime:', { cinemaId: effectiveCinemaId, showtimeId })
+        console.log('→ Cargando showtime:', {
+          cinemaId: cart.cinema?.id,
+          showtimeId,
+        })
 
-        const st = await getShowtimeById(effectiveCinemaId, showtimeId)
+        const st = await getShowtimeById(cart.cinema.id, showtimeId)
         console.log('→ Showtime cargado:', st)
 
-        const map = await getSeatMap(effectiveCinemaId, showtimeId)
+        const map = await getSeatMap(cart.cinema.id, showtimeId)
         console.log('→ Seats recibidos:', map.seats)
 
         setShowtime(st)
@@ -75,61 +75,47 @@ export default function SelectSeats() {
       }
     }
 
-    if (effectiveCinemaId) load()
-  }, [showtimeId, effectiveCinemaId])
+    if (cart.cinema?.id) load()
+  }, [showtimeId, cart.cinema])
 
   // ============================
   // 2) Inicializar Orden de Compra 
   // ============================
   useEffect(() => {
     const initQuote = async () => {
-      if (!effectiveCinemaId || quoteInitializedRef.current) return
+      if (!cart.cinema?.id || quoteInitializedRef.current) return
       quoteInitializedRef.current = true
-
-      const createQuote = async () => {
-        const resp = await initializeOrderQuote({ cinema: effectiveCinemaId, customerId: user?.id })
-        const expires = resp?.data?.expires_in || resp?.data?.expires || 300
-        setTimeLeft(expires)
-      }
 
       try {
         const existingSession = await getOrderSession()
-        const session = existingSession?.data?.session
-        const sessionCinemaId = session?.cinema?.id || session?.cinema_id || session?.cinemaId
+        const sessionStatus = existingSession?.data?.session?.status
 
-        if (session?.status === 'pending_payment' && sessionCinemaId === effectiveCinemaId) {
-          const expires = session?.expires_in || session?.expires || 300
+        if (sessionStatus === 'pending_payment') {
+          const expires =
+            existingSession?.data?.session?.expires_in ||
+            existingSession?.data?.session?.expires ||
+            300
           setTimeLeft(expires)
           return
         }
 
-        if (session) {
-          console.log('Sesión existente no válida para esta sucursal, eliminando antes de crear nueva.', { session, currentCinema: effectiveCinemaId })
-          await deleteOrderSessionWithRetries()
-        }
+        const resp = await initializeOrderQuote({
+          cinema: cart.cinema.id,
+          customerId: user?.id,
+        })
 
-        await createQuote()
+        const expires = resp?.data?.expires_in || resp?.data?.expires || 300
+        setTimeLeft(expires)
       } catch (err) {
-        const status = err?.response?.status || err?.statusCode
-        if (status === 409) {
-          console.warn('409 recibido al crear quote, borrando sesión y reintentando', err)
-          try {
-            await deleteOrderSessionWithRetries()
-            await createQuote()
-          } catch (retryError) {
-            console.error('Reintento de initializeOrderQuote falló:', retryError)
-          }
-        } else {
-          console.warn('No se pudo iniciar la cotización:', err)
-        }
+        console.warn('No se pudo iniciar la cotización:', err)
       }
     }
 
     initQuote()
-  }, [effectiveCinemaId])
+  }, [cart.cinema])
 
   // ============================
-  // 3) Conectar / Desconectar Socket mediante socketService
+  // 3) Conectar / Desconectar Socket 
   // ============================
   useEffect(() => {
     if (!showtimeId) return
@@ -171,13 +157,19 @@ export default function SelectSeats() {
       navigate('/')
     }
 
+    // El backend confirma bloqueo el asiento con éxito
     const onSeatLockSuccess = ({ seatId }) => {
-      setSeats((prev) => prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)))
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
+      )
     }
 
+    // Error al intentar bloquear
     const onSeatLockError = ({ seatId, message }) => {
       alert(message)
-      setSeats((prev) => prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)))
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
+      )
       try {
         removeTicket(seatId)
       } catch (e) {
@@ -185,16 +177,27 @@ export default function SelectSeats() {
       }
     }
 
+    // Otro usuario bloqueó un asiento en tiempo real
     const onSeatLockedByOther = ({ seatId }) => {
-      setSeats((prev) => prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)))
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
+      )
     }
 
+    // Un asiento se liberó 
     const onSeatUnlocked = ({ seatId }) => {
-      setSeats((prev) => prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)))
+      setSeats((prev) =>
+        prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
+      )
     }
 
+    // Lote de asientos liberados de golpe 
     const onSeatsUnlockedBulk = ({ seatIds }) => {
-      setSeats((prev) => prev.map((s) => (seatIds.includes(s.id) ? { ...s, status: 'available' } : s)))
+      setSeats((prev) =>
+        prev.map((s) =>
+          seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
+        ),
+      )
       try {
         seatIds.forEach((id) => removeTicket(id))
       } catch (e) {
@@ -202,15 +205,22 @@ export default function SelectSeats() {
       }
     }
 
+    // El asiento cambió a vendido permanentemente
     const onSeatsSoldFinal = ({ seatIds }) => {
-      setSeats((prev) => prev.map((s) => (seatIds.includes(s.id) ? { ...s, status: 'sold' } : s)))
+      setSeats((prev) =>
+        prev.map((s) =>
+          seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
+        ),
+      )
     }
 
+    // Expiró la cotización desde el backend
     const onQuoteExpired = () => {
       alert('Tu tiempo de compra expiró')
       handleCancelOrder('ttl_expired')
     }
 
+    // Registro de listeners 
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -245,16 +255,27 @@ export default function SelectSeats() {
 
     if (seat.status === 'sold' || seat.status === 'locked') return
 
-    if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) return
+    // Validar límite de entradas solicitadas
+    if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
+      return
+    }
 
     if (seat.status === 'available') {
       try {
-        addTicket({ seatId: seat.id, id: seat.id, originalId: seat.id, price: showtime?.price || 0 })
+        addTicket({
+          seatId: seat.id,
+          id: seat.id,
+          originalId: seat.id,
+          price: showtime?.price || 0,
+        })
       } catch (e) {
         /* ignore */
       }
+
+      
       socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
+      
       socketService.emit('unlock_seat', { seatId })
       try {
         removeTicket(seat.id)
@@ -293,12 +314,18 @@ export default function SelectSeats() {
   // 7) Lógica de Cancelación e Infraestructura HTTP
   // ============================
   const releaseLocksAndLeave = () => {
-    selectedSeats.forEach((s) => socketService.emit('unlock_seat', { seatId: s.id }))
+    selectedSeats.forEach((s) => {
+      socketService.emit('unlock_seat', { seatId: s.id })
+    })
     socketService.leaveShowtime(showtimeId)
   }
 
   const resetLockedSeatsLocal = () => {
-    setSeats((prev) => prev.map((s) => (s.status === 'selected' ? { ...s, status: 'available' } : s)))
+    setSeats((prev) =>
+      prev.map((s) =>
+        s.status === 'selected' ? { ...s, status: 'available' } : s,
+      ),
+    )
   }
 
   const confirmCancellationSuccess = async () => {
@@ -320,6 +347,7 @@ export default function SelectSeats() {
     setCancelAttempts((prev) => prev + 1)
 
     try {
+      // 1. Desbloquear via WebSockets primero
       releaseLocksAndLeave()
       resetLockedSeatsLocal()
       setTimeLeft(0)
@@ -329,26 +357,39 @@ export default function SelectSeats() {
       const orderStatus = details?.data?.order?.order_status
 
       if (orderId && orderStatus !== null) {
-        console.log('Cancelación: orden existente pendiente', { orderId, orderStatus, reason })
+        console.log('Cancelación: orden existente pendiente', {
+          orderId,
+          orderStatus,
+          reason,
+        })
       }
 
+      // 2. Destruir sesión en base de datos vía API REST
       await deleteOrderSessionWithRetries()
       const cancelled = await confirmCancellationSuccess()
 
-      if (!cancelled) throw new Error('No fue posible confirmar la cancelación en el servidor')
+      if (!cancelled) {
+        throw new Error(
+          'No fue posible confirmar la cancelación en el servidor',
+        )
+      }
 
       setHasCancelled(true)
       clearCart()
       navigate('/')
     } catch (err) {
       console.error('Error cancelando orden:', err)
-      setCancelError('No fue posible cancelar automáticamente. Pulsa Forzar cancelación o contacta soporte.')
+      setCancelError(
+        'No fue posible cancelar automáticamente. Pulsa Forzar cancelación o contacta soporte.',
+      )
     } finally {
       setIsCancelling(false)
     }
   }
 
-  const handleNext = () => navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
+  const handleNext = () => {
+    navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
+  }
 
   if (loading) {
     return (
@@ -359,26 +400,43 @@ export default function SelectSeats() {
   }
 
   return (
-    <div className="min-h-screen text-white pb-20" style={{ background: 'linear-gradient(to bottom,#231640 0%,#7B1A82 50%,#231640 100%)' }}>
+    <div
+      className="min-h-screen text-white pb-20"
+      style={{
+        background:
+          'linear-gradient(to bottom,#231640 0%,#7B1A82 50%,#231640 100%)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <ShowtimeHeader showtime={showtime} />
 
         {selectedSeats.length > 0 && (
           <div className="space-y-4">
             <p className="text-center text-yellow-300 font-bold text-xl">
-              Tiempo restante: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+              Tiempo restante: {Math.floor(timeLeft / 60)}:
+              {String(timeLeft % 60).padStart(2, '0')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button onClick={() => handleCancelOrder('manual')} disabled={isCancelling} className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition">
+              <button
+                onClick={() => handleCancelOrder('manual')}
+                disabled={isCancelling}
+                className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition"
+              >
                 {isCancelling ? 'Cancelando...' : 'Cancelar compra'}
               </button>
-              <button onClick={handleNext} disabled={isCancelling} className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition">
+              <button
+                onClick={handleNext}
+                disabled={isCancelling}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+              >
                 Continuar confitería
               </button>
             </div>
 
-            {cancelError && <p className="text-center text-red-400 text-sm">{cancelError}</p>}
+            {cancelError && (
+              <p className="text-center text-red-400 text-sm">{cancelError}</p>
+            )}
           </div>
         )}
 
