@@ -12,11 +12,11 @@ import Empresa from '../pages/public/AboutUs';
 import CinemasInfo from '../pages/public/InfoCinemas';
 import MoviesReleases from '../pages/public/MoviesReleases';
 import MoviesUpcoming from '../pages/public/MoviesUpComing';
-
 import MovieDetails from '../pages/public/MovieDetails';
 import EventDetails from '../pages/public/EventsDetails';
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
 import Confectionery from '../pages/private/buy/confectionery';
+import Checkout from '../pages/private/buy/checkout';
 
 
 const PublicLayout = () => {
@@ -43,6 +43,7 @@ export const publicRoutes = (
       <Route path="/billboard" element={<MoviesReleases />} />
       <Route path="/upcoming" element={<MoviesUpcoming />} />
       <Route path="/confectionery" element={<Confectionery />} />
+      <Route path="/checkout" element={<Checkout />} />
     </Route>
 
     {/* Rutas sin Header */}
