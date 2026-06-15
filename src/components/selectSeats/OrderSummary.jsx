@@ -122,7 +122,7 @@ export default function OrderSummary({ onNext, mode = 'flow' }) {
             </button>
 
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate('checkout')}
               className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm transition-colors"
             >
               Omitir confitería
