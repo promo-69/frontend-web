@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-//import { io } from 'socket.io-client'
-
 import {
   getShowtimeById,
   getSeatMap,
@@ -12,6 +10,8 @@ import {
   getOrderSession,
   getOrderSessionDetails,
 } from '../../../services/orders.service'
+
+import socketService from '../../../services/socket.service'
 
 import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
@@ -36,17 +36,19 @@ export default function SelectSeats() {
   const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(true)
   const [ticketsNeeded, setTicketsNeeded] = useState(1)
-
   const [timeLeft, setTimeLeft] = useState(300)
 
-  // Socket.IO
-  const socketRef = useRef(null)
-  const quoteInitializedRef = useRef(false)
+  // Estados de manejo de cancelación 
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState(null)
+  const [cancelAttempts, setCancelAttempts] = useState(0)
+  const [hasCancelled, setHasCancelled] = useState(false)
 
+  const quoteInitializedRef = useRef(false)
   const user = JSON.parse(localStorage.getItem('user'))
 
   // ============================
-  // 1) Cargar showtime + mapa
+  // 1) Cargar showtime + mapa (HTTP)
   // ============================
   useEffect(() => {
     async function load() {
@@ -65,7 +67,6 @@ export default function SelectSeats() {
         setShowtime(st)
         setShowtimeCart(st)
         setMovie(st.movie)
-
         setSeats(map.seats || [])
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
@@ -77,14 +78,15 @@ export default function SelectSeats() {
     if (cart.cinema?.id) load()
   }, [showtimeId, cart.cinema])
 
-  // Inicializar cotización / sesión de compra en el backend
+  // ============================
+  // 2) Inicializar Orden de Compra 
+  // ============================
   useEffect(() => {
     const initQuote = async () => {
+      if (!cart.cinema?.id || quoteInitializedRef.current) return
+      quoteInitializedRef.current = true
+
       try {
-        if (!cart.cinema?.id || quoteInitializedRef.current) return
-
-        quoteInitializedRef.current = true
-
         const existingSession = await getOrderSession()
         const sessionStatus = existingSession?.data?.session?.status
 
@@ -113,103 +115,137 @@ export default function SelectSeats() {
   }, [cart.cinema])
 
   // ============================
-  // 2) Conectar Socket.IO
+  // 3) Conectar / Desconectar Socket 
   // ============================
   useEffect(() => {
     if (!showtimeId) return
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: {
-        token: localStorage.getItem('token'),
-      },
-    })
+    const token = localStorage.getItem('token')
+    socketService.connect(token)
 
-    socketRef.current = socket
+    const onConnect = () => {
+      console.log('Socket conectado exitosamente')
+      socketService.joinShowtime(showtimeId)
+    }
 
-    socket.on('connect', () => {
-      console.log('Socket conectado:', socket.id)
-
-      // ⭐ Unirse al showtime
-      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
-    })
-
-    socket.on('disconnect', () => {
+    const onDisconnect = () => {
       console.log('Socket desconectado')
-    })
+    }
+
+    socketService.on('connect', onConnect)
+    socketService.on('disconnect', onDisconnect)
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', {
-          showtimeId: Number(showtimeId),
-        })
-        socketRef.current.disconnect()
-      }
+      socketService.off('connect', onConnect)
+      socketService.off('disconnect', onDisconnect)
+      socketService.leaveShowtime(showtimeId)
+      socketService.disconnect()
     }
   }, [showtimeId])
 
   // ============================
-  // 3) Escuchar eventos del backend
+  // 4) Escuchar Eventos del Servidor 
   // ============================
   useEffect(() => {
-    const socket = socketRef.current
-    if (!socket) return
+    if (!showtimeId) return
 
-    socket.on('joinsuccess', () => {
-      console.log('Entraste a la sala correctamente')
-    })
+    const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
-    socket.on('joinerror', ({ message }) => {
+    const onJoinError = ({ message }) => {
       console.error('❌ Error al unirse a la sala:', message)
       alert(message)
       navigate('/')
-    })
+    }
 
-    socket.on('seatlocksuccess', ({ seatId }) => {
+    // El backend confirma bloqueo el asiento con éxito
+    const onSeatLockSuccess = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
       )
-    })
+    }
 
-    socket.on('seatlockerror', ({ seatId, message }) => {
+    // Error al intentar bloquear
+    const onSeatLockError = ({ seatId, message }) => {
       alert(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-    })
+      try {
+        removeTicket(seatId)
+      } catch (e) {
+        /* ignore */
+      }
+    }
 
-    socket.on('seatlockedbyother', ({ seatId }) => {
+    // Otro usuario bloqueó un asiento en tiempo real
+    const onSeatLockedByOther = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
       )
-    })
+    }
 
-    socket.on('seatunlocked', ({ seatId }) => {
+    // Un asiento se liberó 
+    const onSeatUnlocked = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-    })
+    }
 
-    socket.on('seatssoldfinal', ({ seatIds }) => {
+    // Lote de asientos liberados de golpe 
+    const onSeatsUnlockedBulk = ({ seatIds }) => {
+      setSeats((prev) =>
+        prev.map((s) =>
+          seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
+        ),
+      )
+      try {
+        seatIds.forEach((id) => removeTicket(id))
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    // El asiento cambió a vendido permanentemente
+    const onSeatsSoldFinal = ({ seatIds }) => {
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
         ),
       )
-    })
+    }
 
-    socket.on('quoteexpired', () => {
+    // Expiró la cotización desde el backend
+    const onQuoteExpired = () => {
       alert('Tu tiempo de compra expiró')
-      navigate('/')
-    })
+      handleCancelOrder('ttl_expired')
+    }
+
+    // Registro de listeners 
+    socketService.on('join_success', onJoinSuccess)
+    socketService.on('join_error', onJoinError)
+    socketService.on('seat_lock_success', onSeatLockSuccess)
+    socketService.on('seat_lock_error', onSeatLockError)
+    socketService.on('seat_locked_by_other', onSeatLockedByOther)
+    socketService.on('seat_unlocked', onSeatUnlocked)
+    socketService.on('seats_unlocked', onSeatsUnlockedBulk)
+    socketService.on('seats_sold_final', onSeatsSoldFinal)
+    socketService.on('quote_expired', onQuoteExpired)
 
     return () => {
-      socket.off()
+      socketService.off('join_success', onJoinSuccess)
+      socketService.off('join_error', onJoinError)
+      socketService.off('seat_lock_success', onSeatLockSuccess)
+      socketService.off('seat_lock_error', onSeatLockError)
+      socketService.off('seat_locked_by_other', onSeatLockedByOther)
+      socketService.off('seat_unlocked', onSeatUnlocked)
+      socketService.off('seats_unlocked', onSeatsUnlockedBulk)
+      socketService.off('seats_sold_final', onSeatsSoldFinal)
+      socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [])
+  }, [showtimeId, navigate])
 
   // ============================
-  // 4) Seleccionar asiento
+  // 5) Lógica de Selección (Toggle Asiento)
   // ============================
   const selectedSeats = seats.filter((s) => s.status === 'selected')
 
@@ -219,28 +255,38 @@ export default function SelectSeats() {
 
     if (seat.status === 'sold' || seat.status === 'locked') return
 
+    // Validar límite de entradas solicitadas
     if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
       return
     }
 
-    const socket = socketRef.current
-    if (!socket) return
-
     if (seat.status === 'available') {
-      socket.emit('lockseat', { seatId })
+      try {
+        addTicket({
+          seatId: seat.id,
+          id: seat.id,
+          originalId: seat.id,
+          price: showtime?.price || 0,
+        })
+      } catch (e) {
+        /* ignore */
+      }
+
+      
+      socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
-      socket.emit('unlockseat', { seatId })
-      removeTicket(seat.id)
+      
+      socketService.emit('unlock_seat', { seatId })
+      try {
+        removeTicket(seat.id)
+      } catch (e) {
+        /* ignore */
+      }
     }
   }
 
-  const [isCancelling, setIsCancelling] = useState(false)
-  const [cancelError, setCancelError] = useState(null)
-  const [cancelAttempts, setCancelAttempts] = useState(0)
-  const [hasCancelled, setHasCancelled] = useState(false)
-
   // ============================
-  // 5) Temporizador
+  // 6) Temporizador del lado del Cliente
   // ============================
   useEffect(() => {
     if (selectedSeats.length === 0 || hasCancelled) return
@@ -259,15 +305,19 @@ export default function SelectSeats() {
     return () => clearInterval(interval)
   }, [selectedSeats, hasCancelled])
 
+  const handleTimeExpired = () => {
+    if (hasCancelled) return
+    handleCancelOrder('ttl_expired')
+  }
+
+  // ============================
+  // 7) Lógica de Cancelación e Infraestructura HTTP
+  // ============================
   const releaseLocksAndLeave = () => {
-    const socket = socketRef.current
-    if (!socket) return
-
     selectedSeats.forEach((s) => {
-      socket.emit('unlockseat', { seatId: s.id })
+      socketService.emit('unlock_seat', { seatId: s.id })
     })
-
-    socket.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
+    socketService.leaveShowtime(showtimeId)
   }
 
   const resetLockedSeatsLocal = () => {
@@ -297,6 +347,7 @@ export default function SelectSeats() {
     setCancelAttempts((prev) => prev + 1)
 
     try {
+      // 1. Desbloquear via WebSockets primero
       releaseLocksAndLeave()
       resetLockedSeatsLocal()
       setTimeLeft(0)
@@ -306,18 +357,21 @@ export default function SelectSeats() {
       const orderStatus = details?.data?.order?.order_status
 
       if (orderId && orderStatus !== null) {
-        console.log('Cancelación: orden existente pendiente o en proceso', {
+        console.log('Cancelación: orden existente pendiente', {
           orderId,
           orderStatus,
           reason,
         })
       }
 
+      // 2. Destruir sesión en base de datos vía API REST
       await deleteOrderSessionWithRetries()
       const cancelled = await confirmCancellationSuccess()
 
       if (!cancelled) {
-        throw new Error('No fue posible confirmar la cancelación en el servidor')
+        throw new Error(
+          'No fue posible confirmar la cancelación en el servidor',
+        )
       }
 
       setHasCancelled(true)
@@ -333,22 +387,10 @@ export default function SelectSeats() {
     }
   }
 
-  const handleTimeExpired = () => {
-    if (hasCancelled) return
-
-    handleCancelOrder('ttl_expired')
-  }
-
-  // ============================
-  // 6) Continuar a confitería
-  // ============================
   const handleNext = () => {
     navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
   }
 
-  // ============================
-  // LOADING
-  // ============================
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
@@ -356,7 +398,6 @@ export default function SelectSeats() {
       </div>
     )
   }
-
 
   return (
     <div
@@ -394,9 +435,7 @@ export default function SelectSeats() {
             </div>
 
             {cancelError && (
-              <p className="text-center text-red-400 text-sm">
-                {cancelError}
-              </p>
+              <p className="text-center text-red-400 text-sm">{cancelError}</p>
             )}
           </div>
         )}
