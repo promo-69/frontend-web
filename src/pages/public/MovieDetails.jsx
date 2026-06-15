@@ -3,7 +3,6 @@ import { getMovieById } from '../../services/movies.service'
 
 //estos dos imports son temporales para pruebas de seleccion de asientos
 import { useParams, useNavigate } from 'react-router-dom'
-import { getOrderSession } from '../../services/orders.service'
 
 import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
 
@@ -19,26 +18,9 @@ export default function MovieDetails() {
 
 
   //este bloque de codigo es para probar asientos, temporal
-  const handleTestSelect = async (showtimeId = '2') => {
-    try {
-      // Solo consultar si existe sesión y reutilizarla; no crear ni borrar aquí.
-      try {
-        const existing = await getOrderSession()
-        const session = existing?.data?.session
-        if (session) {
-          console.log('Sesión de compra existente detectada, se reutilizará:', session)
-        } else {
-          console.log('No existe sesión de compra. `SelectSeats` inicializará la cotización.')
-        }
-      } catch (e) {
-        console.warn('No se pudo comprobar la sesión (se continuará):', e)
-      }
-
-      navigate(`/selectSeats/${movie?.id || (movieSlug ? movieSlug.split('-')[0] : '1')}/${showtimeId}`)
-    } catch (err) {
-      console.error('Error preparando navegación a selectSeats:', err)
-      navigate(`/selectSeats/${movie?.id || (movieSlug ? movieSlug.split('-')[0] : '1')}/${showtimeId}`)
-    }
+  const handleTestSelect = (showtimeId) => {
+    const movieId = movie?.id || (movieSlug ? movieSlug.split('-')[0] : '1')
+    navigate(`/selectSeats/${movieId}/${showtimeId}`)
   }
 
   useEffect(() => {
@@ -178,7 +160,7 @@ export default function MovieDetails() {
                   </button>
                         {/* BOTÓN TEMPORAL: ir a SelectSeats para pruebas */}
                         <button
-                          onClick={() => handleTestSelect('1')}
+                          onClick={() => handleTestSelect('2')}
                           className="ml-3 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-300 hover:to-emerald-400 text-[#231640] text-sm md:text-base font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-95"
                         >
                           Ir a Selección (prueba)
