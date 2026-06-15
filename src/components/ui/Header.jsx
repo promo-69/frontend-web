@@ -11,7 +11,7 @@ import { LoginIcon, ProfileIcon } from '../ui/IconosProyect'
 
 const NAV_LINKS = [
   { name: 'Confitería', path: '/confectionery' },
-  { name: 'Sucursales', path: '/sucursales' },
+  { name: 'Sucursales', path: '/cinemas' },
   { name: 'Empresa', path: '/empresa' },
 ]
 

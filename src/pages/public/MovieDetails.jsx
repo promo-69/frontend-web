@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 import { getMovieById } from '../../services/movies.service'
 import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
-
+ 
 export default function MovieDetails() {
   const { movieSlug } = useParams()
 

@@ -15,7 +15,7 @@ export default function EventDetails() {
     async function loadEvent() {
       try {
         const eventId = eventSlug ? eventSlug.split('-')[0] : null
-
+ 
         if (!eventId || isNaN(eventId)) {
           setEvent(null)
           setLoading(false)

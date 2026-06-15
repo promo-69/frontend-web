@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getCinemas } from '../../services/info.service' 
-
+ 
 const convertToSlug = (title) => {
   if (!title) return ''
   return title
