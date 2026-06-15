@@ -211,7 +211,7 @@ export default function Home() {
             ref={eventsRef}
             className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
           >
-            <HomeEvents movies={events} />
+            <HomeEvents events={events} />          
           </div>
         </section>
 

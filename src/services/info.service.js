@@ -5,3 +5,4 @@ export const getCinemas = async () => {
   const response = await api.get('/cinemas')
   return response.data.data 
 }
+
