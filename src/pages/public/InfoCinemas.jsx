@@ -68,7 +68,7 @@ function InfoSucursales() {
           {!cargando && !error && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sucursales.map((sucursal) => {
-                const cinemaUrl = `/sucursales/${convertToSlug(sucursal.name)}`                
+                const cinemaUrl = `/cinemas/${convertToSlug(sucursal.name)}`                
                 return (
                   <div 
                     key={sucursal.id || sucursal.name} 

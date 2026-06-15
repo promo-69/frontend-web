@@ -5,7 +5,7 @@ import { getMovieById } from '../../services/movies.service'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
-
+ 
 export default function MovieDetails() {
   const { movieSlug } = useParams()
   
