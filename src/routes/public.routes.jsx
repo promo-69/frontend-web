@@ -36,7 +36,7 @@ export const publicRoutes = (
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/movies/:movieSlug" element={<MovieDetails />} />
-      <Route path="/special-events/:eventSlug" element={<MovieDetails />} />
+      <Route path="/events/:eventSlug" element={<EventDetails />} />
       <Route path="/empresa" element={<Empresa />} />
       <Route path="/sucursales" element={<CinemasInfo />} />
       <Route path="/sucursales/:cinemaSlug" element={<CinemaDetails />} />
