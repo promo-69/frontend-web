@@ -10,10 +10,12 @@ export default function ShowtimeCard({ showtime, movieId }) {
 
   const [showLoginModal, setShowLoginModal] = useState(false)
 
+  const showtimeDate = new Date(showtime.booking?.start_time)
+  const currentDate = new Date()
+  const isPassed = showtimeDate < currentDate
+
   const handleClick = () => {
-    
-    //const token = localStorage.getItem('token')
-    //console.log('TOKEN =>', token)
+    if (isPassed) return
 
     if (!user) {
       console.log('NO HAY USUARIO EN CONTEXTO, MOSTRAR MODAL')
@@ -24,7 +26,6 @@ export default function ShowtimeCard({ showtime, movieId }) {
     navigate(`/selectSeats/${movieId}/${showtime.id}`)
   }
 
-  // Formatear hora
   const formatHour = (iso) => {
     const date = new Date(iso)
     return date.toLocaleTimeString('es-VE', {
@@ -38,13 +39,25 @@ export default function ShowtimeCard({ showtime, movieId }) {
     <>
       <div
         onClick={handleClick}
-        className="bg-white/10 border border-white/20 rounded-xl p-4 
-                 hover:bg-white/20 transition-all cursor-pointer"
+        className={`border rounded-xl p-4 transition-all ${
+          isPassed
+            ? 'bg-black/20 border-white/5 opacity-40 cursor-not-allowed select-none'
+            : 'bg-white/10 border-white/20 hover:bg-white/20 cursor-pointer shadow-md'
+        }`}
       >
-        {/* Hora */}
-        <p className="text-xl font-bold text-[#f4b400]">
-          {formatHour(showtime.booking?.start_time)}
-        </p>
+        <div className="flex justify-between items-start">
+          {/* Hora */}
+          <p className={`text-xl font-bold ${isPassed ? 'text-gray-500 line-through' : 'text-[#f4b400]'}`}>
+            {formatHour(showtime.booking?.start_time)}
+          </p>
+
+          {/* Etiqueta visual de caducado */}
+          {isPassed && (
+            <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+              Pasada
+            </span>
+          )}
+        </div>
 
         {/* Sala */}
         <p className="text-white text-sm mt-1">
@@ -53,15 +66,15 @@ export default function ShowtimeCard({ showtime, movieId }) {
 
         {/* Tipo de proyección */}
         <p className="text-gray-300 text-sm">
-          {showtime.projection_type.description}
+          {showtime.projection_type?.description}
         </p>
 
         {/* Idioma */}
         <p className="text-gray-300 text-sm">
-          {showtime.language.description}
+          {showtime.language?.description}
         </p>
-
       </div>
+
       {showLoginModal && (
         <ModalMessage
           type="error"

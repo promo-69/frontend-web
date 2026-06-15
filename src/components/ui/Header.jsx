@@ -140,7 +140,7 @@ function Header() {
         )}
       </AnimatePresence>
 
-      {/* ✅ MODIFICADO: py-2 en móviles y h-16 en pantallas medianas/grandes para hacerlo más delgado */}
+      {/* py-2 en móviles y h-16 en pantallas medianas/grandes para hacerlo más delgado */}
       <div className="relative z-[60] flex flex-wrap md:flex-nowrap items-center justify-between px-4 max-w-7xl mx-auto py-2 md:py-0 md:h-16 gap-y-2">
         {/* LOGO */}
         <div
@@ -232,7 +232,6 @@ function Header() {
                 >
                   <ProfileIcon className="w-9 h-9 md:w-8 md:h-8 text-[#F6AD38]" />
 
-                  {/* ✅ MODIFICADO: Ajustado a text-lg para balancear la tipografía en la barra reducida */}
                   <span className="hidden lg:block text-lg font-bold tracking-tight text-white whitespace-nowrap">
                     ¡Hola {displayName}!
                   </span>

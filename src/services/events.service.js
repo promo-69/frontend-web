@@ -12,3 +12,10 @@ export const getEventById = async (eventId) => {
   return response.data.data
 }
 
+// De un evento, obtengo las sucursales y funciones disponibles - Mary
+export const getCinemaShowtimebyDate = async (eventId, date) => {
+  const response = await api.get(`/showtimes/by-content/event/${eventId}/`, {
+  params: { date }
+  })
+  return response.data.data 
+}
