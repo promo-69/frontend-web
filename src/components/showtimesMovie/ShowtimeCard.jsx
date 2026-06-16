@@ -23,7 +23,14 @@ export default function ShowtimeCard({ showtime, movieId }) {
       return
     }
 
-    navigate(`/selectSeats/${movieId}/${showtime.id}`)
+    // Pasamos el cinemaId en el state de navegación para que SelectSeats pueda
+    // recuperar la sucursal cuando el CartContext no lo tenga (flujo desde EventsDetails)
+    const cinemaId =
+      showtime.booking?.cinema?.id || showtime.cinema?.id || showtime.cinema_id
+
+    navigate(`/selectSeats/${movieId}/${showtime.id}`, {
+      state: { cinemaId },
+    })
   }
 
   const formatHour = (iso) => {
