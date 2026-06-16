@@ -38,6 +38,14 @@ export default function DetailView() {
   const hasCheckedAutoAdvance = useRef(false)
 
   useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }, [activeSlug])
+
+  // Efecto principal para la carga de datos
+  useEffect(() => {
     async function loadDataAndShowtimes() {
       try {
         const entityId = activeSlug ? activeSlug.split('-')[0] : null
@@ -79,16 +87,12 @@ export default function DetailView() {
         let fetchedCinemas = []
 
         try {
-          // Llamado condicional según el tipo de contenido
           const showtimesPayload = isMovie
             ? await getCinemaShowtimebyDateMovies(entityId, selectedDate)
             : await getCinemaShowtimebyDateEvents(entityId, selectedDate)
             
           fetchedCinemas = showtimesPayload?.cinemas || []
         } catch (showtimeErr) {
-          // Captura ultra-limpia: Si la API responde 404 (o cualquier error de cartelera),
-          // simplemente asumimos que no hay funciones y dejamos el arreglo vacío.
-          // Quitamos console.error/warn pesados para mantener el F12 impecable.
           fetchedCinemas = []
         }
 
@@ -218,7 +222,7 @@ export default function DetailView() {
                 </p>
               </div>
 
-              {/* RENDER CONDICIONAL DE GÉNEROS */}
+              {/* GÉNEROS */}
               {item.genres.length > 0 && (
                 <div className="col-span-2 border-t border-white/5 pt-3">
                   <p className="text-gray-400 text-xs md:text-sm mb-2">Géneros</p>
