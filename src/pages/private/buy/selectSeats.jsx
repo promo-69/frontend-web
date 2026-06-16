@@ -17,10 +17,9 @@ import { useCart } from '../../../context/CartContext'
 
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
-  const { state } = useLocation()
+  const { cinemaId } = useLocation().state
   const navigate = useNavigate()
 
-  const { cinemaId } = state
 
   const {
     setCinemaId: setPurchaseCinema,
