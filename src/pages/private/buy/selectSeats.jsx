@@ -1,15 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getShowtimeById,
   getSeatMap,
 } from '../../../services/showtimes.service'
-import {
-  initializeOrderQuote,
-  deleteOrderSessionWithRetries,
-  getOrderSession,
-  getOrderSessionDetails,
-} from '../../../services/orders.service'
 
 import socketService from '../../../services/socket.service'
 
@@ -17,35 +11,38 @@ import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
+
+import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
+  const { state } = useLocation()
   const navigate = useNavigate()
 
+  const { cinemaId } = state
+
   const {
-    addTicket,
-    removeTicket,
-    setMovie,
-    setShowtime: setShowtimeCart,
-    clearCart,
-    cart,
-  } = useCart()
+    setCinemaId: setPurchaseCinema,
+    setShowtimeId: setPurchaseShowtime,
+    setIsSeatFlow,
+    startQuote,
+    connectSocket,
+    addSeat,
+    removeSeat,
+    selectedSeats,
+    timeLeft,
+    cancelPurchase,
+  } = usePurchase()
+
+  const { clearCart } = useCart()
 
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(true)
-  const [ticketsNeeded, setTicketsNeeded] = useState(1)
-  const [timeLeft, setTimeLeft] = useState(300)
 
-  // Estados de manejo de cancelación 
-  const [isCancelling, setIsCancelling] = useState(false)
-  const [cancelError, setCancelError] = useState(null)
-  const [cancelAttempts, setCancelAttempts] = useState(0)
-  const [hasCancelled, setHasCancelled] = useState(false)
-
-  const quoteInitializedRef = useRef(false)
   const user = JSON.parse(localStorage.getItem('user'))
+  const token = localStorage.getItem('token')
 
   // ============================
   // 1) Cargar showtime + mapa (HTTP)
@@ -53,20 +50,10 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
-        console.log('→ Cargando showtime:', {
-          cinemaId: cart.cinema?.id,
-          showtimeId,
-        })
-
-        const st = await getShowtimeById(cart.cinema.id, showtimeId)
-        console.log('→ Showtime cargado:', st)
-
-        const map = await getSeatMap(cart.cinema.id, showtimeId)
-        console.log('→ Seats recibidos:', map.seats)
+        const st = await getShowtimeById(cinemaId, showtimeId)
+        const map = await getSeatMap(cinemaId, showtimeId)
 
         setShowtime(st)
-        setShowtimeCart(st)
-        setMovie(st.movie)
         setSeats(map.seats || [])
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
@@ -75,137 +62,81 @@ export default function SelectSeats() {
       }
     }
 
-    if (cart.cinema?.id) load()
-  }, [showtimeId, cart.cinema])
+    load()
+  }, [showtimeId, cinemaId])
 
   // ============================
-  // 2) Inicializar Orden de Compra 
-  // ============================
-  useEffect(() => {
-    const initQuote = async () => {
-      if (!cart.cinema?.id || quoteInitializedRef.current) return
-      quoteInitializedRef.current = true
-
-      try {
-        const existingSession = await getOrderSession()
-        const sessionStatus = existingSession?.data?.session?.status
-
-        if (sessionStatus === 'pending_payment') {
-          const expires =
-            existingSession?.data?.session?.expires_in ||
-            existingSession?.data?.session?.expires ||
-            300
-          setTimeLeft(expires)
-          return
-        }
-
-        const resp = await initializeOrderQuote({
-          cinema: cart.cinema.id,
-          customerId: user?.id,
-        })
-
-        const expires = resp?.data?.expires_in || resp?.data?.expires || 300
-        setTimeLeft(expires)
-      } catch (err) {
-        console.warn('No se pudo iniciar la cotización:', err)
-      }
-    }
-
-    initQuote()
-  }, [cart.cinema])
-
-  // ============================
-  // 3) Conectar / Desconectar Socket 
+  // 2) Inicializar Orden de Compra + Socket
   // ============================
   useEffect(() => {
-    if (!showtimeId) return
+    setPurchaseCinema(cinemaId)
+    setPurchaseShowtime(showtimeId)
+    setIsSeatFlow(true)
 
-    const token = localStorage.getItem('token')
-    socketService.connect(token)
-
-    const onConnect = () => {
-      console.log('Socket conectado exitosamente')
-      socketService.joinShowtime(showtimeId)
-    }
-
-    const onDisconnect = () => {
-      console.log('Socket desconectado')
-    }
-
-    socketService.on('connect', onConnect)
-    socketService.on('disconnect', onDisconnect)
+    startQuote(cinemaId, user?.id)
+    connectSocket(token)
 
     return () => {
-      socketService.off('connect', onConnect)
-      socketService.off('disconnect', onDisconnect)
       socketService.leaveShowtime(showtimeId)
       socketService.disconnect()
     }
+  }, [])
+
+  // ============================
+  // 3) Conectar / Desconectar Socket
+  // ============================
+  useEffect(() => {
+    socketService.joinShowtime(showtimeId)
   }, [showtimeId])
 
   // ============================
-  // 4) Escuchar Eventos del Servidor 
+  // 4) Escuchar Eventos del Servidor
   // ============================
   useEffect(() => {
-    if (!showtimeId) return
-
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
-      console.error('❌ Error al unirse a la sala:', message)
       alert(message)
       navigate('/')
     }
 
-    // El backend confirma bloqueo el asiento con éxito
     const onSeatLockSuccess = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
       )
+      addSeat(seatId)
     }
 
-    // Error al intentar bloquear
     const onSeatLockError = ({ seatId, message }) => {
       alert(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-      try {
-        removeTicket(seatId)
-      } catch (e) {
-        /* ignore */
-      }
+      removeSeat(seatId)
     }
 
-    // Otro usuario bloqueó un asiento en tiempo real
     const onSeatLockedByOther = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
       )
     }
 
-    // Un asiento se liberó 
     const onSeatUnlocked = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
+      removeSeat(seatId)
     }
 
-    // Lote de asientos liberados de golpe 
     const onSeatsUnlockedBulk = ({ seatIds }) => {
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
         ),
       )
-      try {
-        seatIds.forEach((id) => removeTicket(id))
-      } catch (e) {
-        /* ignore */
-      }
+      seatIds.forEach((id) => removeSeat(id))
     }
 
-    // El asiento cambió a vendido permanentemente
     const onSeatsSoldFinal = ({ seatIds }) => {
       setSeats((prev) =>
         prev.map((s) =>
@@ -214,13 +145,12 @@ export default function SelectSeats() {
       )
     }
 
-    // Expiró la cotización desde el backend
     const onQuoteExpired = () => {
       alert('Tu tiempo de compra expiró')
-      handleCancelOrder('ttl_expired')
+      cancelPurchase('ttl_expired')
+      navigate('/')
     }
 
-    // Registro de listeners 
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -242,151 +172,27 @@ export default function SelectSeats() {
       socketService.off('seats_sold_final', onSeatsSoldFinal)
       socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [showtimeId, navigate])
+  }, [showtimeId])
 
   // ============================
   // 5) Lógica de Selección (Toggle Asiento)
   // ============================
-  const selectedSeats = seats.filter((s) => s.status === 'selected')
-
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
     if (!seat) return
 
     if (seat.status === 'sold' || seat.status === 'locked') return
 
-    // Validar límite de entradas solicitadas
-    if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
-      return
-    }
-
     if (seat.status === 'available') {
-      try {
-        addTicket({
-          seatId: seat.id,
-          id: seat.id,
-          originalId: seat.id,
-          price: showtime?.price || 0,
-        })
-      } catch (e) {
-        /* ignore */
-      }
-
-      
       socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
-      
       socketService.emit('unlock_seat', { seatId })
-      try {
-        removeTicket(seat.id)
-      } catch (e) {
-        /* ignore */
-      }
     }
   }
 
   // ============================
-  // 6) Temporizador del lado del Cliente
+  // 6) Navegar a confitería
   // ============================
-  useEffect(() => {
-    if (selectedSeats.length === 0 || hasCancelled) return
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          handleTimeExpired()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [selectedSeats, hasCancelled])
-
-  const handleTimeExpired = () => {
-    if (hasCancelled) return
-    handleCancelOrder('ttl_expired')
-  }
-
-  // ============================
-  // 7) Lógica de Cancelación e Infraestructura HTTP
-  // ============================
-  const releaseLocksAndLeave = () => {
-    selectedSeats.forEach((s) => {
-      socketService.emit('unlock_seat', { seatId: s.id })
-    })
-    socketService.leaveShowtime(showtimeId)
-  }
-
-  const resetLockedSeatsLocal = () => {
-    setSeats((prev) =>
-      prev.map((s) =>
-        s.status === 'selected' ? { ...s, status: 'available' } : s,
-      ),
-    )
-  }
-
-  const confirmCancellationSuccess = async () => {
-    try {
-      const details = await getOrderSessionDetails()
-      const session = details?.data?.session
-      return !session || session?.status !== 'pending_payment'
-    } catch (err) {
-      console.warn('No se pudo verificar la sesión después de cancelar:', err)
-      return false
-    }
-  }
-
-  const handleCancelOrder = async (reason = 'manual') => {
-    if (hasCancelled) return
-
-    setIsCancelling(true)
-    setCancelError(null)
-    setCancelAttempts((prev) => prev + 1)
-
-    try {
-      // 1. Desbloquear via WebSockets primero
-      releaseLocksAndLeave()
-      resetLockedSeatsLocal()
-      setTimeLeft(0)
-
-      const details = await getOrderSessionDetails()
-      const orderId = details?.data?.order?.id
-      const orderStatus = details?.data?.order?.order_status
-
-      if (orderId && orderStatus !== null) {
-        console.log('Cancelación: orden existente pendiente', {
-          orderId,
-          orderStatus,
-          reason,
-        })
-      }
-
-      // 2. Destruir sesión en base de datos vía API REST
-      await deleteOrderSessionWithRetries()
-      const cancelled = await confirmCancellationSuccess()
-
-      if (!cancelled) {
-        throw new Error(
-          'No fue posible confirmar la cancelación en el servidor',
-        )
-      }
-
-      setHasCancelled(true)
-      clearCart()
-      navigate('/')
-    } catch (err) {
-      console.error('Error cancelando orden:', err)
-      setCancelError(
-        'No fue posible cancelar automáticamente. Pulsa Forzar cancelación o contacta soporte.',
-      )
-    } finally {
-      setIsCancelling(false)
-    }
-  }
-
   const handleNext = () => {
     navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
   }
@@ -419,24 +225,18 @@ export default function SelectSeats() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
-                onClick={() => handleCancelOrder('manual')}
-                disabled={isCancelling}
+                onClick={() => cancelPurchase('manual')}
                 className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition"
               >
-                {isCancelling ? 'Cancelando...' : 'Cancelar compra'}
+                Cancelar compra
               </button>
               <button
                 onClick={handleNext}
-                disabled={isCancelling}
                 className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
               >
                 Continuar confitería
               </button>
             </div>
-
-            {cancelError && (
-              <p className="text-center text-red-400 text-sm">{cancelError}</p>
-            )}
           </div>
         )}
 

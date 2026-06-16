@@ -10,12 +10,11 @@ export default function MovieDetails() {
 
   //este const lo use para selecSeats, temporal
   const navigate = useNavigate()
+  const TEST_CINEMA_ID = 3
+  const TEST_SHOWTIME_ID = 182
 
-  //este bloque de codigo es para probar asientos, temporal
-  const handleTestSelect = (showtimeId) => {
-    const movieId = movie?.id || (movieSlug ? movieSlug.split('-')[0] : '1')
-    navigate(`/selectSeats/${movieId}/${showtimeId}`)
-  }
+
+
 
   const [movie, setMovie] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -179,10 +178,13 @@ export default function MovieDetails() {
                   </button>
                   {/*BOTON TEMPORAL PARA PROBAR FUNCIONES */}
                   <button
-                    onClick={() => handleTestSelect('16')}
-                    className="ml-3 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-300 hover:to-emerald-400 text-[#231640] text-sm md:text-base font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-95"
+                    onClick={() =>
+                      navigate(`/selectSeats/${movie.id}/${TEST_SHOWTIME_ID}`, {
+                        state: { cinemaId: TEST_CINEMA_ID },
+                      })
+                    }
                   >
-                    Ir a Selección (prueba)
+                    Probar selección de asientos
                   </button>
                 </div>
               )}
