@@ -18,15 +18,13 @@ export default function EventDetails() {
 
   const todayStr = getLocalDateString(new Date())
 
-  // Estados
   const [event, setEvent] = useState(null)
   const [cinemas, setCinemas] = useState([])
-  const [selectedDate, setSelectedDate] = useState(todayStr) // 📅 Por defecto inicia en hoy
+  const [selectedDate, setSelectedDate] = useState(todayStr) 
   const [loading, setLoading] = useState(true)
-  const [loadingShowtimes, setLoadingShowtimes] = useState(false) // Spinner secundario para cambio de fechas
+  const [loadingShowtimes, setLoadingShowtimes] = useState(false) 
   const [isVideoOpen, setIsVideoOpen] = useState(false)
 
-  // Control para evaluar el auto-avance solo una vez al montar el componente
   const hasCheckedAutoAdvance = useRef(false)
 
   useEffect(() => {
@@ -39,41 +37,67 @@ export default function EventDetails() {
           return
         }
 
-        // 1. Cargar metadatos estáticos del evento (solo si no existen en estado)
+        // 1. Cargar datos del evento base (Película) y desempaquetar la propiedad "data"
         if (!event) {
-          const eventData = await getEventById(eventId)
+          const res = await getEventById(eventId)
+          // Validamos si la respuesta viene con la envoltura .data del JSON enviado
+          const eventData = res?.data ? res.data : res
           setEvent(eventData)
         }
 
-        // 2. Consultar funciones según la fecha que dicte el estado actual
         setLoadingShowtimes(true)
-        const showtimesPayload = await getCinemaShowtimebyDate(eventId, selectedDate)
-        const fetchedCinemas = showtimesPayload?.cinemas || []
+        let fetchedCinemas = []
 
-        // 🕒 Regla de negocio: Si es la carga inicial y estamos parados en HOY, evaluar si ya expiró la cartelera
+        // 2. Petición de horarios de la cartelera
+        try {
+          const showtimesPayload = await getCinemaShowtimebyDate(eventId, selectedDate)
+          fetchedCinemas = showtimesPayload?.cinemas || []
+        } catch (showtimeErr) {
+          const is404 = showtimeErr.statusCode === 404 || 
+                        showtimeErr.response?.status === 404 || 
+                        showtimeErr.message?.includes('No hay funciones') ||
+                        String(showtimeErr).includes('404')
+
+          if (is404) {
+            console.warn(`🗓️ 404 controlado: Sin funciones para el evento ${eventId} en fecha: ${selectedDate}`)
+            fetchedCinemas = []
+          } else {
+            throw showtimeErr
+          }
+        }
+
+        // 3. Evaluar auto-avance si estamos parados en HOY
         if (!hasCheckedAutoAdvance.current && selectedDate === todayStr) {
           hasCheckedAutoAdvance.current = true
 
-          // Evaluamos si no devolvió cines, o si todos los showtimes de todos los cines ya pasaron
           const allPassed = fetchedCinemas.length === 0 || fetchedCinemas.every(c => 
             c.showtimes?.every(st => new Date(st.booking?.start_time) < new Date())
           )
 
           if (allPassed) {
-            console.log('⏳ Todas las funciones de hoy finalizaron o no hay disponibilidad. Saltando a mañana...')
+            console.log('⏳ Todas las funciones de hoy finalizaron. Saltando a mañana...')
             const tomorrow = new Date()
             tomorrow.setDate(tomorrow.getDate() + 1)
             const tomorrowStr = getLocalDateString(tomorrow)
             
             setSelectedDate(tomorrowStr)
-            // Cortamos ejecución; el cambio de estado disparará el useEffect con la fecha de mañana
-            return
+            return 
           }
         }
 
-        setCinemas(fetchedCinemas)
+        // 4. Mapear y ordenar funciones cronológicamente de izquierda a derecha
+        const sortedCinemas = fetchedCinemas.map(item => ({
+          ...item,
+          showtimes: item.showtimes 
+            ? [...item.showtimes].sort((a, b) => {
+                return new Date(a.booking?.start_time) - new Date(b.booking?.start_time)
+              })
+            : []
+        }))
+
+        setCinemas(sortedCinemas)
       } catch (err) {
-        console.error('❌ Error en el ecosistema de carga:', err)
+        console.error('❌ Error crítico en el ecosistema de carga:', err)
         setEvent(null)
         setCinemas([])
       } finally {
@@ -83,7 +107,7 @@ export default function EventDetails() {
     }
 
     loadEventAndShowtimes()
-  }, [eventSlug, selectedDate]) // 🔄 Se vuelve a disparar cada vez que el cliente toca una fecha diferente
+  }, [eventSlug, selectedDate])
 
   if (loading) {
     return (
@@ -115,74 +139,77 @@ export default function EventDetails() {
           <div className="w-full sm:w-5/12 md:w-1/3 max-w-[280px] sm:max-w-none mx-auto sm:mx-0">
             <div className="w-full aspect-[2/3] bg-white/10 rounded-2xl border border-white/10 shadow-xl overflow-hidden flex items-center justify-center text-gray-400 text-lg relative group">
               <img
-                src={event.image_url || event.poster_url || 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1000'}
+                src={event.poster_url || event.banner_url || 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=1000'}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 alt={event.title}
               />
-              <div className="absolute top-3 left-3 bg-[#F6AD38] text-[#231640] text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-                Especial
-              </div>
+              {event.lifecycle_state_detail?.description && (
+                <div className="absolute top-3 left-3 bg-[#F6AD38] text-[#231640] text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+                  {event.lifecycle_state_detail.description}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="w-full sm:w-7/12 md:w-2/3 flex flex-col justify-between">
             <div className="text-left">
               <span className="text-[11px] text-[#F6AD38] uppercase font-bold tracking-widest block mb-1">
-                Evento Exclusivo
+                Evento Especial
               </span>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold italic mb-4 md:mb-6 leading-tight tracking-tight">
                 {event.title}
               </h1>
               <p className="text-gray-300 text-base md:text-xl mb-6 md:mb-8 leading-relaxed">
-                {event.description || event.synopsis || 'No hay descripción disponible para este evento.'}
+                {event.description || 'No hay descripción disponible para este evento.'}
               </p>
             </div>
 
-            {/* DATOS TÉCNICOS DEL EVENTO */}
+            {/* DATOS TÉCNICOS ADAPTADOS DEL EVENTO */}
             <div className="grid grid-cols-2 gap-4 md:gap-6 bg-[#231640] p-4 md:p-6 rounded-2xl border border-white/10 shadow-inner text-left">
               <div>
-                <p className="text-gray-400 text-xs md:text-sm">Fecha del Evento</p>
-                <p className="text-white text-sm md:text-base font-semibold">{event.date || 'Próximamente'}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-xs md:text-sm">Hora de Inicio</p>
-                <p className="text-white text-sm md:text-base font-semibold">{event.start_time || event.time || 'No especificada'}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-xs md:text-sm">Lugar / Sucursal</p>
-                <p className="text-white text-sm md:text-base font-semibold truncate">
-                  {event.cinema?.name || event.location || 'Todas las sucursales'}
+                <p className="text-gray-400 text-xs md:text-sm">Fecha de Lanzamiento</p>
+                <p className="text-white text-sm md:text-base font-semibold">
+                  {event.release_date || 'Próximamente'}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs md:text-sm">Precio Entrada</p>
+                <p className="text-gray-400 text-xs md:text-sm">Duración</p>
+                <p className="text-white text-sm md:text-base font-semibold">
+                  {event.duration_minutes ? `${event.duration_minutes} min` : 'No especificada'}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs md:text-sm">Complejos</p>
+                <p className="text-white text-sm md:text-base font-semibold truncate">
+                  Disponibles abajo
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs md:text-sm">Clasificación</p>
                 <p className="text-[#F6AD38] text-sm md:text-base font-bold">
-                  {event.price ? `$${event.price}` : 'Entrada Libre'}
+                  {event.age_classification_detail?.description || 'Todo Público'}
                 </p>
               </div>
 
+              {/* Uso inteligente de estados de ciclo de vida y clasificaciones como etiquetas fijas */}
               <div className="col-span-2 border-t border-white/5 pt-3">
-                <p className="text-gray-400 text-xs md:text-sm mb-2">Etiquetas del Evento</p>
+                <p className="text-gray-400 text-xs md:text-sm mb-2">Características del Evento</p>
                 <div className="flex flex-wrap gap-2">
-                  {event.tags && event.tags.length > 0 ? (
-                    event.tags.map((tag, index) => (
-                      <span key={tag.id || index} className="px-2.5 py-1 bg-white/10 text-white text-[11px] md:text-xs font-medium rounded-full border border-white/20 shadow-sm whitespace-nowrap">
-                        {tag.description || tag}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 italic text-xs md:text-sm">Exclusivo de Cineflix</span>
+                  {event.lifecycle_state_detail?.description && (
+                    <span className="px-2.5 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 text-[11px] md:text-xs font-semibold rounded-full border border-pink-500/30 shadow-sm whitespace-nowrap">
+                      {event.lifecycle_state_detail.description}
+                    </span>
                   )}
                 </div>
               </div>
               
-              {event.promo_video_url && (
+              {event.trailer_url && (
                 <div className="col-span-2 pt-2 border-t border-white/5">
                   <button onClick={() => setIsVideoOpen(true)} className="flex items-center justify-center sm:justify-start gap-2 w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-[#231640] text-sm md:text-base font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-95">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 md:w-5 md:h-5">
                       <path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" />
                     </svg>
-                    Ver Video Promocional
+                    Ver Trailer Oficial
                   </button>
                 </div>
               )}
@@ -200,14 +227,12 @@ export default function EventDetails() {
               <p className="text-xs text-gray-400 mt-1">Selecciona una fecha para ver la cartelera de ese día.</p>
             </div>
 
-            {/* 📅 Inyección del Carrusel de Fechas */}
             <DateCarousel 
               selectedDate={selectedDate} 
               onDateChange={(date) => setSelectedDate(date)} 
             />
           </div>
 
-          {/* Feedback de carga interactiva al mutar la fecha */}
           {loadingShowtimes ? (
             <div className="py-12 flex justify-center items-center">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-[#f4b400] border-t-transparent rounded-full"></div>
@@ -242,15 +267,15 @@ export default function EventDetails() {
         </div>
 
         {/* PROMO VIDEO MODAL */}
-        {isVideoOpen && event.promo_video_url && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-10 animate-fade-in">
+        {isVideoOpen && event.trailer_url && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 md:p-10">
             <div className="relative w-full max-w-4xl bg-[#231640] rounded-2xl border border-white/10 p-2 shadow-2xl">
               <button onClick={() => setIsVideoOpen(false)} className="absolute -top-12 right-0 md:right-2 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full border border-white/10 transition-colors shadow">
-                <svg xmlns="http://www.w3.org/2000/xl" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <TrailerPlayer url={event.promo_video_url} />
+              <TrailerPlayer url={event.trailer_url} />
             </div>
           </div>
         )}

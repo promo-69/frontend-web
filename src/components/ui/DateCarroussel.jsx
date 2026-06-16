@@ -69,10 +69,7 @@ export default function DateCarousel({ selectedDate, onDateChange }) {
             <button
               key={idx}
               onClick={() => onDateChange(dateStr)}
-              /* Ajuste del cálculo responsivo:
-                - Móvil: 2 gaps de 8px (16px) + padding de extremos (12px) = 28px de espacio no disponible. El resto se divide entre 3.
-                - Tablet/Sm: 4 gaps de 8px (32px) + padding (12px) = 44px de espacio no disponible. El resto entre 5.
-              */
+
               className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all snap-start shrink-0
                 w-[calc((100%-28px)/3)] sm:w-[calc((100%-44px)/5)] md:w-[76px] ${
                 isSelected
