@@ -9,6 +9,14 @@ export const getMoviesNowPlaying = async (genre) => {
   return response.data?.data || []
 }
 
+// De un peliculas, obtengo las sucursales y funciones disponibles - Mary
+export const getCinemaShowtimebyDateMovies = async (movieId, date) => {
+  const response = await api.get(`/showtimes/by-content/movie/${movieId}/`, {
+  params: { date }
+  })
+  return response.data.data 
+}
+
 // Peliculas y funciones por sucursales - Mary
 export const getMoviesByCinema = async (cinemaId) => {
   const response = await apiPublic.get(`/showtimes/billboard/${cinemaId}`)

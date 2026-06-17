@@ -12,8 +12,8 @@ import Empresa from '../pages/public/AboutUs';
 import CinemasInfo from '../pages/public/InfoCinemas';
 import MoviesReleases from '../pages/public/MoviesReleases';
 import MoviesUpcoming from '../pages/public/MoviesUpComing';
-import MovieDetails from '../pages/public/MovieDetails';
-import EventDetails from '../pages/public/EventsDetails';
+import ViewDetails from '../pages/public/DetailView';
+
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
 import Confectionery from '../pages/private/buy/confectionery';
 import Checkout from '../pages/private/buy/checkout';
@@ -35,8 +35,8 @@ export const publicRoutes = (
     {/* Grupo de rutas con Header */}
     <Route element={<PublicLayout />}>
       <Route path="/" element={<Home />} />
-      <Route path="/movies/:movieSlug" element={<MovieDetails />} />
-      <Route path="/events/:eventSlug" element={<EventDetails />} />
+      <Route path="/movies/:movieSlug" element={<ViewDetails />} />
+      <Route path="/events/:eventSlug" element={<ViewDetails />} />
       <Route path="/business" element={<Empresa />} />
       <Route path="/cinemas" element={<CinemasInfo />} />
       <Route path="/cinemas/:cinemaSlug" element={<CinemaDetails />} />
