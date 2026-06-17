@@ -3,7 +3,7 @@ import { useState } from 'react'
 import ModalMessage from '../ui/ModalMessage'
 import { useAuth } from '../../context/AuthContext'
 
-export default function ShowtimeCard({ showtime, movieId }) {
+export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
   const navigate = useNavigate()
   const location = useLocation() 
   const { user } = useAuth()
@@ -23,11 +23,14 @@ export default function ShowtimeCard({ showtime, movieId }) {
       return
     }
 
-    // Pasamos el cinemaId en el state de navegación para que SelectSeats pueda
-    // recuperar la sucursal cuando el CartContext no lo tenga (flujo desde EventsDetails)
-    const cinemaId =
-      showtime.booking?.cinema?.id || showtime.cinema?.id || showtime.cinema_id
+    // Log para debug: confirmar IDs antes de navegar
+    console.log('ShowtimeCard.handleClick -> navigating to selectSeats', {
+      movieId,
+      showtimeId: showtime?.id,
+      cinemaId,
+    })
 
+    // Ya estamos obteniendo el cinemaId arriba
     navigate(`/selectSeats/${movieId}/${showtime.id}`, {
       state: { cinemaId },
     })

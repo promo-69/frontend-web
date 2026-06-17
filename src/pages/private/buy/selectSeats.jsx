@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getShowtimeById,
@@ -17,10 +17,16 @@ import { useCart } from '../../../context/CartContext'
 
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
-  const { state } = useLocation()
+  //const { cinemaId } = useLocation().state
+  const locationState = useLocation().state || {}
+  const cinemaIdFromLocation = locationState.cinemaId
+  const cinemaId = cinemaIdFromLocation || null
+
+  // Log inicial para trazar parámetros de entrada
+  console.log('SelectSeats init', { movieId, showtimeId, cinemaIdFromLocation })
+
   const navigate = useNavigate()
 
-  const { cinemaId } = state
 
   const {
     setCinemaId: setPurchaseCinema,
@@ -40,8 +46,9 @@ export default function SelectSeats() {
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(true)
+  const [quoteReady, setQuoteReady] = useState(false)
+  const [quoteError, setQuoteError] = useState(null)
 
-  const user = JSON.parse(localStorage.getItem('user'))
   const token = localStorage.getItem('token')
 
   // ============================
@@ -50,11 +57,23 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
+        console.log('SelectSeats.load -> fetching showtime with', { cinemaId, showtimeId })
         const st = await getShowtimeById(cinemaId, showtimeId)
         const map = await getSeatMap(cinemaId, showtimeId)
 
+        console.log('SelectSeats.load -> fetched showtime:', { id: st?.id, showtimeCinemaId: st?.booking?.room?.cinemaId })
+
         setShowtime(st)
         setSeats(map.seats || [])
+
+        // Si cinemaId de location y cinemaId del showtime difieren, logear una advertencia
+        if (cinemaId && st?.booking?.room?.cinemaId && Number(cinemaId) !== Number(st.booking.room.cinemaId)) {
+          console.warn('SelectSeats: cinemaId from location differs from showtime.booking.room.cinemaId', {
+            cinemaIdFromLocation: cinemaId,
+            showtimeCinemaId: st.booking.room.cinemaId,
+            showtimeId,
+          })
+        }
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
       } finally {
@@ -69,25 +88,54 @@ export default function SelectSeats() {
   // 2) Inicializar Orden de Compra + Socket
   // ============================
   useEffect(() => {
-    setPurchaseCinema(cinemaId)
+    let isActive = true
+    const resolvedCinemaId = cinemaId || showtime?.booking?.room?.cinemaId || null
+
+    console.log('SelectSeats.initSocketAndQuote -> resolvedCinemaId', { resolvedCinemaId, showtimeId })
+
+    setPurchaseCinema(resolvedCinemaId)
     setPurchaseShowtime(showtimeId)
     setIsSeatFlow(true)
+    setQuoteReady(false)
+    setQuoteError(null)
 
-    startQuote(cinemaId, user?.id)
-    connectSocket(token)
+    const initialize = async () => {
+      if (!resolvedCinemaId) {
+        console.warn('SelectSeats: No cinemaId disponible para iniciar quote en este momento')
+        return
+      }
+
+      const quoteOk = await startQuote(resolvedCinemaId)
+      if (!isActive) return
+
+      if (quoteOk) {
+        console.log('SelectSeats: quote initialized successfully')
+        setQuoteReady(true)
+        connectSocket(token)
+      } else {
+        console.error('SelectSeats: quote initialization failed, no join will be attempted')
+        setQuoteError('No se pudo iniciar la sesión de compra')
+      }
+    }
+
+    initialize()
 
     return () => {
+      isActive = false
       socketService.leaveShowtime(showtimeId)
       socketService.disconnect()
     }
-  }, [])
+  }, [cinemaId, showtime])
 
   // ============================
   // 3) Conectar / Desconectar Socket
   // ============================
   useEffect(() => {
+    if (!quoteReady) return
+
+    console.log('SelectSeats -> joining showtime room', { showtimeId, cinemaId })
     socketService.joinShowtime(showtimeId)
-  }, [showtimeId])
+  }, [quoteReady, showtimeId])
 
   // ============================
   // 4) Escuchar Eventos del Servidor
@@ -201,6 +249,21 @@ export default function SelectSeats() {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         <p className="animate-pulse">Cargando mapa de asientos…</p>
+      </div>
+    )
+  }
+
+  if (quoteError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-white px-6">
+        <h1 className="text-2xl font-bold mb-4">No se pudo iniciar la sesión de compra</h1>
+        <p className="text-center max-w-xl mb-6">Ocurrió un problema al preparar tu compra. Intenta recargar la página o regresa al listado de funciones.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+        >
+          Volver al inicio
+        </button>
       </div>
     )
   }
