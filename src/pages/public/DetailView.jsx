@@ -306,7 +306,7 @@ export default function DetailView() {
 
                   <div className="w-full md:w-3/4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {item.showtimes?.map((showtime) => (
-                      <ShowtimeCard key={showtime.id} showtime={showtime} movieId={entityId} />
+                      <ShowtimeCard key={showtime.id} showtime={showtime} movieId={entityId} cinemaId={item.cinema.id} />
                     ))}
                   </div>
                 </div>

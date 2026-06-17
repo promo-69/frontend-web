@@ -23,8 +23,14 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
       return
     }
 
-    // Ya estamos obteniendo el cinemaId arriba
+    // Log para debug: confirmar IDs antes de navegar
+    console.log('ShowtimeCard.handleClick -> navigating to selectSeats', {
+      movieId,
+      showtimeId: showtime?.id,
+      cinemaId,
+    })
 
+    // Ya estamos obteniendo el cinemaId arriba
     navigate(`/selectSeats/${movieId}/${showtime.id}`, {
       state: { cinemaId },
     })
