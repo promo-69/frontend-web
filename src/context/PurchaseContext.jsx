@@ -27,13 +27,13 @@ export function PurchaseProvider({ children }) {
   // 1) Inicializar sesión de compra (quote)
   // =====================================================
   const startQuote = async (cinemaId, customerId) => {
+    if (!cinemaId || !customerId) return
     if (quoteInitializedRef.current) return
     quoteInitializedRef.current = true
 
     try {
       const resp = await initializeOrderQuote({
         cinema: cinemaId,
-        customerId,
       })
 
       const expires = resp?.data?.expires_in || 300
@@ -87,18 +87,23 @@ export function PurchaseProvider({ children }) {
   // =====================================================
   // 4) Cancelar compra
   // =====================================================
-  const cancelPurchase = async (reason = 'manual') => {
+  const cancelPurchase = async () => {
     try {
       await deleteOrderSessionWithRetries()
-      clearSeats()
-      setOrderId(null)
-      setExpiresAt(null)
-      setShowtimeId(null)
-      setCinemaId(null)
-      quoteInitializedRef.current = false
     } catch (err) {
-      console.error('Error cancelando compra:', err)
+      if (err?.response?.status === 404) {
+        console.warn('No había sesión activa, continuar cancelación')
+      } else {
+        console.error('Error cancelando compra:', err)
+      }
     }
+
+    clearSeats()
+    setOrderId(null)
+    setExpiresAt(null)
+    setShowtimeId(null)
+    setCinemaId(null)
+    quoteInitializedRef.current = false
   }
 
   // =====================================================
