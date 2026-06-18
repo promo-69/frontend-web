@@ -111,7 +111,7 @@ export default function SelectSeats() {
       if (quoteOk) {
         console.log('SelectSeats: quote initialized successfully')
         setQuoteReady(true)
-        connectSocket(token)
+        connectSocket()
       } else {
         console.error('SelectSeats: quote initialization failed, no join will be attempted')
         setQuoteError('No se pudo iniciar la sesión de compra')
@@ -141,6 +141,14 @@ export default function SelectSeats() {
   // 4) Escuchar Eventos del Servidor
   // ============================
   useEffect(() => {
+    if (!quoteReady) return
+
+    const socket = socketService.getSocket()
+    if (!socket) {
+      console.warn('SelectSeats: no hay socket activo para registrar listeners')
+      return
+    }
+
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -220,7 +228,7 @@ export default function SelectSeats() {
       socketService.off('seats_sold_final', onSeatsSoldFinal)
       socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [showtimeId])
+  }, [quoteReady, showtimeId])
 
   // ============================
   // 5) Lógica de Selección (Toggle Asiento)

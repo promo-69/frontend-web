@@ -2,14 +2,38 @@ import { io } from 'socket.io-client'
 
 let socket = null
 
-const connect = (token) => {
-  if (socket) return socket
+const connect = () => {
+  if (socket) {
+    console.log('[Socket] connect() reuse existing socket', { connected: socket.connected })
+    return socket
+  }
+
+  console.log('[Socket] connect() creating new socket — document.cookie:', typeof document !== 'undefined' ? document.cookie : '[no document]')
 
   socket = io(import.meta.env.VITE_WS_URL, {
-    transports: ['websocket'],
-    auth: {
-      token,
-    },
+    withCredentials: true,
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+  })
+
+  socket.on('connect', () => {
+    try {
+      console.log('[Socket] Connected')
+    } catch (e) {}
+  })
+
+  socket.on('disconnect', (reason) => {
+    if (reason === 'io server disconnect' || reason === 'io client disconnect') {
+      socket = null
+    }
+  })
+
+  socket.on('connect_error', (err) => {
+    try {
+      console.warn('[Socket] Connection error:', err?.message)
+    } catch (e) {}
   })
 
   return socket
@@ -22,8 +46,25 @@ const disconnect = () => {
 }
 
 const joinShowtime = (showtimeId) => {
-  if (!socket) return
-  socket.emit('join_showtime', { showtimeId: Number(showtimeId) })
+  const doEmit = () => {
+    if (!socket) {
+      console.warn('[Socket] joinShowtime: socket missing at emit time', { showtimeId })
+      return
+    }
+    console.log('[Socket] emit join_showtime', { showtimeId, connected: socket.connected })
+    socket.emit('join_showtime', { showtimeId: Number(showtimeId) })
+  }
+
+  if (!socket) {
+    console.warn('[Socket] joinShowtime called before socket exists — calling connect()', { showtimeId })
+    connect()
+  }
+
+  if (socket && socket.connected) {
+    doEmit()
+  } else if (socket) {
+    socket.once('connect', doEmit)
+  }
 }
 
 const leaveShowtime = (showtimeId) => {
