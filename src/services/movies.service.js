@@ -30,8 +30,17 @@ export const getMovieById = async (id) => {
 }
 
 
+// Endpoint para peliculas en cartelera regular, estreno y ultimos dias - Mary
+export const getMoviesBillboard = async (id) => {
+  const response = await api.get(`/showtimes/billboard/full`)
+  return response.data?.data || []
+}
 
-export const getMoviesReleases = async () => {
+
+
+
+// https://backend-jog6.onrender.com/api/v1/test/showtimes/billboard/full
+export const getMoviesReleasessssdwe = async () => {
   const response = await apiPublic.get('/movies/showtimes')
   return response.data?.data || []
 }
@@ -41,7 +50,7 @@ export const getUpcomingMovies = async () => {
   return response.data?.data || []
 }
 
-export const getMovies = async () => {
+export const getMoviesReleases = async () => {
   const response = await api.get('/movies')
   return response.data?.data || []
 }

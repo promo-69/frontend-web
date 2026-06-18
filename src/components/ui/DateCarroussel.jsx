@@ -51,15 +51,15 @@ export default function DateCarousel({ selectedDate, onDateChange }) {
       {/* Flecha Izquierda */}
       <button 
         onClick={() => scroll('left')} 
-        className="p-1.5 text-gray-400 hover:text-[#f4b400] transition-colors shrink-0"
+        className="p-1.5 text-gray-400 hover:text-[#F6AD38] transition-colors shrink-0"
       >
         <FiChevronLeft size={22} />
       </button>
       
-      {/* Contenedor del Carrusel - SOLUCIÓN: flex-1, min-w-0 y px-2 */}
+      {/* Contenedor del Carrusel */}
       <div 
         ref={carouselRef}
-        className="flex-1 min-w-0 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-1 px-2"
+        className="flex-1 min-w-0 flex gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-1 px-2"
       >
         {dates.map((date, idx) => {
           const dateStr = getLocalDateString(date)
@@ -69,22 +69,30 @@ export default function DateCarousel({ selectedDate, onDateChange }) {
             <button
               key={idx}
               onClick={() => onDateChange(dateStr)}
-
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all snap-start shrink-0
-                w-[calc((100%-28px)/3)] sm:w-[calc((100%-44px)/5)] md:w-[76px] ${
+              className={`flex flex-col items-center justify-center h-[95px] rounded-[12px] border transition-all snap-start shrink-0
+                w-[calc((100%-24px)/3)] sm:w-[calc((100%-48px)/5)] md:w-[70px] ${
                 isSelected
-                  ? 'bg-[#7B1A82] text-[#f4b400] border border-[#f4b400] font-black shadow-lg shadow-[#7B1A82]/40 scale-105'
-                  : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20'
+                  ? 'bg-[#7B1A82] border-white/25 shadow-[0_2px_3.84px_rgba(0,0,0,0.25)]'
+                  : 'bg-[#231640]/40 border-white/10'
               }`}
             >
-              <span className="text-[10px] uppercase tracking-wider font-semibold opacity-90">
+              {/* Parte superior: Nombre del día */}
+              <span className={`text-[10px] uppercase tracking-[0.5px] font-bold ${
+                isSelected ? 'text-[#F6AD38]' : 'text-[#B0A8C5]'
+              }`}>
                 {getDayName(date)}
               </span>
-              <span className="text-lg font-bold my-0.5 leading-none">
-                {getDayNumber(date)}
-              </span>
-              <span className="text-[9px] uppercase font-medium opacity-75">
+
+              {/* Parte del medio: El mes dinámico */}
+              <span className="text-[9px] uppercase font-bold my-[2px] text-white/40">
                 {getMonthName(date)}
+              </span>
+
+              {/* Parte inferior: El número del día */}
+              <span className={`text-2xl font-bold leading-none ${
+                isSelected ? 'text-white' : 'text-white/80'
+              }`}>
+                {getDayNumber(date)}
               </span>
             </button>
           )
@@ -94,7 +102,7 @@ export default function DateCarousel({ selectedDate, onDateChange }) {
       {/* Flecha Derecha */}
       <button 
         onClick={() => scroll('right')} 
-        className="p-1.5 text-gray-400 hover:text-[#f4b400] transition-colors shrink-0"
+        className="p-1.5 text-gray-400 hover:text-[#F6AD38] transition-colors shrink-0"
       >
         <FiChevronRight size={22} />
       </button>

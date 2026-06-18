@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Footer from '../../components/ui/Footer';
-import { getMoviesReleases } from '../../services/movies.service';
+import { getMoviesBillboard } from '../../services/movies.service';
 
 export default function MoviesReleases() {
   const [billboardMovies, setBillboardMovies] = useState([]);
@@ -9,7 +9,7 @@ export default function MoviesReleases() {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const data = await getMoviesReleases();
+        const data = await getMoviesBillboard();
         setBillboardMovies(data || []); 
       } catch (error) {
         console.error("Error cargando la cartelera:", error);
