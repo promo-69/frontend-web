@@ -1,10 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 // Servicios
 import { getCinemas, getMoviesShowtimebyDateCinema } from '../../services/info.service' 
 // Componentes Compartidos
-import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
 import ShowtimeCard from '../../components/showtimesMovie/ShowtimeCard'
 import DateCarousel from '../../components/ui/DateCarroussel'
 
@@ -16,7 +15,7 @@ const convertToSlug = (title) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") 
     .replace(/[^a-z0-9\s-]/g, "")   
-    .replace(/\s+/g, "-")          
+    .replace(/\s+/g, "-")           
     .trim()
 }
 
@@ -34,24 +33,21 @@ export default function CinemaMovieDetails() {
 
   // Estados
   const [cinema, setCinema] = useState(null)
-  const [billboard, setBillboard] = useState([]) // Almacena películas y eventos mezclados
+  const [billboard, setBillboard] = useState([]) 
   const [selectedDate, setSelectedDate] = useState(todayStr)
   
   const [loadingCinema, setLoadingCinema] = useState(true)
   const [loadingBillboard, setLoadingBillboard] = useState(false)
-  const [animate, setAnimate] = useState(false)
 
-  const hasCheckedAutoAdvance = useRef(false)
-
-  // ✨ EFECTO DE SCROLL ANIMADO AL TOP
+  // 🚀 SCROLL AUTOMÁTICO AL TOP AL CAMBIAR DE SUCURSAL
   useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     })
-  }, [cinemaSlug, selectedDate])
+  }, [cinemaSlug])
 
-  // 🏢 Efecto 1: Carga los detalles base del Complejo/Sucursal
+  // 🏢 Efecto 1: Carga los detalles de la Sucursal (Sin lógica de animación visual)
   useEffect(() => {
     async function loadCinema() {
       try {
@@ -68,6 +64,7 @@ export default function CinemaMovieDetails() {
         )
 
         setCinema(matchedCinema || null)
+
       } catch (err) {
         console.error('❌ Error buscando la sucursal en la lista:', err)
         setCinema(null)
@@ -79,25 +76,16 @@ export default function CinemaMovieDetails() {
     loadCinema()
   }, [cinemaSlug])
 
-  // 🍿 Efecto 2: Carga la cartelera por Sucursal + Fecha seleccionada
+  // 🍿 Efecto 2: Carga la cartelera de forma reactiva
   useEffect(() => {
     async function loadBillboardData() {
       if (!cinema?.id) return
 
       try {
         setLoadingBillboard(true)
-        
-        // Petición al endpoint usando el ID de la sucursal y la fecha del carrusel
         const data = await getMoviesShowtimebyDateCinema(cinema.id, selectedDate)
         setBillboard(data || [])
-
-        // Lanzar animación fluida de entrada
-        setAnimate(false)
-        const timer = setTimeout(() => setAnimate(true), 100)
-        return () => clearTimeout(timer)
-
       } catch (err) {
-        // Captura silenciosa para mantener la consola F12 impecable si no hay funciones
         setBillboard([])
       } finally {
         setLoadingBillboard(false)
@@ -128,11 +116,9 @@ export default function CinemaMovieDetails() {
   }
 
   return (
-    <div 
-      className={`min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20 transition-all duration-700 ease-out ${
-        animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-      }`}
-    >
+    <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
+      
+      {/* Contenedor limpio: se eliminaron las clases condicionales de animación/escala */}
       <div className="max-w-6xl mx-auto px-6 sm:px-8 md:px-10 pt-6 md:pt-10">
         
         {/* VISTA DETALLADA DEL COMPLEJO */}
@@ -152,7 +138,7 @@ export default function CinemaMovieDetails() {
             </div>
           </div>
 
-          {/* Contenedor de Textos e Información Filtrada */}
+          {/* Contenedor de Textos e Información */}
           <div className="w-full sm:w-7/12 md:w-2/3 flex flex-col justify-between self-stretch py-2">
             <div className="text-left mb-6 md:mb-8">
               <span className="text-[11px] text-[#F6AD38] uppercase font-bold tracking-widest block mb-1">
@@ -215,13 +201,11 @@ export default function CinemaMovieDetails() {
           ) : (
             <div className="flex flex-col gap-6">
               {billboard.map((item, index) => {
-                // Adaptador para normalizar la data según el tipo ("movie" o "special_event")
                 const isMovie = item.type === 'movie'
                 const entityData = isMovie ? item.movie : item.event
 
                 if (!entityData) return null
 
-                // Generar URL semántica según corresponda
                 const detailUrl = isMovie
                   ? `/movies/${entityData.id}-${convertToSlug(entityData.title)}`
                   : `/events/${entityData.id}-${convertToSlug(entityData.title)}`
@@ -231,10 +215,8 @@ export default function CinemaMovieDetails() {
                     key={`${entityData.id}-${index}`}
                     className="bg-[#231640]/40 border border-white/10 rounded-2xl p-5 flex flex-col md:flex-row gap-6 items-start hover:border-white/20 transition-all duration-300 shadow-md"
                   >
-                    {/* COLUMNA IZQUIERDA: PÓSTER + DETALLES (Basado en tu MovieCard) */}
+                    {/* COLUMNA IZQUIERDA: PÓSTER + DETALLES */}
                     <div className="flex gap-4 w-full md:w-2/5 lg:w-1/3 shrink-0">
-                      
-                      {/* Contenedor del Póster */}
                       <Link 
                         to={detailUrl}
                         className="w-[95px] sm:w-[110px] aspect-[2/3] bg-white/5 rounded-xl border border-white/10 overflow-hidden shrink-0 block group relative shadow-md"
@@ -252,7 +234,6 @@ export default function CinemaMovieDetails() {
                         </div>
                       </Link>
 
-                      {/* Información de la Película / Evento */}
                       <div className="flex flex-col justify-center text-left">
                         {!isMovie && (
                           <span className="text-[9px] text-[#F6AD38] uppercase font-bold tracking-widest block mb-0.5">
@@ -282,7 +263,7 @@ export default function CinemaMovieDetails() {
                       </div>
                     </div>
 
-                    {/* COLUMNA DERECHA: GRILLA DE FUNCIONES MAPEADAS */}
+                    {/* COLUMNA DERECHA: GRILLA DE FUNCIONES */}
                     <div className="w-full md:w-3/5 lg:w-2/3 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6 text-left">
                       <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">
                         Horarios de Función:
