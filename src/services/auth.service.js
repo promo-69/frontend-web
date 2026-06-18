@@ -40,6 +40,11 @@ export const logoutRequest = async () => {
   return response
 }
 
+export const getPermissionsRequest = async () => {
+  const response = await api.get('/auth/permissions')
+  return response.data.data.permissions
+}
+
 // ---------------------------------------------------------
 // REGISTER
 // ---------------------------------------------------------
