@@ -9,7 +9,6 @@ import { CartProvider } from './context/CartContext'
 import { PurchaseProvider } from './context/PurchaseContext'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <LoadingProvider>
       <AuthProvider>
         <PurchaseProvider>
@@ -19,5 +18,6 @@ createRoot(document.getElementById('root')).render(
         </PurchaseProvider>
       </AuthProvider>
     </LoadingProvider>
-  </StrictMode>,
 )
+
+//{/* Por sea necesario luego *<StrictMode></StrictMode>,/}
