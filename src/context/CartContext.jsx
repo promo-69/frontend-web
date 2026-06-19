@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 export const CartContext = createContext()
 
@@ -12,9 +12,9 @@ export function CartProvider({ children }) {
     cinema: null,
   })
 
-  const setCinema = (cinema) => {
+  const setCinema = useCallback((cinema) => {
     setCart((prev) => ({ ...prev, cinema }))
-  }
+  }, [])
 
   // 🧊 Persistencia: cargar carrito desde localStorage
   useEffect(() => {
@@ -55,18 +55,35 @@ export function CartProvider({ children }) {
   const addProduct = (product) => {
     setCart((prev) => {
       const exists = prev.products.find(
-        (p) => p.productId === product.productId,
+        (p) =>
+          p.productId === product.productId && p.type === product.type,
       )
 
       if (exists) {
+        const updatedQuantity = exists.quantity + product.quantity
+
+        if (updatedQuantity <= 0) {
+          return {
+            ...prev,
+            products: prev.products.filter(
+              (p) =>
+                !(p.productId === product.productId && p.type === product.type),
+            ),
+          }
+        }
+
         return {
           ...prev,
           products: prev.products.map((p) =>
-            p.productId === product.productId
-              ? { ...p, quantity: p.quantity + product.quantity }
+            p.productId === product.productId && p.type === product.type
+              ? { ...p, quantity: updatedQuantity }
               : p,
           ),
         }
+      }
+
+      if (product.quantity <= 0) {
+        return prev
       }
 
       return {
@@ -76,11 +93,35 @@ export function CartProvider({ children }) {
     })
   }
 
+  const updateProductQuantity = (productId, type, quantity) => {
+    setCart((prev) => {
+      if (quantity <= 0) {
+        return {
+          ...prev,
+          products: prev.products.filter(
+            (p) => !(p.productId === productId && p.type === type),
+          ),
+        }
+      }
+
+      return {
+        ...prev,
+        products: prev.products.map((p) =>
+          p.productId === productId && p.type === type
+            ? { ...p, quantity }
+            : p,
+        ),
+      }
+    })
+  }
+
   // ❌ Quitar producto
-  const removeProduct = (productId) => {
+  const removeProduct = (productId, type) => {
     setCart((prev) => ({
       ...prev,
-      products: prev.products.filter((p) => p.productId !== productId),
+      products: prev.products.filter(
+        (p) => !(p.productId === productId && p.type === type),
+      ),
     }))
   }
 
@@ -90,12 +131,12 @@ export function CartProvider({ children }) {
   }
 
   // 🕒 Guardar showtime
-  const setShowtime = (showtime) => {
+  const setShowtime = useCallback((showtime) => {
     setCart((prev) => ({ ...prev, showtime }))
-  }
+  }, [])
 
   // 🧮 Totales
-  const getTotals = () => {
+  const getTotals = useCallback(() => {
     const ticketTotal = cart.tickets.reduce((acc, t) => acc + t.price, 0)
     const productTotal = cart.products.reduce(
       (acc, p) => acc + p.price * p.quantity,
@@ -107,34 +148,51 @@ export function CartProvider({ children }) {
     const total = subtotal + iva
 
     return { ticketTotal, productTotal, subtotal, iva, total }
-  }
+  }, [cart])
 
   // 🧹 Limpiar carrito
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart({
       tickets: [],
       products: [],
       movie: null,
       showtime: null,
+      cinema: null,
     })
     localStorage.removeItem('cine_cart')
-  }
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({
+      cart,
+      setCinema,
+      addTicket,
+      removeTicket,
+      addProduct,
+      updateQuantity: updateProductQuantity,
+      removeProduct,
+      setMovie,
+      setShowtime,
+      getTotals,
+      clearCart,
+    }),
+    [
+      cart,
+      setCinema,
+      addTicket,
+      removeTicket,
+      addProduct,
+      updateProductQuantity,
+      removeProduct,
+      setMovie,
+      setShowtime,
+      getTotals,
+      clearCart,
+    ],
+  )
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        setCinema,
-        addTicket,
-        removeTicket,
-        addProduct,
-        removeProduct,
-        setMovie,
-        setShowtime,
-        getTotals,
-        clearCart,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   )

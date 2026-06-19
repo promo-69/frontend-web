@@ -11,21 +11,22 @@ const convertToSlug = (title) => {
     .trim()
 }
 
-export default function MovieCard({ movie, upcoming = false }) {
-  if (!movie) return null
+export default function EventCard({ event, upcoming = false }) {
+  if (!event) return null
 
-  const movieUrl = `/movies/${movie.id}-${convertToSlug(movie.title)}`
+  // 🎫 URL apuntando al segmento de eventos utilizando su ID y Slug
+  const eventUrl = `/events/${event.id}-${convertToSlug(event.title)}`
 
   return (
     <Link
-      to={movieUrl}
+      to={eventUrl}
       className="flex flex-col group cursor-pointer text-left block"
     >
       {/* Contenedor del Póster */}
       <div className="aspect-[2/3] w-full bg-white/5 rounded-2xl border border-white/10 shadow-lg overflow-hidden relative group-hover:border-[#f4b400]/50 transition-all duration-300">
         <img
-          src={movie.poster_url}
-          alt={movie.title}
+          src={event.poster_url}
+          alt={event.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
@@ -38,19 +39,20 @@ export default function MovieCard({ movie, upcoming = false }) {
         </div>
       </div>
 
-      {/* Información de la Película */}
+      {/* Información del Evento */}
       <div className="mt-3">
         <h4 className="text-white text-sm font-bold group-hover:text-[#f4b400] transition-colors line-clamp-1">
-          {movie.title}
+          {event.title}
         </h4>
 
         {upcoming ? (
           <p className="text-[11px] text-[#f4b400] mt-1">
-            Estreno: {movie.release_date?.split('-')?.reverse()?.join('/')}
+            Comienza: {event.release_date?.split('-')?.reverse()?.join('/')}
           </p>
         ) : (
           <p className="text-[11px] text-gray-400 mt-1">
-            {movie.age_classification?.description || 'Apto para todo público'}
+            {/* Ajustado al objeto anidado de tu respuesta JSON */}
+            {event.age_classification_detail?.description || 'Apto para todo público'}
           </p>
         )}
       </div>

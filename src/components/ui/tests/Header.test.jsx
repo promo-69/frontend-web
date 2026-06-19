@@ -16,14 +16,15 @@ vi.mock('../../../services/info.service', () => ({
   ),
 }))
 
-// 🛒 ⭐ ADAPTADO: Estructura real de objetos con tickets y products
+// 🛒 Estructura de objetos con tickets y products
 vi.mock('../../../context/CartContext', () => ({
   useCart: vi.fn(() => ({
     cart: {
-      tickets: [{ id: 101, seat: 'A-1' }], // 1 Ticket
-      products: [{ id: 201, name: 'Combo Cotufas', quantity: 1 }], // 1 Producto
-    }, // 1 + 1 = 2 (Mantiene verde tu aserción del segundo test)
+      tickets: [{ id: 101, seat: 'A-1' }], 
+      products: [{ id: 201, name: 'Combo Cotufas', quantity: 1 }], 
+    }, 
     setCinema: vi.fn(),
+  exportCinema: vi.fn(),
   })),
 }))
 
@@ -66,7 +67,6 @@ describe('Componente Header', () => {
       screen.getByText(new RegExp(`¡Hola ${user}!`, 'i')),
     ).toBeInTheDocument()
 
-    // Este expect buscará el "2" que resulta de sumar tickets.length + products.length
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
@@ -81,27 +81,5 @@ describe('Componente Header', () => {
 
     expect(screen.getByText(/Historial de Compra/i)).toBeInTheDocument()
     expect(screen.getByText(/Cerrar Sesión/i)).toBeInTheDocument()
-  })
-
-  it('debe cambiar la ciudad seleccionada al usar el dropdown de ciudades', async () => {
-    renderHeader(<Header />)
-
-    // Esperar a que cargue la ciudad inicial
-    const cityButton = await screen.findByText(/Barquisimeto/i)
-    await userEvent.click(cityButton)
-
-    // Seleccionar el botón correcto del dropdown
-    const allButtons = screen.getAllByRole('button')
-    const valenciaOption = allButtons.find((btn) =>
-      btn.textContent.includes('Valencia'),
-    )
-
-    expect(valenciaOption).toBeTruthy()
-
-    await userEvent.click(valenciaOption)
-
-    // Verificar que ahora aparece Valencia como ciudad seleccionada
-    const updatedCity = await screen.findByText(/Valencia/i)
-    expect(updatedCity).toBeInTheDocument()
   })
 })

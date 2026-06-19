@@ -9,6 +9,8 @@ import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
 import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
+import Checkout from '../pages/private/buy/checkout'
+import OrderSuccess from '../pages/private/buy/orderSuccess'
 
 const PrivateLayout = () => {
   const { user } = useContext(AuthContext)
@@ -33,9 +35,9 @@ export const privateRoutes = (
     <Route element={<PrivateLayout />}>
       <Route path="/favorites" element={<Favorites />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/fidelidad" element={<Loyalty />} />
-      <Route path="/mis-compras" element={<MyOrders />} />
-      <Route path="/mis-compras/:orderId/ticket" element={<OrderTicket />} />
+      <Route path="/fidelity" element={<Loyalty />} />
+      <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
 
       {/* Flujo de compra completo protegido */}
       <Route
@@ -46,6 +48,11 @@ export const privateRoutes = (
         path="/buy/:movieId/:showtimeId/confectionery"
         element={<Confectionery />}
       />
+      <Route
+        path="/buy/:movieId/:showtimeId/checkout"
+        element={<Checkout />}
+      />
+      <Route path="/order-success" element={<OrderSuccess />} />
       
     </Route>
   </>

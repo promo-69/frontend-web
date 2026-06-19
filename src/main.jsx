@@ -6,15 +6,18 @@ import { LoadingProvider } from './context/LoadingContext'
 
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
+import { PurchaseProvider } from './context/PurchaseContext'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <LoadingProvider>
       <AuthProvider>
-        <CartProvider>
-          <App />
-        </CartProvider>
+        <PurchaseProvider>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </PurchaseProvider>
       </AuthProvider>
     </LoadingProvider>
-  </StrictMode>,
 )
+
+//{/* Por sea necesario luego *<StrictMode></StrictMode>,/}

@@ -1,41 +1,52 @@
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-//import { io } from 'socket.io-client'
-
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getShowtimeById,
   getSeatMap,
 } from '../../../services/showtimes.service'
 
+import socketService from '../../../services/socket.service'
+
 import ShowtimeHeader from '../../../components/selectSeats/ShowtimeHeader'
 import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
+
+import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
+
 
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
 
+  // ============================
+  // 0) Obtener cinemaId desde navegación
+  // ============================
+  const locationState = useLocation().state || {}
+  const cinemaId = locationState.cinemaId || null
+
   const {
-    addTicket,
-    removeTicket,
-    setMovie,
-    setShowtime: setShowtimeCart,
-    cart,
-  } = useCart()
+    setCinemaId: setPurchaseCinema,
+    setShowtimeId: setPurchaseShowtime,
+    setIsSeatFlow,
+    startQuote,
+    connectSocket,
+    addSeat,
+    removeSeat,
+    selectedSeats,
+    timeLeft,
+    cancelPurchase,
+  } = usePurchase()
+
+  const { clearCart } = useCart()
 
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(true)
-  const [ticketsNeeded, setTicketsNeeded] = useState(1)
+  const [quoteReady, setQuoteReady] = useState(false)
+  const [quoteError, setQuoteError] = useState(null)
 
-  const [timeLeft, setTimeLeft] = useState(300)
-
-  // ⭐ Socket.IO
-  const socketRef = useRef(null)
-
-  const user = JSON.parse(localStorage.getItem('user'))
 
   // ============================
   // 1) Cargar showtime + mapa
@@ -43,21 +54,10 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
-        console.log('→ Cargando showtime:', {
-          cinemaId: cart.cinema?.id,
-          showtimeId,
-        })
-
-        const st = await getShowtimeById(cart.cinema.id, showtimeId)
-        console.log('→ Showtime cargado:', st)
-
-        const map = await getSeatMap(cart.cinema.id, showtimeId)
-        console.log('→ Seats recibidos:', map.seats)
+        const st = await getShowtimeById(cinemaId, showtimeId)
+        const map = await getSeatMap(cinemaId, showtimeId)
 
         setShowtime(st)
-        setShowtimeCart(st)
-        setMovie(st.movie)
-
         setSeats(map.seats || [])
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
@@ -66,178 +66,187 @@ export default function SelectSeats() {
       }
     }
 
-    if (cart.cinema?.id) load()
-  }, [showtimeId, cart.cinema])
+    if (cinemaId) load()
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 2) Conectar Socket.IO
+  // 2) Inicializar Quote + Socket
   // ============================
   useEffect(() => {
-    if (!showtimeId) return
+    if (!cinemaId) return
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: {
-        token: localStorage.getItem('token'),
-      },
-    })
+    let active = true
 
-    socketRef.current = socket
+    setPurchaseCinema(cinemaId)
+    setPurchaseShowtime(showtimeId)
+    setIsSeatFlow(true)
+    setQuoteReady(false)
+    setQuoteError(null)
 
-    socket.on('connect', () => {
-      console.log('Socket conectado:', socket.id)
+    const init = async () => {
+      const ok = await startQuote(cinemaId)
+      if (!active) return
 
-      // ⭐ Unirse al showtime
-      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
-    })
+      if (!ok) {
+        setQuoteError('No se pudo iniciar la sesión de compra')
+        return
+      }
 
-    socket.on('disconnect', () => {
-      console.log('Socket desconectado')
-    })
+      connectSocket()
+      setQuoteReady(true)
+    }
+
+    init()
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', {
-          showtimeId: Number(showtimeId),
-        })
-        socketRef.current.disconnect()
-      }
+      active = false
     }
-  }, [showtimeId])
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 3) Escuchar eventos del backend
+  // 3) Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
-    const socket = socketRef.current
-    if (!socket) return
+    if (!quoteReady) return
 
-    socket.on('joinsuccess', () => {
-      console.log('Entraste a la sala correctamente')
-    })
+    const socket = socketService.getSocket()
+    if (!socket) {
+      console.warn(
+        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+      )
+      return
+    }
 
-    socket.on('joinerror', ({ message }) => {
-      console.error('❌ Error al unirse a la sala:', message)
+    // Definición de handlers de eventos
+    const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
+
+    const onJoinError = ({ message }) => {
       alert(message)
       navigate('/')
-    })
+    }
 
-    socket.on('seatlocksuccess', ({ seatId }) => {
+    const onSeatLockSuccess = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
       )
-    })
+      addSeat(seatId)
+    }
 
-    socket.on('seatlockerror', ({ seatId, message }) => {
+    const onSeatLockError = ({ seatId, message }) => {
       alert(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-    })
+      removeSeat(seatId)
+    }
 
-    socket.on('seatlockedbyother', ({ seatId }) => {
+    const onSeatLockedByOther = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'locked' } : s)),
       )
-    })
+    }
 
-    socket.on('seatunlocked', ({ seatId }) => {
+    const onSeatUnlocked = ({ seatId }) => {
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
-    })
+      removeSeat(seatId)
+    }
 
-    socket.on('seatssoldfinal', ({ seatIds }) => {
+    const onSeatsUnlockedBulk = ({ seatIds }) => {
+      setSeats((prev) =>
+        prev.map((s) =>
+          seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
+        ),
+      )
+      seatIds.forEach((id) => removeSeat(id))
+    }
+
+    const onSeatsSoldFinal = ({ seatIds }) => {
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'sold' } : s,
         ),
       )
-    })
-
-    socket.on('quoteexpired', () => {
-      alert('Tu tiempo de compra expiró')
-      navigate('/')
-    })
-
-    return () => {
-      socket.off()
     }
-  }, [])
+
+    const onQuoteExpired = () => {
+      alert('Tu tiempo de compra expiró')
+      cancelPurchase('ttl_expired')
+      navigate('/')
+    }
+
+    // Enlace en caliente si el canal físico parpadea y se reconecta de golpe
+    const handleReconnectedEmit = () => {
+      console.log(
+        '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
+      )
+      socketService.joinShowtime(showtimeId)
+    }
+
+    // 1. Acoplar receptores PRIMERO
+    socketService.on('connect', handleReconnectedEmit)
+
+    socketService.on('join_success', onJoinSuccess)
+    socketService.on('join_error', onJoinError)
+    socketService.on('seat_lock_success', onSeatLockSuccess)
+    socketService.on('seat_lock_error', onSeatLockError)
+    socketService.on('seat_locked_by_other', onSeatLockedByOther)
+    socketService.on('seat_unlocked', onSeatUnlocked)
+    socketService.on('seats_unlocked', onSeatsUnlockedBulk)
+    socketService.on('seats_sold_final', onSeatsSoldFinal)
+    socketService.on('quote_expired', onQuoteExpired)
+
+    // 2. Ejecutar la acción hacia el servidor DESPUÉS
+    console.log(
+      'SelectSeats -> Receptores listos. Emitiendo entrada a sala:',
+      showtimeId,
+    )
+    socketService.joinShowtime(showtimeId)
+
+    // 3. Desacoplamiento estructural al salir de la pantalla
+    return () => {
+      console.log(
+        'SelectSeats -> Desmontando pantalla, limpiando listeners del showtime:',
+        showtimeId,
+      )
+      socketService.leaveShowtime(showtimeId)
+      socketService.off('connect', handleReconnectedEmit)
+      socketService.off('join_success', onJoinSuccess)
+      socketService.off('join_error', onJoinError)
+      socketService.off('seat_lock_success', onSeatLockSuccess)
+      socketService.off('seat_lock_error', onSeatLockError)
+      socketService.off('seat_locked_by_other', onSeatLockedByOther)
+      socketService.off('seat_unlocked', onSeatUnlocked)
+      socketService.off('seats_unlocked', onSeatsUnlockedBulk)
+      socketService.off('seats_sold_final', onSeatsSoldFinal)
+      socketService.off('quote_expired', onQuoteExpired)
+    }
+  }, [quoteReady, showtimeId])
 
   // ============================
-  // 4) Seleccionar asiento
+  // 5) Toggle asiento
   // ============================
-  const selectedSeats = seats.filter((s) => s.status === 'selected')
-
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
     if (!seat) return
 
     if (seat.status === 'sold' || seat.status === 'locked') return
 
-    if (seat.status === 'available' && selectedSeats.length >= ticketsNeeded) {
-      return
-    }
-
-    const socket = socketRef.current
-    if (!socket) return
-
     if (seat.status === 'available') {
-      socket.emit('lockseat', { seatId })
+      socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
-      socket.emit('unlockseat', { seatId })
-      removeTicket(seat.id)
+      socketService.emit('unlock_seat', { seatId })
     }
   }
 
   // ============================
-  // 5) Temporizador
-  // ============================
-  useEffect(() => {
-    if (selectedSeats.length === 0) return
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          handleTimeExpired()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [selectedSeats])
-
-  const handleTimeExpired = () => {
-    const socket = socketRef.current
-    if (!socket) return
-
-    selectedSeats.forEach((s) => {
-      socket.emit('unlockseat', { seatId: s.id })
-    })
-
-    setSeats((prev) =>
-      prev.map((s) =>
-        s.status === 'selected' ? { ...s, status: 'available' } : s,
-      ),
-    )
-
-    setTimeLeft(300)
-  }
-
-  // ============================
-  // 6) Continuar a confitería
+  // 6) Navegar a confitería
   // ============================
   const handleNext = () => {
     navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
   }
 
-  // ============================
-  // LOADING
-  // ============================
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
@@ -246,6 +255,25 @@ export default function SelectSeats() {
     )
   }
 
+  if (quoteError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-white px-6">
+        <h1 className="text-2xl font-bold mb-4">
+          No se pudo iniciar la sesión de compra
+        </h1>
+        <p className="text-center max-w-xl mb-6">
+          Ocurrió un problema al preparar tu compra. Intenta recargar la página
+          o regresa al listado de funciones.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+        >
+          Volver al inicio
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -259,10 +287,27 @@ export default function SelectSeats() {
         <ShowtimeHeader showtime={showtime} />
 
         {selectedSeats.length > 0 && (
-          <p className="text-center text-yellow-300 font-bold text-xl">
-            Tiempo restante: {Math.floor(timeLeft / 60)}:
-            {String(timeLeft % 60).padStart(2, '0')}
-          </p>
+          <div className="space-y-4">
+            <p className="text-center text-yellow-300 font-bold text-xl">
+              Tiempo restante: {Math.floor(timeLeft / 60)}:
+              {String(timeLeft % 60).padStart(2, '0')}
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => cancelPurchase('manual')}
+                className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition"
+              >
+                Cancelar compra
+              </button>
+              <button
+                onClick={handleNext}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+              >
+                Continuar confitería
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
