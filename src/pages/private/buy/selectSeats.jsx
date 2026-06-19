@@ -15,18 +15,16 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 
+
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
-  //const { cinemaId } = useLocation().state
-  const locationState = useLocation().state || {}
-  const cinemaIdFromLocation = locationState.cinemaId
-  const cinemaId = cinemaIdFromLocation || null
-
-  // Log inicial para trazar parámetros de entrada
-  console.log('SelectSeats init', { movieId, showtimeId, cinemaIdFromLocation })
-
   const navigate = useNavigate()
 
+  // ============================
+  // 0) Obtener cinemaId desde navegación
+  // ============================
+  const locationState = useLocation().state || {}
+  const cinemaId = locationState.cinemaId || null
 
   const {
     setCinemaId: setPurchaseCinema,
@@ -49,31 +47,18 @@ export default function SelectSeats() {
   const [quoteReady, setQuoteReady] = useState(false)
   const [quoteError, setQuoteError] = useState(null)
 
-  const token = localStorage.getItem('token')
 
   // ============================
-  // 1) Cargar showtime + mapa (HTTP)
+  // 1) Cargar showtime + mapa
   // ============================
   useEffect(() => {
     async function load() {
       try {
-        console.log('SelectSeats.load -> fetching showtime with', { cinemaId, showtimeId })
         const st = await getShowtimeById(cinemaId, showtimeId)
         const map = await getSeatMap(cinemaId, showtimeId)
 
-        console.log('SelectSeats.load -> fetched showtime:', { id: st?.id, showtimeCinemaId: st?.booking?.room?.cinemaId })
-
         setShowtime(st)
         setSeats(map.seats || [])
-
-        // Si cinemaId de location y cinemaId del showtime difieren, logear una advertencia
-        if (cinemaId && st?.booking?.room?.cinemaId && Number(cinemaId) !== Number(st.booking.room.cinemaId)) {
-          console.warn('SelectSeats: cinemaId from location differs from showtime.booking.room.cinemaId', {
-            cinemaIdFromLocation: cinemaId,
-            showtimeCinemaId: st.booking.room.cinemaId,
-            showtimeId,
-          })
-        }
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
       } finally {
@@ -81,66 +66,58 @@ export default function SelectSeats() {
       }
     }
 
-    load()
-  }, [showtimeId, cinemaId])
+    if (cinemaId) load()
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 2) Inicializar Orden de Compra + Socket
+  // 2) Inicializar Quote + Socket
   // ============================
   useEffect(() => {
-    let isActive = true
-    const resolvedCinemaId = cinemaId || showtime?.booking?.room?.cinemaId || null
+    if (!cinemaId) return
 
-    console.log('SelectSeats.initSocketAndQuote -> resolvedCinemaId', { resolvedCinemaId, showtimeId })
+    let active = true
 
-    setPurchaseCinema(resolvedCinemaId)
+    setPurchaseCinema(cinemaId)
     setPurchaseShowtime(showtimeId)
     setIsSeatFlow(true)
     setQuoteReady(false)
     setQuoteError(null)
 
-    const initialize = async () => {
-      if (!resolvedCinemaId) {
-        console.warn('SelectSeats: No cinemaId disponible para iniciar quote en este momento')
+    const init = async () => {
+      const ok = await startQuote(cinemaId)
+      if (!active) return
+
+      if (!ok) {
+        setQuoteError('No se pudo iniciar la sesión de compra')
         return
       }
 
-      const quoteOk = await startQuote(resolvedCinemaId)
-      if (!isActive) return
-
-      if (quoteOk) {
-        console.log('SelectSeats: quote initialized successfully')
-        setQuoteReady(true)
-        connectSocket(token)
-      } else {
-        console.error('SelectSeats: quote initialization failed, no join will be attempted')
-        setQuoteError('No se pudo iniciar la sesión de compra')
-      }
+      connectSocket()
+      setQuoteReady(true)
     }
 
-    initialize()
+    init()
 
     return () => {
-      isActive = false
-      socketService.leaveShowtime(showtimeId)
-      socketService.disconnect()
+      active = false
     }
-  }, [cinemaId, showtime])
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 3) Conectar / Desconectar Socket
+  // 3) Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
     if (!quoteReady) return
 
-    console.log('SelectSeats -> joining showtime room', { showtimeId, cinemaId })
-    socketService.joinShowtime(showtimeId)
-  }, [quoteReady, showtimeId])
+    const socket = socketService.getSocket()
+    if (!socket) {
+      console.warn(
+        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+      )
+      return
+    }
 
-  // ============================
-  // 4) Escuchar Eventos del Servidor
-  // ============================
-  useEffect(() => {
+    // Definición de handlers de eventos
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -199,6 +176,17 @@ export default function SelectSeats() {
       navigate('/')
     }
 
+    // Enlace en caliente si el canal físico parpadea y se reconecta de golpe
+    const handleReconnectedEmit = () => {
+      console.log(
+        '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
+      )
+      socketService.joinShowtime(showtimeId)
+    }
+
+    // 1. Acoplar receptores PRIMERO
+    socketService.on('connect', handleReconnectedEmit)
+
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -209,7 +197,21 @@ export default function SelectSeats() {
     socketService.on('seats_sold_final', onSeatsSoldFinal)
     socketService.on('quote_expired', onQuoteExpired)
 
+    // 2. Ejecutar la acción hacia el servidor DESPUÉS
+    console.log(
+      'SelectSeats -> Receptores listos. Emitiendo entrada a sala:',
+      showtimeId,
+    )
+    socketService.joinShowtime(showtimeId)
+
+    // 3. Desacoplamiento estructural al salir de la pantalla
     return () => {
+      console.log(
+        'SelectSeats -> Desmontando pantalla, limpiando listeners del showtime:',
+        showtimeId,
+      )
+      socketService.leaveShowtime(showtimeId)
+      socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)
@@ -220,10 +222,10 @@ export default function SelectSeats() {
       socketService.off('seats_sold_final', onSeatsSoldFinal)
       socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [showtimeId])
+  }, [quoteReady, showtimeId])
 
   // ============================
-  // 5) Lógica de Selección (Toggle Asiento)
+  // 5) Toggle asiento
   // ============================
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
@@ -256,8 +258,13 @@ export default function SelectSeats() {
   if (quoteError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-white px-6">
-        <h1 className="text-2xl font-bold mb-4">No se pudo iniciar la sesión de compra</h1>
-        <p className="text-center max-w-xl mb-6">Ocurrió un problema al preparar tu compra. Intenta recargar la página o regresa al listado de funciones.</p>
+        <h1 className="text-2xl font-bold mb-4">
+          No se pudo iniciar la sesión de compra
+        </h1>
+        <p className="text-center max-w-xl mb-6">
+          Ocurrió un problema al preparar tu compra. Intenta recargar la página
+          o regresa al listado de funciones.
+        </p>
         <button
           onClick={() => navigate('/')}
           className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
