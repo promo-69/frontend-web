@@ -19,23 +19,59 @@ export function PurchaseProvider({ children }) {
   const [timeLeft, setTimeLeft] = useState(0)
 
   // =====================================================
-  // 1) Inicializar sesión de compra (quote)
+  // 1) Inicializar o recuperar sesión de compra (quote)
   // =====================================================
   const startQuote = async (cinemaId) => {
     if (!cinemaId) return false
+
+    try {
+      console.log(
+        '[PurchaseContext] Verificando existencia de sesión en el servidor...',
+      )
+      const sessionData = await getOrderSessionDetails()
+
+      if (sessionData && sessionData.success && sessionData.data) {
+        const activeSession = sessionData.data
+        console.log(
+          '[PurchaseContext] Sesión activa recuperada del servidor:',
+          activeSession,
+        )
+
+        // Si el servidor ya tiene una sesion guardada en Redis, usamos ese, si no, el que viene por parámetro
+        setCinemaId(activeSession.cinemaId || cinemaId)
+
+        const expires = activeSession.expires_in || 300
+        setExpiresAt(Date.now() + expires * 1000)
+        setTimeLeft(expires)
+
+        quoteInitializedRef.current = true
+        return true
+      }
+    } catch (err) {
+      console.log(
+        '[PurchaseContext] No hay sesión activa previa. Procediendo a crear una nueva...',
+      )
+    }
+
     if (quoteInitializedRef.current) return true
 
     try {
-      const resp = await initializeOrderQuote({ cinema: cinemaId })
+      console.log(
+        '[PurchaseContext] Creando una nueva cotización (Quote) para la sucursal:',
+        cinemaId,
+      )
+      
+      const resp = await initializeOrderQuote({ cinema: Number(cinemaId) })
 
-      const expires = resp?.data?.expires_in || 300
+      const expires = resp?.data?.expires_in || resp?.expires_in || 300
       setExpiresAt(Date.now() + expires * 1000)
       setTimeLeft(expires)
+      setCinemaId(cinemaId) 
 
       quoteInitializedRef.current = true
       return true
     } catch (err) {
-      console.error('Error iniciando quote:', err)
+      console.error('Error iniciando quote en Context:', err)
       quoteInitializedRef.current = false
       return false
     }
