@@ -8,7 +8,7 @@ import HomeUpcoming from '../../components/home/HomeUpcoming'
 import HomeEvents from '../../components/home/HomeEvents'
 import { getEvents } from '../../services/events.service'
 import {
-  getMoviesNowPlaying,
+  getMoviesBillboard,
   getUpcomingMovies,
 } from '../../services/movies.service'
 
@@ -25,26 +25,48 @@ export default function Home() {
   const upcomingRef = useRef(null)
   const eventsRef = useRef(null)
 
-  useEffect(() => {
-    async function loadHome() {
-      try {
-        const releasesData = await getMoviesNowPlaying()
-        const upcomingData = await getUpcomingMovies()
-        const eventsData = await getEvents()
+useEffect(() => {
+  async function loadHome() {
+    try {
+      const billboardData = await getMoviesBillboard()
+      const upcomingData = await getUpcomingMovies()
+      const eventsData = await getEvents()
 
-        setReleases(releasesData || [])
-        setUpcoming(upcomingData || [])
-        setEvents(eventsData || [])
-      } catch (error) {
-        console.error('ERROR EN CAPA VISUAL HOME:', error)
-        setError(true)
-      } finally {
-        setLoading(false) 
-      }
+      // 1. Procesamos y "aplanamos" la estructura del nuevo endpoint
+      const processedBillboard = (billboardData || []).map(item => {
+        // Extraemos el objeto interno dinámicamente según sea película o evento
+        const content = item.movie || item.event || item;
+        
+        return {
+          ...content,
+          type: item.type, // Conservamos el tipo por si lo necesitas (movie / special_event)
+          showtimes: item.showtimes, // Conservamos los horarios asociados por si acaso
+          
+          // Mapeo seguro de snake_case a camelCase para evitar romper el MovieCard
+          posterUrl: content.poster_url || content.posterUrl,
+          ageClassification: content.age_classification || content.ageClassification
+        };
+      });
+
+      // 2. Eliminamos duplicados por ID (por si una película viene repetida por tener varios showtimes)
+      const uniqueBillboard = Array.from(
+        new Map(processedBillboard.map(m => [m.id, m])).values()
+      );
+
+      // 3. Asignamos los datos limpios y estructurados a los estados correspondientes
+      setReleases(uniqueBillboard)
+      setUpcoming(upcomingData || [])
+      setEvents(eventsData || [])
+    } catch (error) {
+      console.error('ERROR EN CAPA VISUAL HOME:', error)
+      setError(true)
+    } finally {
+      setLoading(false) 
     }
+  }
 
-    loadHome()
-  }, [])
+  loadHome()
+}, [])
 
   const handleScroll = (ref, direction) => {
     if (!ref.current) return
@@ -54,13 +76,10 @@ export default function Home() {
     if (!firstCard) return
 
     const gap = 24
-
     const scrollAmount = firstCard.offsetWidth + gap
 
     ref.current.scrollBy({
-      left: direction === 'left'
-        ? -scrollAmount
-        : scrollAmount,
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth',
     })
   }
@@ -143,7 +162,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/*PRÓXIMOS ESTRENOS  */}
+        {/* PRÓXIMOS ESTRENOS */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
             <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
@@ -183,7 +202,7 @@ export default function Home() {
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
             <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              🗓️ Próximos Eventos
+              🗓️ Eventos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button 
