@@ -186,7 +186,6 @@ export default function DetailView() {
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 md:px-10 pt-6 md:pt-10">
-        
         {/* BANNER / POSTER + INFO */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-6 md:gap-10 mb-10">
           <div className="w-full sm:w-5/12 md:w-1/3 max-w-[280px] sm:max-w-none mx-auto sm:mx-0">
@@ -240,7 +239,9 @@ export default function DetailView() {
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs md:text-sm">Clasificación</p>
+                <p className="text-gray-400 text-xs md:text-sm">
+                  Clasificación
+                </p>
                 <p className="text-[#F6AD38] text-sm md:text-base font-bold">
                   {item.classification}
                 </p>
@@ -314,55 +315,62 @@ export default function DetailView() {
         </div>
 
         {/* 🍿 SECCIÓN HORARIOS, FECHAS Y SUCURSALES */}
-        {!isUpcoming && (
-          <div className="mt-16 border-t border-white/10 pt-10 text-left">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-                  {`🗓️ Funciones y Horarios Disponibles`}
-                </h2>
-                <p className="text-xs text-gray-400 mt-1">Selecciona una fecha para ver la cartelera de ese día.</p>
-              </div>
-
-              <DateCarousel 
-                selectedDate={selectedDate} 
-                onDateChange={(date) => setSelectedDate(date)} 
-              />
+        <div className="mt-16 border-t border-white/10 pt-10 text-left">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                {`🗓️ Funciones y Horarios Disponibles`}
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Selecciona una fecha para ver la cartelera de ese día.
+              </p>
             </div>
 
-            {loadingShowtimes ? (
-              <div className="py-12 flex justify-center items-center">
-                <div className="animate-spin inline-block w-6 h-6 border-2 border-[#f4b400] border-t-transparent rounded-full"></div>
-                <p className="text-sm text-gray-400 ml-3 tracking-wider">Actualizando horarios...</p>
-              </div>
-            ) : cinemas.length === 0 ? (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-gray-400 italic">
-                No se encontraron funciones programadas para la fecha seleccionada.
-              </div>
-            ) : (
-              <div className="flex flex-col gap-8">
-                {cinemas.map((item) => (
-                  <div key={item.cinema.id} className="bg-[#231640]/40 border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start">
-                    <div className="w-full md:w-1/4 shrink-0">
-                      <h3 className="text-xl font-bold text-white tracking-wide">
-                        🏢 {item.cinema.name}
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                        📍 Complejo disponible. Selecciona la hora exacta en la que deseas asistir para reservar tus butacas de inmediato.
-                      </p>
-                    </div>
-
-                    <div className="w-full md:w-3/4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {item.showtimes?.map((showtime) => (
-                        <ShowtimeCard key={showtime.id} showtime={showtime} movieId={entityId} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <DateCarousel
+              selectedDate={selectedDate}
+              onDateChange={(date) => setSelectedDate(date)}
+            />
           </div>
-        )}
+
+          {loadingShowtimes ? (
+            <div className="py-12 flex justify-center items-center">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-[#f4b400] border-t-transparent rounded-full"></div>
+              <p className="text-sm text-gray-400 ml-3 tracking-wider">
+                Actualizando horarios...
+              </p>
+            </div>
+          ) : cinemas.length === 0 ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-gray-400 italic">
+              No se encontraron funciones programadas para la fecha
+              seleccionada.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-8">
+              {cinemas.map((item) => (
+                <div
+                  key={item.cinema.id}
+                  className="bg-[#231640]/40 border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start"
+                >
+                  <div className="w-full md:w-1/4 shrink-0">
+                    <h3 className="text-xl font-bold text-white tracking-wide">
+                      🏢 {item.cinema.name}
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      📍 Complejo disponible. Selecciona la hora exacta en la
+                      que deseas asistir para reservar tus butacas de inmediato.
+                    </p>
+                  </div>
+
+                  <div className="w-full md:w-3/4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {item.showtimes?.map((showtime) => (
+                      <ShowtimeCard key={showtime.id} showtime={showtime} movieId={entityId} cinemaId={item.cinema.id} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* MODAL DEL REPRODUCTOR */}
         {isVideoOpen && item.trailer_url && (
@@ -380,7 +388,6 @@ export default function DetailView() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   )

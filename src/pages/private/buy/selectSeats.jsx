@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getShowtimeById,
@@ -15,12 +15,16 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 
+
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
-  const { state } = useLocation()
   const navigate = useNavigate()
 
-  const { cinemaId } = state
+  // ============================
+  // 0) Obtener cinemaId desde navegación
+  // ============================
+  const locationState = useLocation().state || {}
+  const cinemaId = locationState.cinemaId || null
 
   const {
     setCinemaId: setPurchaseCinema,
@@ -40,12 +44,12 @@ export default function SelectSeats() {
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(true)
+  const [quoteReady, setQuoteReady] = useState(false)
+  const [quoteError, setQuoteError] = useState(null)
 
-  const user = JSON.parse(localStorage.getItem('user'))
-  const token = localStorage.getItem('token')
 
   // ============================
-  // 1) Cargar showtime + mapa (HTTP)
+  // 1) Cargar showtime + mapa
   // ============================
   useEffect(() => {
     async function load() {
@@ -62,37 +66,58 @@ export default function SelectSeats() {
       }
     }
 
-    load()
-  }, [showtimeId, cinemaId])
+    if (cinemaId) load()
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 2) Inicializar Orden de Compra + Socket
+  // 2) Inicializar Quote + Socket
   // ============================
   useEffect(() => {
+    if (!cinemaId) return
+
+    let active = true
+
     setPurchaseCinema(cinemaId)
     setPurchaseShowtime(showtimeId)
     setIsSeatFlow(true)
+    setQuoteReady(false)
+    setQuoteError(null)
 
-    startQuote(cinemaId, user?.id)
-    connectSocket(token)
+    const init = async () => {
+      const ok = await startQuote(cinemaId)
+      if (!active) return
+
+      if (!ok) {
+        setQuoteError('No se pudo iniciar la sesión de compra')
+        return
+      }
+
+      connectSocket()
+      setQuoteReady(true)
+    }
+
+    init()
 
     return () => {
-      socketService.leaveShowtime(showtimeId)
-      socketService.disconnect()
+      active = false
     }
-  }, [])
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 3) Conectar / Desconectar Socket
+  // 3) Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
-    socketService.joinShowtime(showtimeId)
-  }, [showtimeId])
+    if (!quoteReady) return
 
-  // ============================
-  // 4) Escuchar Eventos del Servidor
-  // ============================
-  useEffect(() => {
+    const socket = socketService.getSocket()
+    if (!socket) {
+      console.warn(
+        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+      )
+      return
+    }
+
+    // Definición de handlers de eventos
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -151,6 +176,17 @@ export default function SelectSeats() {
       navigate('/')
     }
 
+    // Enlace en caliente si el canal físico parpadea y se reconecta de golpe
+    const handleReconnectedEmit = () => {
+      console.log(
+        '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
+      )
+      socketService.joinShowtime(showtimeId)
+    }
+
+    // 1. Acoplar receptores PRIMERO
+    socketService.on('connect', handleReconnectedEmit)
+
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -161,7 +197,21 @@ export default function SelectSeats() {
     socketService.on('seats_sold_final', onSeatsSoldFinal)
     socketService.on('quote_expired', onQuoteExpired)
 
+    // 2. Ejecutar la acción hacia el servidor DESPUÉS
+    console.log(
+      'SelectSeats -> Receptores listos. Emitiendo entrada a sala:',
+      showtimeId,
+    )
+    socketService.joinShowtime(showtimeId)
+
+    // 3. Desacoplamiento estructural al salir de la pantalla
     return () => {
+      console.log(
+        'SelectSeats -> Desmontando pantalla, limpiando listeners del showtime:',
+        showtimeId,
+      )
+      socketService.leaveShowtime(showtimeId)
+      socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)
@@ -172,10 +222,10 @@ export default function SelectSeats() {
       socketService.off('seats_sold_final', onSeatsSoldFinal)
       socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [showtimeId])
+  }, [quoteReady, showtimeId])
 
   // ============================
-  // 5) Lógica de Selección (Toggle Asiento)
+  // 5) Toggle asiento
   // ============================
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
@@ -201,6 +251,26 @@ export default function SelectSeats() {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         <p className="animate-pulse">Cargando mapa de asientos…</p>
+      </div>
+    )
+  }
+
+  if (quoteError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-white px-6">
+        <h1 className="text-2xl font-bold mb-4">
+          No se pudo iniciar la sesión de compra
+        </h1>
+        <p className="text-center max-w-xl mb-6">
+          Ocurrió un problema al preparar tu compra. Intenta recargar la página
+          o regresa al listado de funciones.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+        >
+          Volver al inicio
+        </button>
       </div>
     )
   }

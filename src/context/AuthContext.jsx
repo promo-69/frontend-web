@@ -3,6 +3,7 @@ import {
   loginRequest,
   logoutRequest,
   refreshSessionRequest,
+  getPermissionsRequest,
 } from '../services/auth.service'
 import { useLoading } from './LoadingContext'
 import { sendRecoveryEmailRequest } from '../services/auth.service'
@@ -34,9 +35,25 @@ export function AuthProvider({ children }) {
         const resData = await refreshSessionRequest()
 
         if (resData && resData.data?.user) {
-          setUser(resData.data.user)
+          let u = resData.data.user
+          try {
+            const perms = await getPermissionsRequest()
+            u.permissions = perms || []
+          } catch (e) {
+            console.error('Error fetching permissions on refresh:', e)
+          }
+          setUser(u)
+          localStorage.setItem('user', JSON.stringify(u))
         } else if (resData && resData.data?.data?.user) {
-          setUser(resData.data.data.user)
+          let u = resData.data.data.user
+          try {
+            const perms = await getPermissionsRequest()
+            u.permissions = perms || []
+          } catch (e) {
+            console.error('Error fetching permissions on refresh:', e)
+          }
+          setUser(u)
+          localStorage.setItem('user', JSON.stringify(u))
         } else {
           console.warn(
             "DEBUG CONTEXTO: El backend respondió exitosamente pero no se encontró la propiedad '.user'",
@@ -103,6 +120,13 @@ export function AuthProvider({ children }) {
           message:
             'No se pudieron recuperar los datos del usuario tras el login.',
         }
+      }
+
+      try {
+        const perms = await getPermissionsRequest()
+        userData.permissions = perms || []
+      } catch (e) {
+        console.error('Error fetching permissions on login:', e)
       }
 
       setUser(userData)
