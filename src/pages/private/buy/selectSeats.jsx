@@ -275,6 +275,10 @@ export default function SelectSeats() {
     )
   }
 
+  const fullSelectedSeatsObjects = seats.filter((s) =>
+    selectedSeats.includes(s.id),
+  )
+
   return (
     <div
       className="min-h-screen text-white pb-20"
@@ -316,7 +320,11 @@ export default function SelectSeats() {
             <SeatLegend />
           </div>
 
-          <OrderSummary onNext={handleNext} />
+          <OrderSummary
+            onNext={handleNext}
+            currentShowtime={showtime}
+            selectedSeatsList={fullSelectedSeatsObjects}
+          />
         </div>
       </div>
     </div>

@@ -1,45 +1,71 @@
 import { useCart } from '../../context/CartContext'
 import { useNavigate } from 'react-router-dom'
 
-export default function OrderSummary({ onNext, mode = 'flow' }) {
+export default function OrderSummary({
+  onNext,
+  mode = 'flow',
+  currentShowtime = null,
+  selectedSeatsList = [],
+}) {
   const { cart, getTotals } = useCart()
   const totals = getTotals()
   const navigate = useNavigate()
 
   const isPublicMode = mode === 'public'
 
+  // Si nos pasan los datos por props (flujo de asientos), usamos esos; si no, usamos el cart global (confitería)
+  const movieTitle = !isPublicMode
+    ? currentShowtime?.movie?.title || cart.movie?.title
+    : null
+  const cinemaName = !isPublicMode
+    ? currentShowtime?.cinemaName || cart.showtime?.cinemaName
+    : null
+  const sessionDate = !isPublicMode
+    ? currentShowtime?.date || cart.showtime?.date
+    : null
+  const sessionTime = !isPublicMode
+    ? currentShowtime?.time || cart.showtime?.time
+    : null
+
+  // Mapeamos las butacas reales acumuladas
+  const ticketsToRender =
+    !isPublicMode && selectedSeatsList.length > 0
+      ? selectedSeatsList
+      : cart.tickets
+
   return (
     <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-4 shadow-lg h-fit border border-purple-900/40">
       <h2 className="text-2xl font-bold text-[#F6AD38]">Resumen de Compra</h2>
 
-      {/* 🎬 Película e información de función (SOLO MODO FLUJO DE COMPRA) */}
-      {!isPublicMode && cart.movie && (
+      {/* 🎬 Película */}
+      {movieTitle && (
         <div>
-          <p className="font-semibold text-lg">{cart.movie.title}</p>
+          <p className="font-semibold text-lg">{movieTitle}</p>
         </div>
       )}
 
-      {!isPublicMode && cart.showtime && (
+      {/* 🕒 Función */}
+      {cinemaName && (
         <div className="text-sm opacity-80 mb-2">
-          <p>{cart.showtime.cinemaName}</p>
+          <p>{cinemaName}</p>
           <p>
-            {cart.showtime.date} — {cart.showtime.time}
+            {sessionDate} — {sessionTime}
           </p>
         </div>
       )}
 
-      {/* 🎟️ Tickets (SOLO MODO FLUJO DE COMPRA) */}
-      {!isPublicMode && cart.tickets.length > 0 && (
+      {/* 🎟️ Tickets */}
+      {ticketsToRender.length > 0 && (
         <div className="border-b border-white/10 pb-3">
           <h3 className="font-semibold text-sm text-gray-300">Boletos</h3>
           <ul className="text-sm space-y-1 max-h-24 overflow-y-auto">
-            {cart.tickets.map((t, i) => (
+            {ticketsToRender.map((t, i) => (
               <li key={i} className="flex justify-between">
                 <span>
-                  Asiento {t.row}
-                  {t.column}
+                  Asiento {t.row || t.number || t.id}{' '}
+                  {/* Adapta según la estructura de tu objeto Seat */}
                 </span>
-                <span>${t.price}</span>
+                <span>${t.price || 0}</span>
               </li>
             ))}
           </ul>
