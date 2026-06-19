@@ -15,13 +15,6 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 
-// ============================
-// Helper para obtener JWT desde cookie
-// ============================
-function getTokenFromCookie() {
-  const match = document.cookie.match(/(?:^|;\s*)token=([^;]+)/)
-  return match ? match[1] : null
-}
 
 export default function SelectSeats() {
   const { movieId, showtimeId } = useParams()
@@ -54,8 +47,6 @@ export default function SelectSeats() {
   const [quoteReady, setQuoteReady] = useState(false)
   const [quoteError, setQuoteError] = useState(null)
 
-  //const token = localStorage.getItem('token')
-  const token = getTokenFromCookie()
 
   // ============================
   // 1) Cargar showtime + mapa
@@ -82,7 +73,7 @@ export default function SelectSeats() {
   // 2) Inicializar Quote + Socket
   // ============================
   useEffect(() => {
-    if (!cinemaId || !token) return
+    if (!cinemaId) return
 
     let active = true
 
@@ -101,7 +92,7 @@ export default function SelectSeats() {
         return
       }
 
-      connectSocket(token)
+      connectSocket()
       setQuoteReady(true)
     }
 
@@ -109,23 +100,24 @@ export default function SelectSeats() {
 
     return () => {
       active = false
-      socketService.leaveShowtime(showtimeId)
-      socketService.disconnect()
     }
-  }, [cinemaId, token])
+  }, [cinemaId, showtimeId])
 
   // ============================
-  // 3) Unirse a la sala
+  // 3) Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
     if (!quoteReady) return
-    socketService.joinShowtime(showtimeId)
-  }, [quoteReady, showtimeId])
 
-  // ============================
-  // 4) Eventos del servidor
-  // ============================
-  useEffect(() => {
+    const socket = socketService.getSocket()
+    if (!socket) {
+      console.warn(
+        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+      )
+      return
+    }
+
+    // Definición de handlers de eventos
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -184,6 +176,17 @@ export default function SelectSeats() {
       navigate('/')
     }
 
+    // Enlace en caliente si el canal físico parpadea y se reconecta de golpe
+    const handleReconnectedEmit = () => {
+      console.log(
+        '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
+      )
+      socketService.joinShowtime(showtimeId)
+    }
+
+    // 1. Acoplar receptores PRIMERO
+    socketService.on('connect', handleReconnectedEmit)
+
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -194,7 +197,21 @@ export default function SelectSeats() {
     socketService.on('seats_sold_final', onSeatsSoldFinal)
     socketService.on('quote_expired', onQuoteExpired)
 
+    // 2. Ejecutar la acción hacia el servidor DESPUÉS
+    console.log(
+      'SelectSeats -> Receptores listos. Emitiendo entrada a sala:',
+      showtimeId,
+    )
+    socketService.joinShowtime(showtimeId)
+
+    // 3. Desacoplamiento estructural al salir de la pantalla
     return () => {
+      console.log(
+        'SelectSeats -> Desmontando pantalla, limpiando listeners del showtime:',
+        showtimeId,
+      )
+      socketService.leaveShowtime(showtimeId)
+      socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)
@@ -205,7 +222,7 @@ export default function SelectSeats() {
       socketService.off('seats_sold_final', onSeatsSoldFinal)
       socketService.off('quote_expired', onQuoteExpired)
     }
-  }, [showtimeId])
+  }, [quoteReady, showtimeId])
 
   // ============================
   // 5) Toggle asiento

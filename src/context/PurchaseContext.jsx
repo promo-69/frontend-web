@@ -101,8 +101,8 @@ export function PurchaseProvider({ children }) {
   // =====================================================
   // 5) WebSocket global
   // =====================================================
-  const connectSocket = (token) => {
-    socketService.connect(token)
+  const connectSocket = () => {
+    socketService.connect()
 
     socketService.off('quote_expired')
     socketService.off('payment_success')
