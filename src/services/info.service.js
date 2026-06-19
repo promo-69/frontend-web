@@ -6,3 +6,14 @@ export const getCinemas = async () => {
   return response.data.data 
 }
 
+// De un evento, obtengo las sucursales y funciones disponibles - Mary
+export const getMoviesShowtimebyDateCinema = async (cinemaId, date) => {
+  const response = await api.get(`/showtimes/billboard/full`, {
+  params: { 
+    cinemaId,
+    date
+   }
+  })
+  return response.data.data 
+}
+
