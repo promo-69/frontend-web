@@ -86,6 +86,55 @@ export default function Home() {
     })
   }
 
+  // --- LÓGICA DE DETECCIÓN POST-RENDER DE FALLBACKS (SOLUCIÓN INTERNA DE HOME) ---
+  useEffect(() => {
+    if (loading || error) return;
+
+    // Buscamos todas las imágenes dentro de los contenedores de scroll pasados unos milisegundos por el lazy-load
+    const setupImageFallbacks = () => {
+      const cards = document.querySelectorAll('.movie-carousel-card');
+      
+      cards.forEach(card => {
+        const img = card.querySelector('img');
+        
+        // Creamos la caja de Fallback idéntica estructuralmente si no existe ya
+        if (card && !card.querySelector('.fallback-box-fallback')) {
+          const posterContainer = img?.parentElement || card.querySelector('.aspect-\\[2\\/3\\]') || card.firstElementChild;
+          
+          if (posterContainer) {
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = "fallback-box-fallback w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4 absolute inset-0 z-10";
+            fallbackDiv.style.display = 'none';
+            fallbackDiv.innerHTML = `
+              <span class="text-3xl mb-2">🎬</span>
+              <span class="text-[11px] uppercase tracking-wider font-bold text-center px-2">
+                Sin Póster Disponible
+              </span>
+            `;
+            
+            posterContainer.style.position = 'relative';
+            posterContainer.appendChild(fallbackDiv);
+
+            // Si originalmente no venía un source válido, activamos el fallback de inmediato
+            if (!img || !img.getAttribute('src') || img.getAttribute('src') === 'undefined' || img.getAttribute('src').includes('null')) {
+              if (img) img.style.display = 'none';
+              fallbackDiv.style.display = 'flex';
+            } else {
+              // Manejador en caso de error de carga asíncrona
+              img.addEventListener('error', () => {
+                img.style.display = 'none';
+                fallbackDiv.style.display = 'flex';
+              });
+            }
+          }
+        }
+      });
+    };
+
+    const timeoutId = setTimeout(setupImageFallbacks, 150);
+    return () => clearTimeout(timeoutId);
+  }, [loading, error, releases, upcoming, events]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#231640] text-white flex justify-center items-center">
