@@ -55,7 +55,7 @@ export default function Events() {
   const getEventsGroupedByMonth = () => {
     if (!Array.isArray(upcomingEvents) || upcomingEvents.length === 0) return {};
 
-    const mesesEspanol = [
+    const months = [
       "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
       "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
@@ -75,7 +75,7 @@ export default function Events() {
       const monthIndex = parseInt(parts[1], 10) - 1; 
 
       if (monthIndex >= 0 && monthIndex < 12) {
-        const formattedMonth = `${mesesEspanol[monthIndex]} ${year}`;
+        const formattedMonth = `${months[monthIndex]} ${year}`;
         
         if (!groups[formattedMonth]) {
           groups[formattedMonth] = [];
@@ -93,7 +93,7 @@ export default function Events() {
 
   const groupedEvents = getEventsGroupedByMonth();
 
-  const diccionarioMeses = {
+  const monthsDirectory = {
     "Enero": 0, "Febrero": 1, "Marzo": 2, "Abril": 3, "Mayo": 4, "Junio": 5,
     "Julio": 6, "Agosto": 7, "Septiembre": 8, "Octubre": 9, "Noviembre": 10, "Diciembre": 11
   };
@@ -106,10 +106,10 @@ export default function Events() {
     const partsA = a.split(' ');
     const partsB = b.split(' ');
 
-    const mesA = diccionarioMeses[partsA[0]];
+    const mesA = monthsDirectory[partsA[0]];
     const anoA = parseInt(partsA[1], 10);
 
-    const mesB = diccionarioMeses[partsB[0]];
+    const mesB = monthsDirectory[partsB[0]];
     const anoB = parseInt(partsB[1], 10);
 
     // Crear objetos Date reales usando el primer día del mes para comparar con precisión
