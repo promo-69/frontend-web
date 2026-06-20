@@ -25,54 +25,56 @@ export default function Home() {
   const upcomingRef = useRef(null)
   const eventsRef = useRef(null)
 
-useEffect(() => {
-  async function loadHome() {
-    try {
-      const billboardData = await getMoviesBillboard()
-      const upcomingData = await getUpcomingMovies()
-      const eventsData = await getEvents()
+  useEffect(() => {
+    async function loadHome() {
+      try {
+        const billboardData = await getMoviesBillboard()
+        const upcomingData = await getUpcomingMovies()
+        const eventsData = await getEvents()
 
-      // 1. Procesamos y "aplanamos" la estructura del nuevo endpoint
-      const processedBillboard = (billboardData || []).map(item => {
-        // Extraemos el objeto interno dinámicamente según sea película o evento
-        const content = item.movie || item.event || item;
-        
-        return {
-          ...content,
-          type: item.type, // Conservamos el tipo por si lo necesitas (movie / special_event)
-          showtimes: item.showtimes, // Conservamos los horarios asociados por si acaso
+        // 1. Procesamos y "aplanamos" la estructura del endpoint híbrido
+        const processedBillboard = (billboardData || []).map(item => {
+          const content = item.movie || item.event || item;
           
-          // Mapeo seguro de snake_case a camelCase para evitar romper el MovieCard
-          posterUrl: content.poster_url || content.posterUrl,
-          ageClassification: content.age_classification || content.ageClassification
-        };
-      });
+          // Determinamos con certeza si es un evento especial basándonos en la metadata del ítem
+          const isSpecialEvent = item.type === 'special_event' || !!item.event;
 
-      // 2. Eliminamos duplicados por ID (por si una película viene repetida por tener varios showtimes)
-      const uniqueBillboard = Array.from(
-        new Map(processedBillboard.map(m => [m.id, m])).values()
-      );
+          return {
+            ...content,
+            type: item.type, 
+            showtimes: item.showtimes, 
+            isEvent: isSpecialEvent, // 💡 Bandera clave para que el Card decida la ruta (/movie o /event)
+            
+            // Mapeo seguro de snake_case a camelCase para evitar romper el MovieCard
+            posterUrl: content.poster_url || content.posterUrl,
+            ageClassification: content.age_classification || content.ageClassification
+          };
+        });
 
-      // 3. Asignamos los datos limpios y estructurados a los estados correspondientes
-      setReleases(uniqueBillboard)
-      setUpcoming(upcomingData || [])
-      setEvents(eventsData || [])
-    } catch (error) {
-      console.error('ERROR EN CAPA VISUAL HOME:', error)
-      setError(true)
-    } finally {
-      setLoading(false) 
+        // 2. Eliminamos duplicados por una clave compuesta (id + tipo) 
+        // 💡 IMPORTANTE: Si usas solo m.id, un evento con ID 1 borraría a una película con ID 1.
+        const uniqueBillboard = Array.from(
+          new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
+        );
+
+        setReleases(uniqueBillboard)
+        setUpcoming(upcomingData || [])
+        setEvents(eventsData || [])
+      } catch (error) {
+        console.error('ERROR EN CAPA VISUAL HOME:', error)
+        setError(true)
+      } finally {
+        setLoading(false) 
+      }
     }
-  }
 
-  loadHome()
-}, [])
+    loadHome()
+  }, [])
 
   const handleScroll = (ref, direction) => {
     if (!ref.current) return
 
     const firstCard = ref.current.querySelector('.movie-carousel-card')
-
     if (!firstCard) return
 
     const gap = 24
@@ -105,14 +107,13 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
 
-      {/* Esto esconde el scrollbar de los minicarruseles - Mary */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none !important;
         }
         .hide-scrollbar {
-          -ms-overflow-style: none !important;  /* IE y Edge */
-          scrollbar-width: none !important;  /* Firefox */
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
         }
       `}</style>
 
@@ -150,13 +151,7 @@ useEffect(() => {
           
           <div
             ref={releasesRef}
-            className="
-              overflow-x-auto
-              overflow-y-hidden
-              hide-scrollbar
-              scroll-smooth
-              w-full
-            "
+            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
           >
             <HomeReleases movies={releases} />
           </div>
