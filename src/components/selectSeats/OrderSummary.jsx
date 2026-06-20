@@ -1,5 +1,6 @@
+import { useMemo } from 'react'
 import { useCart } from '../../context/CartContext'
-import { useNavigate } from 'react-router-dom'
+import { usePurchase } from '../../context/PurchaseContext'
 
 export default function OrderSummary({
   onNext,
@@ -7,161 +8,208 @@ export default function OrderSummary({
   currentShowtime = null,
   selectedSeatsList = [],
 }) {
-  const { cart, getTotals } = useCart()
-  const totals = getTotals()
-  const navigate = useNavigate()
+  const { cart } = useCart()
+  const { selectedSeats } = usePurchase()
 
   const isPublicMode = mode === 'public'
 
-  // Si nos pasan los datos por props (flujo de asientos), usamos esos; si no, usamos el cart global (confitería)
-  const movieTitle = !isPublicMode
-    ? currentShowtime?.movie?.title || cart.movie?.title
-    : null
-  const cinemaName = !isPublicMode
-    ? currentShowtime?.cinemaName || cart.showtime?.cinemaName
-    : null
-  const sessionDate = !isPublicMode
-    ? currentShowtime?.date || cart.showtime?.date
-    : null
-  const sessionTime = !isPublicMode
-    ? currentShowtime?.time || cart.showtime?.time
-    : null
+  const audienceNames = {
+    1: 'Adulto',
+    2: 'Niño',
+    3: 'Tercera Edad',
+  }
 
-  // Mapeamos las butacas reales acumuladas
-  const ticketsToRender =
-    !isPublicMode && selectedSeatsList.length > 0
-      ? selectedSeatsList
-      : cart.tickets
+  // ========================================================
+  // 💸 CÁLCULO DE BOLETOS BASADO EN LA MATRIZ DE PRECIOS
+  // ========================================================
+  const ticketsCalculated = useMemo(() => {
+    if (
+      isPublicMode ||
+      !selectedSeatsList.length ||
+      !currentShowtime?.pricing?.pricing_matrix
+    ) {
+      return { list: [], subtotal: 0 }
+    }
+
+    const matrix = currentShowtime.pricing.pricing_matrix
+
+    const list = selectedSeatsList.map((seat) => {
+
+      const currentAudienceId = seat.assignedAudienceId || 1
+      // Cruzamos el ID de categoría del asiento con el ID 
+      const priceMatch = matrix.find(
+        (p) =>
+          p.seat_category.id === seat.category.id &&
+          p.audience_category.id === currentAudienceId,
+      )
+
+      const finalPrice = priceMatch
+        ? priceMatch.final_price
+        : currentShowtime.pricing.base_price || 6.0
+
+      return {
+        id: seat.id,
+        label: seat.label,
+        categoryName: seat.category.description,
+        price: finalPrice,
+        audienceCategoryId: currentAudienceId,
+        audienceLabel: audienceNames[currentAudienceId] || 'Adulto',
+      }
+    })
+
+    const subtotal = list.reduce((sum, ticket) => sum + ticket.price, 0)
+
+    return { list, subtotal }
+  }, [selectedSeatsList, currentShowtime, isPublicMode])
+
+  // ========================================================
+  // 🍿 CÁLCULO DE CONFITERÍA
+  // ========================================================
+  const confectionerySubtotal = useMemo(() => {
+    return cart.products.reduce((sum, p) => sum + p.price * p.quantity, 0)
+  }, [cart.products])
+
+  // ========================================================
+  // 💰 TOTALES UNIFICADOS Y LOGS PARA EL CHECKOUT
+  // ========================================================
+  const globalSubtotal = ticketsCalculated.subtotal + confectionerySubtotal
+  const globalIva = globalSubtotal * 0.16 // IVA del 16%
+  const globalTotal = globalSubtotal + globalIva
+
+  // 📝 CONSOLE.LOG EXCLUSIVO PARA RECTIFICAR LA ESTRUCTURA QUE SE ENVIARÁ AL CHECKOUT
+  console.log('--- 🛒 INFORMACIÓN PREPARADA PARA EL CHECKOUT ---', {
+    showtimeId: currentShowtime?.id || 'No definido',
+    ticketsPayload: ticketsCalculated.list.map((t) => ({
+      seatId: t.id,
+      label: t.label,
+      priceApplied: t.price,
+      audienceCategoryId: t.audienceCategoryId,
+    })),
+    concessionsPayload: cart.products.map((p) => ({
+      line_type: p.isCombo ? 2 : 1,
+      product: p.id,
+      quantity: p.quantity,
+      price: p.price,
+    })),
+    summary: {
+      subtotal: globalSubtotal.toFixed(2),
+      iva: globalIva.toFixed(2),
+      total: globalTotal.toFixed(2),
+    },
+  })
 
   return (
-    <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-4 shadow-lg h-fit border border-purple-900/40">
-      <h2 className="text-2xl font-bold text-[#F6AD38]">Resumen de Compra</h2>
+    <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-5 shadow-lg border border-purple-900/40 h-fit">
+      <h2 className="text-xl font-bold border-b border-white/10 pb-2 text-[#F6AD38]">
+        Resumen de la Orden
+      </h2>
 
-      {/* 🎬 Película */}
-      {movieTitle && (
-        <div>
-          <p className="font-semibold text-lg">{movieTitle}</p>
-        </div>
-      )}
-
-      {/* 🕒 Función */}
-      {cinemaName && (
-        <div className="text-sm opacity-80 mb-2">
-          <p>{cinemaName}</p>
-          <p>
-            {sessionDate} — {sessionTime}
+      {/* 🎬 Render de Información de Película (Solo si está en flujo de boletos) */}
+      {!isPublicMode && currentShowtime && (
+        <div className="text-sm space-y-1 bg-black/20 p-3 rounded-lg">
+          <p className="font-semibold text-base text-yellow-400">
+            {currentShowtime.movie?.title || 'Película'}
+          </p>
+          <p className="text-gray-300">
+            Sala: {currentShowtime.room_id || 'N/A'}
+          </p>
+          <p className="text-gray-300">
+            Hora:{' '}
+            {new Date(currentShowtime.start_time).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </p>
         </div>
       )}
 
-      {/* 🎟️ Tickets */}
-      {ticketsToRender.length > 0 && (
-        <div className="border-b border-white/10 pb-3">
-          <h3 className="font-semibold text-sm text-gray-300">Boletos</h3>
-          <ul className="text-sm space-y-1 max-h-24 overflow-y-auto">
-            {ticketsToRender.map((t, i) => (
-              <li key={i} className="flex justify-between">
-                <span>
-                  Asiento {t.row || t.number || t.id}{' '}
-                </span>
-                <span>${t.price || 0}</span>
-              </li>
+      {/* 🎟️ SECCIÓN DE TICKETS SELECCIONADOS */}
+      {!isPublicMode && ticketsCalculated.list.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-purple-300">
+            Tickets Seleccionados
+          </p>
+          <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+            {ticketsCalculated.list.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="flex justify-between text-sm bg-purple-950/40 p-2 rounded border border-purple-800/20"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <div>
+                    <span className="font-bold text-[#F6AD38] mr-1">
+                      Asiento {ticket.label}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      ({ticket.categoryName})
+                    </span>
+                  </div>
+                  <span className="text-[10px] bg-purple-900/80 text-yellow-300 px-1.5 py-0.5 rounded font-semibold w-fit border border-purple-700/30">
+                    {ticket.audienceLabel}
+                  </span>
+                </div>
+                <span className="font-medium">${ticket.price.toFixed(2)}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
-      {/* 🍿 Confitería (Se muestra en AMBOS modos si hay productos) */}
-      {cart.products.length > 0 ? (
-        <div className="pt-2">
-          <h3 className="font-semibold text-sm text-gray-300">Confitería</h3>
-          <ul className="text-sm space-y-2 max-h-40 overflow-y-auto pr-1">
-            {cart.products.map((p, i) => (
-              <li
-                key={i}
-                className="flex justify-between bg-black/20 p-2 rounded-lg text-xs"
+      {/* 🍿 SECCIÓN DE CONFITERÍA */}
+      {cart.products.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-purple-300">
+            Confitería
+          </p>
+          <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+            {cart.products.map((p) => (
+              <div
+                key={p.id}
+                className="flex justify-between text-sm bg-purple-950/40 p-2 rounded border border-purple-800/20"
               >
-                <div>
-                  <p className="font-medium">{p.name}</p>
-                  <span className="text-gray-400">x{p.quantity}</span>
-                </div>
-                <span className="font-semibold self-center">
+                <span className="text-gray-200">
+                  {p.name}{' '}
+                  <span className="text-xs text-yellow-500 font-bold">
+                    x{p.quantity}
+                  </span>
+                </span>
+                <span className="font-medium">
                   ${(p.price * p.quantity).toFixed(2)}
                 </span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
-      ) : (
-        isPublicMode && (
-          <p className="text-gray-400 text-sm text-center py-4">
-            No has añadido antojos al carrito todavía.
-          </p>
-        )
       )}
 
-      {/* 💰 Totales de Venta */}
-      <div className="border-t border-white/20 pt-4 space-y-1 text-sm">
-        <p className="flex justify-between">
-          <span>Subtotal:</span> <span>${totals.subtotal.toFixed(2)}</span>
-        </p>
-        <p className="flex justify-between">
-          <span>IVA (16%):</span> <span>${totals.iva.toFixed(2)}</span>
-        </p>
-        <p className="text-xl font-bold text-[#F6AD38] flex justify-between pt-1">
-          <span>Total:</span> <span>${totals.total.toFixed(2)}</span>
-        </p>
+      {/* 💰 MATRIZ DE TOTALES FINALES */}
+      <div className="border-t border-white/10 pt-4 space-y-2 text-sm bg-black/10 p-3 rounded-lg">
+        <div className="flex justify-between text-gray-300">
+          <span>Subtotal:</span>
+          <span>${globalSubtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-gray-300">
+          <span>IVA (16%):</span>
+          <span>${globalIva.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-xl font-bold text-[#F6AD38] pt-1 border-t border-white/5">
+          <span>Total:</span>
+          <span>${globalTotal.toFixed(2)}</span>
+        </div>
       </div>
 
-      {/* 🔘 Control Condicional de Botones de Navegación */}
-      <div className="pt-4 space-y-3">
-        {isPublicMode ? (
-          /* Vista desde el Header */
-          <>
-            <button
-              onClick={() => navigate('/checkout')}
-              disabled={cart.products.length === 0}
-              className={`w-full py-3 rounded-lg font-bold transition-all text-black ${
-                cart.products.length === 0
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#F6AD38] hover:bg-[#d9982f]'
-              }`}
-            >
-              Proceder al Pago →
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="w-full bg-transparent border border-white/30 py-2 rounded-lg text-sm text-gray-300 hover:text-white"
-            >
-              Ver Cartelera
-            </button>
-          </>
-        ) : (
-          /* Vista desde el Flujo de Compra */
-          <>
-            <button
-              onClick={onNext}
-              className="w-full bg-[#D9982F] text-black py-2 rounded-lg font-bold hover:bg-[#be8225] transition-colors"
-            >
-              Continuar → Confiteria
-            </button>
-
-            <button
-              onClick={() => navigate('checkout')}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg text-sm transition-colors"
-            >
-              Omitir confitería
-            </button>
-
-            <button
-              onClick={() => navigate(-1)} // Retorna de forma segura al paso de los asientos
-              className="w-full bg-transparent border border-white/40 py-2 rounded-lg text-white text-sm hover:bg-white/5"
-            >
-              ← Atrás
-            </button>
-          </>
-        )}
-      </div>
+      {/* 🚀 BOTÓN ACCIÓN */}
+      <button
+        onClick={onNext}
+        disabled={
+          !isPublicMode &&
+          selectedSeats.length === 0 &&
+          cart.products.length === 0
+        }
+        className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
+      >
+        {isPublicMode ? 'Proceder al Pago' : 'Siguiente Paso'}
+      </button>
     </div>
   )
 }
