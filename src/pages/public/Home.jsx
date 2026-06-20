@@ -32,36 +32,40 @@ export default function Home() {
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
-        // 1. Procesamos y "aplanamos" la estructura del endpoint híbrido
-        const processedBillboard = (billboardData || []).map(item => {
+        const safeBillboard = Array.isArray(billboardData) ? billboardData : [];
+        const processedBillboard = safeBillboard.map(item => {
           const content = item.movie || item.event || item;
-          
-          // Determinamos con certeza si es un evento especial basándonos en la metadata del ítem
           const isSpecialEvent = item.type === 'special_event' || !!item.event;
 
           return {
             ...content,
             type: item.type, 
             showtimes: item.showtimes, 
-            isEvent: isSpecialEvent, // 💡 Bandera clave para que el Card decida la ruta (/movie o /event)
-            
-            // Mapeo seguro de snake_case a camelCase para evitar romper el MovieCard
+            isEvent: isSpecialEvent, 
             posterUrl: content.poster_url || content.posterUrl,
             ageClassification: content.age_classification || content.ageClassification
           };
         });
 
-        // 2. Eliminamos duplicados por una clave compuesta (id + tipo) 
-        // 💡 IMPORTANTE: Si usas solo m.id, un evento con ID 1 borraría a una película con ID 1.
+        // Eliminamos duplicados por clave compuesta (type + id)
         const uniqueBillboard = Array.from(
           new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
         );
 
+        // Normalización limpia para la sección de eventos del Home
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
+        const processedEvents = safeEvents.map(event => ({
+          ...event,
+          title: event.title || event.name,
+          type: event.type || 'special_event',
+          isEvent: true,
+          posterUrl: event.poster_url || event.posterUrl || event.image
+        }));
+
         setReleases(uniqueBillboard)
-        setUpcoming(upcomingData || [])
-        setEvents(eventsData || [])
-      } catch (error) {
-        console.error('ERROR EN CAPA VISUAL HOME:', error)
+        setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
+        setEvents(processedEvents)
+      } catch (err) {
         setError(true)
       } finally {
         setLoading(false) 
@@ -213,7 +217,7 @@ export default function Home() {
                 <FiChevronRight size={20} />
               </button>
               <a 
-                href="/eventos" 
+                href="/events" 
                 className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
               >
                 Ver más
