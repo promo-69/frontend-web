@@ -85,10 +85,8 @@ export default function MoviesReleases() {
     });
   }, [billboardMovies, activeProjection]);
 
+  // Retorna los elementos filtrados directamente sin duplicados 
   const moviesToRender = useMemo(() => {
-    if (filteredMovies.length < 8 && filteredMovies.length > 0) {
-      return [...filteredMovies, ...filteredMovies].slice(0, 8);
-    }
     return filteredMovies;
   }, [filteredMovies]);
 
@@ -193,7 +191,6 @@ export default function MoviesReleases() {
                         />
                       ) : null}
 
-                      {/* Caja de Fallback INTACTA originalmente */}
                       <div 
                         className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4"
                         style={{ display: imageSource ? 'none' : 'flex' }}
@@ -204,6 +201,7 @@ export default function MoviesReleases() {
                         </span>
                       </div>
 
+                      {/* Botón Ver Detalles */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6 px-4 z-20">
                         <span className="w-full py-2 bg-white text-black text-center font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-widest transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                           Ver Detalles
@@ -218,7 +216,7 @@ export default function MoviesReleases() {
                       </h4>
                       
                       <div className="flex flex-wrap gap-1.5 items-center">
-                        {/* 🌟 ETIQUETA DE FORMATO: Ahora más llamativa con bordes y tipografía extrabold */}
+                        {/* ETIQUETA DE FORMATO LLAMATIVA */}
                         {movie.availableFormats?.map((format, i) => (
                           <span 
                             key={`f-${i}`} 
@@ -237,7 +235,7 @@ export default function MoviesReleases() {
                           </span>
                         ))}
 
-                        {/* 🌟 ETIQUETA DE EVENTO: Ahora con color ámbar destacado idéntico al Home */}
+                        {/* ETIQUETA DE EVENTO */}
                         {movie.isEvent && (
                           <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-md text-[9px] text-amber-400 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
                             ⭐ Evento Especial
