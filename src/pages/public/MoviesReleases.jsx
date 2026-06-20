@@ -95,9 +95,9 @@ export default function MoviesReleases() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#F6AD38]/10 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] animate-pulse" />
         <div className="flex-grow flex items-center justify-center relative z-10">
-          <p className="text-lg font-medium tracking-widest uppercase animate-pulse text-[#F6AD38]">
+          <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
             Cargando filtros y funciones...
           </p>
         </div>
@@ -107,21 +107,19 @@ export default function MoviesReleases() {
   }
 
   return (
-    /* Cambiado a min-h-screen constante para evitar que el alto calculado rompa el viewport */
     <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
       
-      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-[#F6AD38]/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 left-[10%] w-[30vw] h-[30vw] bg-purple-900/20 rounded-full blur-[100px] pointer-events-none" />
+      {/* Fondos ambientales sutiles */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Ajustado el padding condicional de la sección para mantener simetría visual */}
       <section className={`px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 ${moviesToRender.length === 0 ? 'py-12' : 'py-16'}`}>
-        <div className={`max-w-7xl mx-auto w-full flex-grow flex flex-col`}>
+        <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
-            <div className="border-l-4 border-[#F6AD38] pl-4 text-left">
+            <div className="border-l-4 border-yellow-500 pl-4 text-left">
               <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-                Películas en <span className="text-[#F6AD38] bg-gradient-to-r from-[#F6AD38] to-[#ffc973] bg-clip-text text-transparent">Cartelera</span>
+                Películas en <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Cartelera</span>
               </h3>
               <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
                 Filtra por formato de pantalla de tu preferencia para personalizar la experiencia perfecta en nuestras salas de Cineflix.
@@ -129,7 +127,6 @@ export default function MoviesReleases() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-              
               <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
                 <button
                   onClick={() => setActiveProjection('Todos')}
@@ -155,7 +152,6 @@ export default function MoviesReleases() {
                   </button>
                 ))}
               </div>
-
             </div>
           </div>
 
@@ -177,10 +173,10 @@ export default function MoviesReleases() {
                   <Link
                     key={`${movie.type}-${movie.id || index}-${index}`}
                     to={detailUrl}
-                    className="flex flex-col group cursor-pointer block"
+                    className="flex flex-col group cursor-pointer block movie-carousel-card"
                   >
-                    <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative group-hover:border-[#F6AD38]/60 group-hover:shadow-[0_0_30px_rgba(246,173,56,0.25)] transition-all duration-500 backdrop-blur-sm">
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40" />
+                    <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 z-10 pointer-events-none" />
                       
                       {imageSource ? (
                         <img 
@@ -192,11 +188,12 @@ export default function MoviesReleases() {
                             const fallback = e.target.nextSibling;
                             if (fallback) fallback.style.display = 'flex';
                           }}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85 group-hover:opacity-100"
+                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-90 group-hover:opacity-100"
                           loading="lazy"
                         />
                       ) : null}
 
+                      {/* Caja de Fallback INTACTA originalmente */}
                       <div 
                         className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4"
                         style={{ display: imageSource ? 'none' : 'flex' }}
@@ -207,27 +204,25 @@ export default function MoviesReleases() {
                         </span>
                       </div>
 
-                      <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/70 backdrop-blur-md border border-white/20 rounded-lg text-[10px] uppercase font-black text-[#F6AD38] tracking-widest shadow-md z-10">
-                        {movie.age_classification?.description ? movie.age_classification.description.split(' ')[0] : 'Apt'}
-                      </div>
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1b1032] via-[#231640]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 flex items-end justify-center pb-8 px-4 z-10">
-                        <span className="w-full py-3 bg-[#F6AD38] text-[#231640] text-center font-black text-xs md:text-sm rounded-xl shadow-[0_4px_15px_rgba(246,173,58,0.4)] hover:bg-white hover:text-black transition-all uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6 px-4 z-20">
+                        <span className="w-full py-2 bg-white text-black text-center font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-widest transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                           Ver Detalles
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-4 text-left space-y-2 px-1">
-                      <h4 className="text-sm md:text-base font-extrabold text-white tracking-wide group-hover:text-[#F6AD38] line-clamp-1 transition-colors duration-300">
+                    {/* Meta Información Inferior */}
+                    <div className="mt-3 text-left space-y-1.5 px-0.5">
+                      <h4 className="text-sm font-bold text-white tracking-wide group-hover:text-amber-400 line-clamp-1 transition-colors duration-300">
                         {movie.title}
                       </h4>
                       
                       <div className="flex flex-wrap gap-1.5 items-center">
+                        {/* 🌟 ETIQUETA DE FORMATO: Ahora más llamativa con bordes y tipografía extrabold */}
                         {movie.availableFormats?.map((format, i) => (
                           <span 
                             key={`f-${i}`} 
-                            className="px-2 py-0.5 bg-purple-600/20 border border-purple-500/30 rounded-md text-[9px] text-purple-300 font-extrabold tracking-wider uppercase"
+                            className="px-2 py-0.5 bg-purple-600/20 border border-purple-500/40 rounded-md text-[9px] text-purple-300 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(168,85,247,0.15)]"
                           >
                             {format}
                           </span>
@@ -236,11 +231,18 @@ export default function MoviesReleases() {
                         {movie.availableLanguages?.map((lang, i) => (
                           <span 
                             key={`l-${i}`} 
-                            className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[9px] text-gray-400 font-medium tracking-wide"
+                            className="px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[9px] text-gray-400 font-medium tracking-wide"
                           >
                             {lang}
                           </span>
                         ))}
+
+                        {/* 🌟 ETIQUETA DE EVENTO: Ahora con color ámbar destacado idéntico al Home */}
+                        {movie.isEvent && (
+                          <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-md text-[9px] text-amber-400 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
+                            ⭐ Evento Especial
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>
