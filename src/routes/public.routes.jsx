@@ -12,6 +12,7 @@ import Empresa from '../pages/public/AboutUs';
 import CinemasInfo from '../pages/public/InfoCinemas';
 import MoviesReleases from '../pages/public/MoviesReleases';
 import MoviesUpcoming from '../pages/public/MoviesUpComing';
+import Events from '../pages/public/Events'
 import ViewDetails from '../pages/public/DetailView';
 
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
@@ -42,6 +43,7 @@ export const publicRoutes = (
       <Route path="/cinemas/:cinemaSlug" element={<CinemaDetails />} />
       <Route path="/billboard" element={<MoviesReleases />} />
       <Route path="/upcoming" element={<MoviesUpcoming />} />
+      <Route path="/events" element={<Events />} />
       <Route path="/confectionery" element={<Confectionery />} />
       <Route path="/checkout" element={<Checkout />} />
     </Route>

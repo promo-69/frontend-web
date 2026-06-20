@@ -85,7 +85,31 @@ export default function MoviesUpComing() {
   };
 
   const groupedMovies = getMoviesGroupedByMonth();
-  const monthsOrder = Object.keys(groupedMovies);
+
+  const diccionarioMeses = {
+    "Enero": 0, "Febrero": 1, "Marzo": 2, "Abril": 3, "Mayo": 4, "Junio": 5,
+    "Julio": 6, "Agosto": 7, "Septiembre": 8, "Octubre": 9, "Noviembre": 10, "Diciembre": 11
+  };
+
+  const monthsOrder = Object.keys(groupedMovies).sort((a, b) => {
+    if (a === 'Por Confirmar') return 1;
+    if (b === 'Por Confirmar') return -1;
+
+    const partsA = a.split(' ');
+    const partsB = b.split(' ');
+
+    const mesA = diccionarioMeses[partsA[0]];
+    const anoA = parseInt(partsA[1], 10);
+
+    const mesB = diccionarioMeses[partsB[0]];
+    const anoB = parseInt(partsB[1], 10);
+
+    // Crear objetos Date reales usando el primer día del mes para comparar con precisión
+    const dateA = new Date(anoA, mesA, 1);
+    const dateB = new Date(anoB, mesB, 1);
+
+    return dateA - dateB;
+  });
 
   if (loading) {
     return (
@@ -159,8 +183,6 @@ export default function MoviesUpComing() {
                           {/* Contenedor del Póster */}
                           <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
                             
-                            {/* SE ELIMINÓ: El div de gradiente negro absoluto (bg-gradient-to-b) */}
-                            
                             {imageSource ? (
                               <img 
                                 src={imageSource} 
@@ -171,7 +193,6 @@ export default function MoviesUpComing() {
                                   const fallback = e.target.nextSibling;
                                   if (fallback) fallback.style.display = 'flex';
                                 }}
-                                /* CAMBIO: Se removió 'opacity-90' para dejar la imagen al 100% de viveza siempre */
                                 className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
                                 loading="lazy"
                               />
