@@ -115,7 +115,7 @@ export default function MoviesReleases() {
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
-            <div className="border-l-4 border-yellow-500 pl-4 text-left">
+            <div className="border-l-4 border-yellow-500 pl-4 text-left pb-6 mb-10">
               <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
                 Películas en <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Cartelera</span>
               </h3>
@@ -174,7 +174,8 @@ export default function MoviesReleases() {
                     className="flex flex-col group cursor-pointer block movie-carousel-card"
                   >
                     <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 z-10 pointer-events-none" />
+                      
+                      {/* 💡 SE REMOVIÓ: bg-gradient-to-b (sombreado oscuro inferior habitual) */}
                       
                       {imageSource ? (
                         <img 
@@ -186,7 +187,8 @@ export default function MoviesReleases() {
                             const fallback = e.target.nextSibling;
                             if (fallback) fallback.style.display = 'flex';
                           }}
-                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                          /* 💡 SE REMOVIÓ: opacity-90 para conservar el brillo completo */
+                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
                           loading="lazy"
                         />
                       ) : null}
