@@ -1,5 +1,5 @@
 import MovieCard from '../../components/movies/MovieCard'
-
+ 
 export default function HomeReleases({ movies = [] }) {
   if (!movies.length) return null
 

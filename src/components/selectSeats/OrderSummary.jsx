@@ -63,7 +63,6 @@ export default function OrderSummary({
               <li key={i} className="flex justify-between">
                 <span>
                   Asiento {t.row || t.number || t.id}{' '}
-                  {/* Adapta según la estructura de tu objeto Seat */}
                 </span>
                 <span>${t.price || 0}</span>
               </li>

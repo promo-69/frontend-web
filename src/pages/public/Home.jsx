@@ -8,7 +8,7 @@ import HomeUpcoming from '../../components/home/HomeUpcoming'
 import HomeEvents from '../../components/home/HomeEvents'
 import { getEvents } from '../../services/events.service'
 import {
-  getMoviesNowPlaying,
+  getMoviesBillboard,
   getUpcomingMovies,
 } from '../../services/movies.service'
 
@@ -28,15 +28,44 @@ export default function Home() {
   useEffect(() => {
     async function loadHome() {
       try {
-        const releasesData = await getMoviesNowPlaying()
+        const billboardData = await getMoviesBillboard()
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
-        setReleases(releasesData || [])
-        setUpcoming(upcomingData || [])
-        setEvents(eventsData || [])
-      } catch (error) {
-        console.error('ERROR EN CAPA VISUAL HOME:', error)
+        const safeBillboard = Array.isArray(billboardData) ? billboardData : [];
+        const processedBillboard = safeBillboard.map(item => {
+          const content = item.movie || item.event || item;
+          const isSpecialEvent = item.type === 'special_event' || !!item.event;
+
+          return {
+            ...content,
+            type: item.type, 
+            showtimes: item.showtimes, 
+            isEvent: isSpecialEvent, 
+            posterUrl: content.poster_url || content.posterUrl,
+            ageClassification: content.age_classification || content.ageClassification
+          };
+        });
+
+        // Eliminamos duplicados por clave compuesta (type + id)
+        const uniqueBillboard = Array.from(
+          new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
+        );
+
+        // Normalización limpia para la sección de eventos del Home
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
+        const processedEvents = safeEvents.map(event => ({
+          ...event,
+          title: event.title || event.name,
+          type: event.type || 'special_event',
+          isEvent: true,
+          posterUrl: event.poster_url || event.posterUrl || event.image
+        }));
+
+        setReleases(uniqueBillboard)
+        setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
+        setEvents(processedEvents)
+      } catch (err) {
         setError(true)
       } finally {
         setLoading(false) 
@@ -50,17 +79,13 @@ export default function Home() {
     if (!ref.current) return
 
     const firstCard = ref.current.querySelector('.movie-carousel-card')
-
     if (!firstCard) return
 
     const gap = 24
-
     const scrollAmount = firstCard.offsetWidth + gap
 
     ref.current.scrollBy({
-      left: direction === 'left'
-        ? -scrollAmount
-        : scrollAmount,
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth',
     })
   }
@@ -86,14 +111,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
 
-      {/* Esto esconde el scrollbar de los minicarruseles - Mary */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none !important;
         }
         .hide-scrollbar {
-          -ms-overflow-style: none !important;  /* IE y Edge */
-          scrollbar-width: none !important;  /* Firefox */
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
         }
       `}</style>
 
@@ -131,19 +155,13 @@ export default function Home() {
           
           <div
             ref={releasesRef}
-            className="
-              overflow-x-auto
-              overflow-y-hidden
-              hide-scrollbar
-              scroll-smooth
-              w-full
-            "
+            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
           >
             <HomeReleases movies={releases} />
           </div>
         </section>
 
-        {/*PRÓXIMOS ESTRENOS  */}
+        {/* PRÓXIMOS ESTRENOS */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
             <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
@@ -183,7 +201,7 @@ export default function Home() {
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
             <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              🗓️ Próximos Eventos
+              🗓️ Eventos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button 
@@ -199,7 +217,7 @@ export default function Home() {
                 <FiChevronRight size={20} />
               </button>
               <a 
-                href="/eventos" 
+                href="/events" 
                 className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
               >
                 Ver más

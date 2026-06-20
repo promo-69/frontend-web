@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   getShowtimeById,
@@ -47,7 +47,6 @@ export default function SelectSeats() {
   const [quoteReady, setQuoteReady] = useState(false)
   const [quoteError, setQuoteError] = useState(null)
 
-
   // ============================
   // 1) Cargar showtime + mapa
   // ============================
@@ -73,33 +72,42 @@ export default function SelectSeats() {
   // 2) Inicializar Quote + Socket
   // ============================
   useEffect(() => {
-    if (!cinemaId) return
+    if (!cinemaId || !showtimeId) return
 
-    let active = true
+    let mounted = true
 
-    setPurchaseCinema(cinemaId)
-    setPurchaseShowtime(showtimeId)
-    setIsSeatFlow(true)
-    setQuoteReady(false)
-    setQuoteError(null)
+    const initPurchaseSession = async () => {
+      try {
+        setQuoteReady(false)
+        setQuoteError(null)
 
-    const init = async () => {
-      const ok = await startQuote(cinemaId)
-      if (!active) return
+        // Sincronizar estados base de forma síncrona
+        setIsSeatFlow(true)
+        setPurchaseCinema(cinemaId)
+        setPurchaseShowtime(showtimeId)
 
-      if (!ok) {
-        setQuoteError('No se pudo iniciar la sesión de compra')
-        return
+        // Ejecutar y esperar la cotización del Backend
+        const res = await startQuote(cinemaId)
+        if (!mounted) return
+
+        if (!res) {
+          setQuoteError('No se pudo iniciar la sesión de compra')
+          return
+        }
+
+        // Si la cotización fue exitosa, levantamos el canal físico
+        connectSocket()
+        setQuoteReady(true)
+      } catch (err) {
+        console.error('Error en proceso initPurchaseSession:', err)
+        if (mounted) setQuoteError('Error crítico al preparar la orden')
       }
-
-      connectSocket()
-      setQuoteReady(true)
     }
 
-    init()
+    initPurchaseSession()
 
     return () => {
-      active = false
+      mounted = false
     }
   }, [cinemaId, showtimeId])
 
@@ -107,7 +115,7 @@ export default function SelectSeats() {
   // 3) Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
-    if (!quoteReady) return
+    if (!quoteReady || !showtimeId) return
 
     const socket = socketService.getSocket()
     if (!socket) {
@@ -117,6 +125,7 @@ export default function SelectSeats() {
       return
     }
 
+    console.log('--- COLGANDO LISTENERS DEL SOCKET ---')
     // Definición de handlers de eventos
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
@@ -126,6 +135,7 @@ export default function SelectSeats() {
     }
 
     const onSeatLockSuccess = ({ seatId }) => {
+      console.log('✅ [Socket] Asiento bloqueado con éxito:', seatId)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
       )
@@ -133,6 +143,7 @@ export default function SelectSeats() {
     }
 
     const onSeatLockError = ({ seatId, message }) => {
+      console.error('❌ [Socket] Error bloqueando asiento:', message)
       alert(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
@@ -154,6 +165,7 @@ export default function SelectSeats() {
     }
 
     const onSeatsUnlockedBulk = ({ seatIds }) => {
+      console.log('🔓 [Socket] Asiento liberado:', seatId)
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
@@ -184,7 +196,7 @@ export default function SelectSeats() {
       socketService.joinShowtime(showtimeId)
     }
 
-    // 1. Acoplar receptores PRIMERO
+    // 1. Acoplar receptores
     socketService.on('connect', handleReconnectedEmit)
 
     socketService.on('join_success', onJoinSuccess)
@@ -197,19 +209,13 @@ export default function SelectSeats() {
     socketService.on('seats_sold_final', onSeatsSoldFinal)
     socketService.on('quote_expired', onQuoteExpired)
 
-    // 2. Ejecutar la acción hacia el servidor DESPUÉS
-    console.log(
-      'SelectSeats -> Receptores listos. Emitiendo entrada a sala:',
-      showtimeId,
-    )
+    // Emitir la entrada
+    console.log(' Emitiendo joinShowtime para:', showtimeId)
     socketService.joinShowtime(showtimeId)
 
     // 3. Desacoplamiento estructural al salir de la pantalla
     return () => {
-      console.log(
-        'SelectSeats -> Desmontando pantalla, limpiando listeners del showtime:',
-        showtimeId,
-      )
+      console.log(' Limpiando listeners del showtime:', showtimeId)
       socketService.leaveShowtime(showtimeId)
       socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
@@ -223,6 +229,11 @@ export default function SelectSeats() {
       socketService.off('quote_expired', onQuoteExpired)
     }
   }, [quoteReady, showtimeId])
+
+  // filtrar boletos para el ordersummary
+  const fullSelectedSeatsObjects = useMemo(() => {
+    return seats.filter((s) => selectedSeats.includes(s.id))
+  }, [seats, selectedSeats])
 
   // ============================
   // 5) Toggle asiento
@@ -274,10 +285,6 @@ export default function SelectSeats() {
       </div>
     )
   }
-
-  const fullSelectedSeatsObjects = seats.filter((s) =>
-    selectedSeats.includes(s.id),
-  )
 
   return (
     <div

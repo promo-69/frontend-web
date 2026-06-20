@@ -4,16 +4,22 @@ import { useParams, useNavigate } from 'react-router-dom'
 // Servicios
 import { getMovieById, getCinemaShowtimebyDateMovies } from '../../services/movies.service'
 import { getEventById, getCinemaShowtimebyDateEvents } from '../../services/events.service'
+// import { subscribeToMovie } from '../../services/subscriptions.service' 
 
 // Componentes Compartidos
 import { TrailerPlayer } from '../../components/movies/TrailerPlayer'
 import ShowtimeCard from '../../components/showtimesMovie/ShowtimeCard'
 import DateCarousel from '../../components/ui/DateCarroussel'
 
+// import { useAuth } from '../../context/AuthContext' 
+
 export default function DetailView() {
   const { movieSlug, eventSlug } = useParams()
   const navigate = useNavigate()
   
+  // const { user, isAuthenticated } = useAuth()
+  const isAuthenticated = false // Cambiar por tu estado real de sesión
+
   // Identificar el tipo de entidad según los parámetros de la URL
   const isMovie = !!movieSlug
   const activeSlug = movieSlug || eventSlug
@@ -28,12 +34,16 @@ export default function DetailView() {
   const todayStr = getLocalDateString(new Date())
 
   // Estados unificados
-  const [item, setItem] = useState(null) // Contendrá la data normalizada
+  const [item, setItem] = useState(null)
   const [cinemas, setCinemas] = useState([])
   const [selectedDate, setSelectedDate] = useState(todayStr)
   const [loading, setLoading] = useState(true)
   const [loadingShowtimes, setLoadingShowtimes] = useState(false)
   const [isVideoOpen, setIsVideoOpen] = useState(false)
+  
+  // Estados para el botón de suscripción
+  const [subscribing, setSubscribing] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
 
   const hasCheckedAutoAdvance = useRef(false)
 
@@ -55,7 +65,6 @@ export default function DetailView() {
           return
         }
 
-        // 1. Carga condicional del elemento base (Película o Evento)
         if (!item) {
           const res = isMovie 
             ? await getMovieById(entityId) 
@@ -64,7 +73,6 @@ export default function DetailView() {
           const rawData = res?.data ? res.data : res
 
           if (rawData) {
-            // Capa de Normalización (Adaptador)
             setItem({
               id: rawData.id,
               title: rawData.title,
@@ -74,7 +82,7 @@ export default function DetailView() {
               release_date: rawData.release_date || 'Próximamente',
               trailer_url: rawData.trailer_url,
               classification: rawData.age_classification?.description || rawData.age_classification_detail?.description || 'Todo Público',
-              lifecycle: rawData.lifecycle_state?.description || rawData.lifecycle_state_detail?.description,
+              lifecycle: rawData.lifecycle?.description || rawData.lifecycle_state?.description || rawData.lifecycle_state_detail?.description,
               genres: rawData.genres || [], 
               isEvent: !isMovie
             })
@@ -96,7 +104,6 @@ export default function DetailView() {
           fetchedCinemas = []
         }
 
-        // Evaluar auto-avance si estamos parados en HOY
         if (!hasCheckedAutoAdvance.current && selectedDate === todayStr) {
           hasCheckedAutoAdvance.current = true
 
@@ -105,7 +112,6 @@ export default function DetailView() {
           )
 
           if (allPassed) {
-            console.log('⏳ Todas las funciones de hoy finalizaron o no hay cartelera. Saltando a mañana...')
             const tomorrow = new Date()
             tomorrow.setDate(tomorrow.getDate() + 1)
             const tomorrowStr = getLocalDateString(tomorrow)
@@ -115,7 +121,6 @@ export default function DetailView() {
           }
         }
 
-        // Mapear y ordenar funciones cronológicamente
         const sortedCinemas = fetchedCinemas.map(cinemaItem => ({
           ...cinemaItem,
           showtimes: cinemaItem.showtimes 
@@ -137,7 +142,25 @@ export default function DetailView() {
     loadDataAndShowtimes()
   }, [activeSlug, selectedDate, isMovie])
 
-  // Vistas de Estado (Loading / Error)
+  // Lógica del botón de suscripción
+  const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: window.location.pathname } })
+      return
+    }
+
+    setSubscribing(true)
+    try {
+      // await subscribeToMovie(item.id)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setIsSubscribed(true)
+    } catch (error) {
+      console.error("Error al procesar la suscripción:", error)
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#231640] text-white flex items-center justify-center">
@@ -158,6 +181,7 @@ export default function DetailView() {
   }
 
   const entityId = activeSlug ? activeSlug.split('-')[0] : null
+  const isUpcoming = item.lifecycle?.toLowerCase().includes('próximamente') || item.lifecycle?.toLowerCase().includes('proximamente')
 
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
@@ -211,7 +235,7 @@ export default function DetailView() {
               <div>
                 <p className="text-gray-400 text-xs md:text-sm">Complejos</p>
                 <p className="text-white text-sm md:text-base font-semibold truncate">
-                  Disponibles abajo
+                  {isUpcoming ? 'Sin funciones activas' : 'Disponibles abajo'}
                 </p>
               </div>
               <div>
@@ -240,19 +264,52 @@ export default function DetailView() {
                 </div>
               )}
               
-              {item.trailer_url && (
-                <div className="col-span-2 pt-2 border-t border-white/5">
+              {/* BOTONES ACCIÓN (TRAILER / SUSCRIPCIÓN) */}
+              <div className="col-span-2 pt-2 border-t border-white/5 flex flex-col sm:flex-row gap-3">
+                {item.trailer_url && (
                   <button 
                     onClick={() => setIsVideoOpen(true)} 
-                    className="flex items-center justify-center sm:justify-start gap-2 w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-[#231640] text-sm md:text-base font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-95"
+                    className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-[#231640] text-sm md:text-base font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.01] active:scale-95 whitespace-nowrap"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 md:w-5 md:h-5">
                       <path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" />
                     </svg>
                     Ver Trailer Oficial
                   </button>
-                </div>
-              )}
+                )}
+
+                {/* 🔔 BOTÓN DE SUSCRIPCIÓN CON GRADIENTE MAGENTA A MORADO */}
+                {isUpcoming && (
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={subscribing || isSubscribed}
+                    className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm md:text-base font-bold shadow-lg transition-all transform hover:scale-[1.01] active:scale-95 w-full sm:w-auto text-white ${
+                      isSubscribed 
+                        ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-fuchsia-600 to-purple-700 hover:from-fuchsia-500 hover:to-purple-600 border border-fuchsia-500/30'
+                    }`}
+                  >
+                    {subscribing ? (
+                      <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full">**</div>
+                    ) : isSubscribed ? (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.14-.094l3.741-5.234Z" clipRule="evenodd" />
+                        </svg>
+                        ¡Suscrito para el Estreno!
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path d="M5.85 3.5a.75.75 0 0 0-1.117-1A9.719 9.719 0 0 0 2.25 9.25a.75.75 0 0 0 1.5 0c0-1.996.643-3.842 1.735-5.343ZM19.267 2.5a.75.75 0 1 0-1.118 1a8.22 8.22 0 0 1 1.735 5.343.75.75 0 0 0 1.5 0 9.719 9.719 0 0 0-2.117-6.743ZM12 1.5a.75.75 0 0 0-.75.75v1.5a.75.75 0 0 0 1.5 0v-1.5A.75.75 0 0 0 12 1.5ZM4.331 18.232a.75.75 0 0 0-.832 1.25A11.936 11.936 0 0 0 12 22.5a11.936 11.936 0 0 0 8.501-3.018.75.75 0 0 0-.832-1.25A10.436 10.436 0 0 1 12 21a10.436 10.436 0 0 1-7.669-2.768Z" />
+                          <path fillRule="evenodd" d="M12 4a6 6 0 0 0-6 6v3.586l-.707.707A1 1 0 0 0 6 16h12a1 1 0 0 0 .707-1.707L18 13.586V10a6 6 0 0 0-6-6Zm0 14a3 3 0 0 1-2.83-2h5.66A3 3 0 0 1 12 18Z" clipRule="evenodd" />
+                        </svg>
+                        Avisarme cuando estrene
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
