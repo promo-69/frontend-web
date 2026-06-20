@@ -1,4 +1,3 @@
-// src/api/axios.js
 import axios from 'axios'
 // Usar ruta de refresh relativa estándar; el backend ya está corregido.
 const BASE_API = import.meta.env.VITE_API_URL || ''
