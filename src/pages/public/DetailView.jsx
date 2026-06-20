@@ -151,7 +151,6 @@ export default function DetailView() {
 
     setSubscribing(true)
     try {
-      // await subscribeToMovie(item.id)
       await new Promise(resolve => setTimeout(resolve, 1000))
       setIsSubscribed(true)
     } catch (error) {
@@ -186,7 +185,7 @@ export default function DetailView() {
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 md:px-10 pt-6 md:pt-10">
-        {/* BANNER / POSTER + INFO */}
+        {/* BANNER */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-6 md:gap-10 mb-10">
           <div className="w-full sm:w-5/12 md:w-1/3 max-w-[280px] sm:max-w-none mx-auto sm:mx-0">
             <div className="w-full aspect-[2/3] bg-white/10 rounded-2xl border border-white/10 shadow-xl overflow-hidden flex items-center justify-center text-gray-400 text-lg relative group">
@@ -264,7 +263,7 @@ export default function DetailView() {
                 </div>
               )}
               
-              {/* BOTONES ACCIÓN (TRAILER / SUSCRIPCIÓN) */}
+              {/* BOTONES ACCIÓN */}
               <div className="col-span-2 pt-2 border-t border-white/5 flex flex-col sm:flex-row gap-3">
                 {item.trailer_url && (
                   <button 
@@ -278,7 +277,7 @@ export default function DetailView() {
                   </button>
                 )}
 
-                {/* 🔔 BOTÓN DE SUSCRIPCIÓN CON GRADIENTE MAGENTA A MORADO */}
+                {/* BOTÓN DE SUSCRIPCIÓN */}
                 {isUpcoming && (
                   <button
                     onClick={handleSubscribe}
