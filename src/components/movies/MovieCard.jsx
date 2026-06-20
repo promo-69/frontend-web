@@ -19,7 +19,7 @@ export default function MovieCard({ movie, upcoming = false, isEventsPage = fals
 
   const imageSource = movie.poster_url || movie.image || movie.posterUrl;
   
-  const routePrefix = isEventsPage || movie.isEvent ? 'eventos' : 'movies';
+  const routePrefix = isEventsPage || movie.isEvent ? 'events' : 'movies';
   const movieUrl = `/${routePrefix}/${movie.id}-${convertToSlug(movie.title)}`;
  
   return (

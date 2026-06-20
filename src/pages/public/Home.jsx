@@ -25,19 +25,16 @@ export default function Home() {
   const upcomingRef = useRef(null)
   const eventsRef = useRef(null)
 
-  useEffect(() => {
+useEffect(() => {
     async function loadHome() {
       try {
         const billboardData = await getMoviesBillboard()
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
-        console.log("Data cruda recibida de cartelera:", billboardData);
-
         const safeBillboard = Array.isArray(billboardData) ? billboardData : [];
         const processedBillboard = safeBillboard.map(item => {
           const content = item.movie || item.event || item;
-          
           const isSpecialEvent = item.type === 'special_event' || !!item.event;
 
           return {
@@ -45,20 +42,26 @@ export default function Home() {
             type: item.type, 
             showtimes: item.showtimes, 
             isEvent: isSpecialEvent, 
-            
             posterUrl: content.poster_url || content.posterUrl,
             ageClassification: content.age_classification || content.ageClassification
           };
         });
 
-        // Eliminamos duplicados
         const uniqueBillboard = Array.from(
           new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
         );
 
+        const safeEvents = Array.isArray(eventsData) ? eventsData : [];
+        const processedEvents = safeEvents.map(event => ({
+          ...event,
+          title: event.title || event.name, 
+          isEvent: true,            
+          posterUrl: event.poster_url || event.posterUrl || event.image
+        }));
+
         setReleases(uniqueBillboard)
         setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
-        setEvents(Array.isArray(eventsData) ? eventsData : [])
+        setEvents(processedEvents) 
       } catch (error) {
         console.error('ERROR EN CAPA VISUAL HOME:', error)
         setError(true)
@@ -84,51 +87,6 @@ export default function Home() {
       behavior: 'smooth',
     })
   }
-
-  // LÓGICA DE DETECCIÓN POST-RENDER DE FALLBACKS 
-  useEffect(() => {
-    if (loading || error) return;
-
-    const setupImageFallbacks = () => {
-      const cards = document.querySelectorAll('.movie-carousel-card');
-      
-      cards.forEach(card => {
-        const img = card.querySelector('img');
-        
-        if (card && !card.querySelector('.fallback-box-fallback')) {
-          const posterContainer = img?.parentElement || card.querySelector('.aspect-\\[2\\/3\\]') || card.firstElementChild;
-          
-          if (posterContainer) {
-            const fallbackDiv = document.createElement('div');
-            fallbackDiv.className = "fallback-box-fallback w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4 absolute inset-0 z-10";
-            fallbackDiv.style.display = 'none';
-            fallbackDiv.innerHTML = `
-              <span class="text-3xl mb-2">🎬</span>
-              <span class="text-[11px] uppercase tracking-wider font-bold text-center px-2">
-                Sin Póster Disponible
-              </span>
-            `;
-            
-            posterContainer.style.position = 'relative';
-            posterContainer.appendChild(fallbackDiv);
-
-            if (!img || !img.getAttribute('src') || img.getAttribute('src') === 'undefined' || img.getAttribute('src').includes('null')) {
-              if (img) img.style.display = 'none';
-              fallbackDiv.style.display = 'flex';
-            } else {
-              img.addEventListener('error', () => {
-                img.style.display = 'none';
-                fallbackDiv.style.display = 'flex';
-              });
-            }
-          }
-        }
-      });
-    };
-
-    const timeoutId = setTimeout(setupImageFallbacks, 150);
-    return () => clearTimeout(timeoutId);
-  }, [loading, error, releases, upcoming, events]);
 
   if (loading) {
     return (
@@ -257,7 +215,7 @@ export default function Home() {
                 <FiChevronRight size={20} />
               </button>
               <a 
-                href="/eventos" 
+                href="/events" 
                 className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
               >
                 Ver más
