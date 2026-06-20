@@ -1,35 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import Footer from '../../components/ui/Footer';
 import { getMoviesBillboard } from '../../services/movies.service';
+import { getProjectionTypes, getLanguages } from '../../services/info.service';
+
+const convertToSlug = (title) => {
+  if (!title) return '';
+  return title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") 
+    .replace(/[^a-z0-9\s-]/g, "")    
+    .replace(/\s+/g, "-")           
+    .trim();
+};
 
 export default function MoviesReleases() {
   const [billboardMovies, setBillboardMovies] = useState([]);
+  const [projectionTypes, setProjectionTypes] = useState([]);
+  const [languages, setLanguages] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [activeProjection, setActiveProjection] = useState('Todos');
 
   useEffect(() => {
-    const fetchMovies = async () => {
+    const fetchInitialData = async () => {
       try {
-        const data = await getMoviesBillboard();
-        setBillboardMovies(data || []); 
+        const [billboardRes, projectionRes, languageRes] = await Promise.all([
+          getMoviesBillboard(),
+          getProjectionTypes(),
+          getLanguages()
+        ]);
+
+        const rawProjections = projectionRes?.data || projectionRes || [];
+        setProjectionTypes(Array.isArray(rawProjections) ? rawProjections : []);
+        setLanguages(languageRes?.data || languageRes || []);
+
+        const billboardData = billboardRes?.data || billboardRes || [];
+        
+        const processedItems = billboardData.map(item => {
+          const content = item.movie || item.event || item;
+          const isSpecialEvent = item.type === 'special_event' || !!item.event;
+
+          const availableFormats = item.showtimes && Array.isArray(item.showtimes)
+            ? Array.from(new Set(item.showtimes.map(s => s.projection_type?.description?.trim()).filter(Boolean)))
+            : [];
+
+          const availableLanguages = item.showtimes && Array.isArray(item.showtimes)
+            ? Array.from(new Set(item.showtimes.map(s => s.language?.description?.trim()).filter(Boolean)))
+            : [];
+
+          return {
+            ...content,
+            type: item.type,
+            id: content.id || item.id, 
+            showtimes: item.showtimes || [],
+            availableFormats,   
+            availableLanguages, 
+            isEvent: isSpecialEvent
+          };
+        });
+        
+        const uniqueItems = Array.from(
+          new Map(processedItems.map(item => [`${item.type}-${item.id}`, item])).values()
+        );
+
+        setBillboardMovies(uniqueItems); 
       } catch (error) {
-        console.error("Error cargando la cartelera:", error);
+        console.error("Error inicializando los datos de cartelera o catálogos:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMovies();
+    fetchInitialData();
   }, []);
 
-  const moviesToRender = billboardMovies.length < 8 && billboardMovies.length > 0
-    ? [...billboardMovies, ...billboardMovies].slice(0, 8) 
-    : billboardMovies;
+  // Filtro por Tipo de Proyección
+  const filteredMovies = useMemo(() => {
+    return billboardMovies.filter(item => {
+      if (activeProjection === 'Todos') return true;
+      return item.availableFormats?.some(
+        format => format.toLowerCase() === activeProjection.toLowerCase()
+      );
+    });
+  }, [billboardMovies, activeProjection]);
 
-    if (loading) {
+  // Retorna los elementos filtrados directamente sin duplicados 
+  const moviesToRender = useMemo(() => {
+    return filteredMovies;
+  }, [filteredMovies]);
+
+  if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat']">
-        <div className="flex-grow flex items-center justify-center">
-          <p className="text-lg animate-pulse">Cargando cartelera...</p>
+      <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] animate-pulse" />
+        <div className="flex-grow flex items-center justify-center relative z-10">
+          <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
+            Cargando filtros y funciones...
+          </p>
         </div>
         <Footer />
       </div>
@@ -37,84 +105,154 @@ export default function MoviesReleases() {
   }
 
   return (
-
-<div className={`flex flex-col ${moviesToRender.length === 0 ? 'h-[calc(100vh-80px)] overflow-hidden' : 'min-h-screen'} bg-[#231640] text-white justify-between font-['Montserrat']`}>
+    <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
       
-      {/* Sección principal de Contenido */}
-      <section className={`bg-[#231640] px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col ${moviesToRender.length === 0 ? 'pt-10 pb-4' : 'py-16'}`}>
-        <div className={`max-w-7xl mx-auto w-full ${moviesToRender.length === 0 ? 'flex-grow flex flex-col' : ''}`}>
+      {/* Fondos ambientales sutiles */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
+
+      <section className={`px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 ${moviesToRender.length === 0 ? 'py-12' : 'py-16'}`}>
+        <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
-          {/* Encabezado */}
-          <div className="border-l-4 border-[#F6AD38] pl-4 text-left mb-6 flex-shrink-0">
-            <h3 className="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-white leading-none">
-              Peliculas en <span className="text-[#F6AD38]">Cartelera</span>
-            </h3>
-            <p className="text-xs md:text-sm text-gray-400 mt-2 uppercase tracking-wider font-semibold">
-              Tu pase directo a las mejores historias. Explora las películas disponibles hoy en nuestras salas, consulta los horarios y asegura tus entradas para vivir la magia del cine ahora mismo.            
-            </p>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
+            <div className="border-l-4 border-yellow-500 pl-4 text-left">
+              <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
+                Películas en <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Cartelera</span>
+              </h3>
+              <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
+                Filtra por formato de pantalla de tu preferencia para personalizar la experiencia perfecta en nuestras salas de Cineflix.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+              <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
+                <button
+                  onClick={() => setActiveProjection('Todos')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border ${
+                    activeProjection === 'Todos'
+                      ? 'bg-purple-600 text-white border-purple-500 shadow-[0_4px_12px_rgba(168,85,247,0.4)]'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  Todos los Formatos
+                </button>
+                {projectionTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setActiveProjection(type.description)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border ${
+                      activeProjection.toLowerCase() === type.description?.toLowerCase()
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-[0_4px_12px_rgba(168,85,247,0.4)]'
+                        : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {type.description}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Condicional de películas */}
+          {/* Renderizado Condicional */}
           {moviesToRender.length === 0 ? (
-            // Flex-grow y flex items-center justifican el texto perfectamente al centro del espacio restante
-            <div className="flex-grow flex items-center justify-center pb-12">
-              <p className="text-gray-400 text-base md:text-lg font-medium tracking-wide">
-                No hay películas disponibles en este momento.
+            <div className="flex-grow flex items-center justify-center my-auto pb-12">
+              <p className="text-gray-400 text-base md:text-lg font-medium tracking-wide bg-white/5 px-6 py-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                No hay funciones disponibles que coincidan con el formato seleccionado.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-              {moviesToRender.map((movie, index) => (
-                <div
-                  key={`${movie.id || index}-${index}`}
-                  className="flex flex-col group cursor-pointer"
-                >
-                  <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative group-hover:border-[#F6AD38]/40 transition-all duration-300">
-                    <img 
-                      src={movie.image} 
-                      alt={movie.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
-                      loading="lazy"
-                    />
+              {moviesToRender.map((movie, index) => {
+                const imageSource = movie.poster_url || movie.image;
+                const routePrefix = movie.isEvent ? 'eventos' : 'movies';
+                const detailUrl = `/${routePrefix}/${movie.id}-${convertToSlug(movie.title)}`;
 
-                    <div className="absolute top-4 left-4 px-2.5 py-0.5 bg-black/70 backdrop-blur-md border border-white/10 rounded-md text-[10px] uppercase font-bold text-gray-200">
-                      {movie.rating || 'Apt'}
-                    </div>
+                return (
+                  <Link
+                    key={`${movie.type}-${movie.id || index}-${index}`}
+                    to={detailUrl}
+                    className="flex flex-col group cursor-pointer block movie-carousel-card"
+                  >
+                    <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 z-10 pointer-events-none" />
+                      
+                      {imageSource ? (
+                        <img 
+                          src={imageSource} 
+                          alt={movie.title}
+                          onError={(e) => { 
+                            e.target.onerror = null; 
+                            e.target.style.display = 'none';
+                            const fallback = e.target.nextSibling;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                          loading="lazy"
+                        />
+                      ) : null}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#231640]/95 via-[#231640]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-8 px-4">
-                      <button className="w-full py-2.5 bg-[#F6AD38] text-[#231640] font-bold text-xs md:text-sm rounded-xl shadow-lg hover:bg-white transition-colors uppercase tracking-wider transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                        Comprar Entrada
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 text-left space-y-1.5 px-1">
-                    <h4 className="text-sm md:text-base font-bold text-white tracking-wide group-hover:text-[#F6AD38] line-clamp-1 transition-colors">
-                      {movie.title}
-                    </h4>
-                    
-                    <div className="flex flex-wrap gap-1">
-                      {movie.tags && movie.tags.map((tag, i) => (
-                        <span 
-                          key={i} 
-                          className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] text-gray-400 font-semibold tracking-wider"
-                        >
-                          {tag}
+                      <div 
+                        className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4"
+                        style={{ display: imageSource ? 'none' : 'flex' }}
+                      >
+                        <span className="text-3xl mb-2">🎬</span>
+                        <span className="text-[11px] uppercase tracking-wider font-bold text-center px-2">
+                          Sin Póster Disponible
                         </span>
-                      ))}
+                      </div>
+
+                      {/* Botón Ver Detalles */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6 px-4 z-20">
+                        <span className="w-full py-2 bg-white text-black text-center font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-widest transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          Ver Detalles
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+
+                    {/* Meta Información Inferior */}
+                    <div className="mt-3 text-left space-y-1.5 px-0.5">
+                      <h4 className="text-sm font-bold text-white tracking-wide group-hover:text-amber-400 line-clamp-1 transition-colors duration-300">
+                        {movie.title}
+                      </h4>
+                      
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {/* ETIQUETA DE FORMATO LLAMATIVA */}
+                        {movie.availableFormats?.map((format, i) => (
+                          <span 
+                            key={`f-${i}`} 
+                            className="px-2 py-0.5 bg-purple-600/20 border border-purple-500/40 rounded-md text-[9px] text-purple-300 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(168,85,247,0.15)]"
+                          >
+                            {format}
+                          </span>
+                        ))}
+                        
+                        {movie.availableLanguages?.map((lang, i) => (
+                          <span 
+                            key={`l-${i}`} 
+                            className="px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[9px] text-gray-400 font-medium tracking-wide"
+                          >
+                            {lang}
+                          </span>
+                        ))}
+
+                        {/* ETIQUETA DE EVENTO */}
+                        {movie.isEvent && (
+                          <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-md text-[9px] text-amber-400 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
+                            ⭐ Evento Especial
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
 
         </div>
       </section>
 
-      {/* Footer fijo al final sin empujar el layout */}
       <Footer />
-
     </div>
   );
 }

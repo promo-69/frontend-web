@@ -17,3 +17,14 @@ export const getMoviesShowtimebyDateCinema = async (cinemaId, date) => {
   return response.data.data 
 }
 
+// Catalogo de lenguajes - Mary
+export const getLanguages = async () => {
+  const response = await api.get(`/catalogs/languages`)
+  return response.data.data 
+}
+
+// Catalogo de Tipo de Proyecciones - Mary
+export const getProjectionTypes = async () => {
+  const response = await api.get(`/catalogs/projection-types`)
+  return response.data.data 
+}
