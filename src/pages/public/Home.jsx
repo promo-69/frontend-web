@@ -25,7 +25,7 @@ export default function Home() {
   const upcomingRef = useRef(null)
   const eventsRef = useRef(null)
 
-useEffect(() => {
+  useEffect(() => {
     async function loadHome() {
       try {
         const billboardData = await getMoviesBillboard()
@@ -47,23 +47,25 @@ useEffect(() => {
           };
         });
 
+        // Eliminamos duplicados por clave compuesta (type + id)
         const uniqueBillboard = Array.from(
           new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
         );
 
+        // Normalización limpia para la sección de eventos del Home
         const safeEvents = Array.isArray(eventsData) ? eventsData : [];
         const processedEvents = safeEvents.map(event => ({
           ...event,
-          title: event.title || event.name, 
-          isEvent: true,            
+          title: event.title || event.name,
+          type: event.type || 'special_event',
+          isEvent: true,
           posterUrl: event.poster_url || event.posterUrl || event.image
         }));
 
         setReleases(uniqueBillboard)
         setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
-        setEvents(processedEvents) 
-      } catch (error) {
-        console.error('ERROR EN CAPA VISUAL HOME:', error)
+        setEvents(processedEvents)
+      } catch (err) {
         setError(true)
       } finally {
         setLoading(false) 

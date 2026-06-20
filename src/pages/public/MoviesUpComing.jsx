@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Footer from '../../components/ui/Footer';
 import MovieCard from '../../components/movies/MovieCard'; 
 import { getUpcomingMovies } from '../../services/movies.service';
@@ -11,8 +11,6 @@ export default function MoviesUpComing() {
     const fetchMovies = async () => {
       try {
         const response = await getUpcomingMovies();
-        console.log("Respuesta exacta recibida del servicio:", response);
-        
         setBillboardMovies(Array.isArray(response) ? response : []);
       } catch (error) {
         console.error("Error cargando los próximos estrenos:", error);
@@ -24,7 +22,8 @@ export default function MoviesUpComing() {
     fetchMovies();
   }, []);
 
-  const getMoviesGroupedByMonth = () => {
+  // Agrupamiento optimizado por mes
+  const groupedMovies = useMemo(() => {
     if (!Array.isArray(billboardMovies) || billboardMovies.length === 0) return {};
 
     const months = [
@@ -59,33 +58,34 @@ export default function MoviesUpComing() {
 
       return groups;
     }, {});
-  };
+  }, [billboardMovies]);
 
-  const groupedMovies = getMoviesGroupedByMonth();
+  // Ordenamiento cronológico optimizado
+  const monthsOrder = useMemo(() => {
+    const monthsDirectory = {
+      "Enero": 0, "Febrero": 1, "Marzo": 2, "Abril": 3, "Mayo": 4, "Junio": 5,
+      "Julio": 6, "Agosto": 7, "Septiembre": 8, "Octubre": 9, "Noviembre": 10, "Diciembre": 11
+    };
 
-  const monthsDirectory = {
-    "Enero": 0, "Febrero": 1, "Marzo": 2, "Abril": 3, "Mayo": 4, "Junio": 5,
-    "Julio": 6, "Agosto": 7, "Septiembre": 8, "Octubre": 9, "Noviembre": 10, "Diciembre": 11
-  };
+    return Object.keys(groupedMovies).sort((a, b) => {
+      if (a === 'Por Confirmar') return 1;
+      if (b === 'Por Confirmar') return -1;
 
-  const monthsOrder = Object.keys(groupedMovies).sort((a, b) => {
-    if (a === 'Por Confirmar') return 1;
-    if (b === 'Por Confirmar') return -1;
+      const partsA = a.split(' ');
+      const partsB = b.split(' ');
 
-    const partsA = a.split(' ');
-    const partsB = b.split(' ');
+      const mesA = monthsDirectory[partsA[0]];
+      const anoA = parseInt(partsA[1], 10);
 
-    const mesA = monthsDirectory[partsA[0]];
-    const anoA = parseInt(partsA[1], 10);
+      const mesB = monthsDirectory[partsB[0]];
+      const anoB = parseInt(partsB[1], 10);
 
-    const mesB = monthsDirectory[partsB[0]];
-    const anoB = parseInt(partsB[1], 10);
+      const dateA = new Date(anoA, mesA, 1);
+      const dateB = new Date(anoB, mesB, 1);
 
-    const dateA = new Date(anoA, mesA, 1);
-    const dateB = new Date(anoB, mesB, 1);
-
-    return dateA - dateB;
-  });
+      return dateA - dateB;
+    });
+  }, [groupedMovies]);
 
   if (loading) {
     return (
@@ -142,7 +142,7 @@ export default function MoviesUpComing() {
                     <div className="flex-grow h-[1px] bg-white/5" />
                   </div>
 
-                  {/* Grid de Películas Unificado delegando al DOM Virtual */}
+                  {/* Grid de Películas Unificado */}
                   <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
                     {groupedMovies[month].map((movie, index) => {
                       const isSpecialEvent = movie.type === 'special_event' || !!movie.event;

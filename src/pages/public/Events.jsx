@@ -11,13 +11,12 @@ export default function Events() {
     const fetchUpcomingEvents = async () => {
       try {
         const response = await getEvents();
-        console.log("Respuesta exacta recibida del servicio (Eventos):", response);
         
-        // Se asume el arreglo limpio que retorna tu servicio desempaquetado
         const eventsData = Array.isArray(response) ? response : [];
 
         const processedEvents = eventsData.map(event => ({
           ...event,
+          title: event.title || event.name, 
           type: event.type || 'special_event',
           isEvent: true
         }));
