@@ -14,7 +14,10 @@ const convertToSlug = (title) => {
 export default function MovieCard({ movie, upcoming = false }) {
   if (!movie) return null
 
-  const movieUrl = `/movies/${movie.id}-${convertToSlug(movie.title)}`
+  // 💡 SOLUCIÓN: Si el objeto híbrido de la cartelera es un evento, 
+  // redirigimos a la ruta de eventos, de lo contrario a la de películas.
+  const routePrefix = movie.isEvent ? 'events' : 'movies'
+  const movieUrl = `/${routePrefix}/${movie.id}-${convertToSlug(movie.title)}`
 
   return (
     <Link
@@ -24,7 +27,7 @@ export default function MovieCard({ movie, upcoming = false }) {
       {/* Contenedor del Póster */}
       <div className="aspect-[2/3] w-full bg-white/5 rounded-2xl border border-white/10 shadow-lg overflow-hidden relative group-hover:border-[#f4b400]/50 transition-all duration-300">
         <img
-          src={movie.poster_url}
+          src={movie.posterUrl || movie.poster_url} // Soporte para camelCase y snake_case
           alt={movie.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
@@ -38,7 +41,7 @@ export default function MovieCard({ movie, upcoming = false }) {
         </div>
       </div>
 
-      {/* Información de la Película */}
+      {/* Información de la Película / Evento */}
       <div className="mt-3">
         <h4 className="text-white text-sm font-bold group-hover:text-[#f4b400] transition-colors line-clamp-1">
           {movie.title}
@@ -50,7 +53,10 @@ export default function MovieCard({ movie, upcoming = false }) {
           </p>
         ) : (
           <p className="text-[11px] text-gray-400 mt-1">
-            {movie.age_classification?.description || 'Apto para todo público'}
+            {/* Si es evento mostramos la etiqueta correspondiente, si no, la clasificación */}
+            {movie.isEvent 
+              ? '⭐ Evento Especial' 
+              : (movie.ageClassification?.description || movie.age_classification?.description || 'Apto para todo público')}
           </p>
         )}
       </div>
