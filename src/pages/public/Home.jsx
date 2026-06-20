@@ -32,34 +32,33 @@ export default function Home() {
         const upcomingData = await getUpcomingMovies()
         const eventsData = await getEvents()
 
-        // 1. Procesamos y "aplanamos" la estructura del endpoint híbrido
-        const processedBillboard = (billboardData || []).map(item => {
+        console.log("Data cruda recibida de cartelera:", billboardData);
+
+        const safeBillboard = Array.isArray(billboardData) ? billboardData : [];
+        const processedBillboard = safeBillboard.map(item => {
           const content = item.movie || item.event || item;
           
-          // Determinamos con certeza si es un evento especial basándonos en la metadata del ítem
           const isSpecialEvent = item.type === 'special_event' || !!item.event;
 
           return {
             ...content,
             type: item.type, 
             showtimes: item.showtimes, 
-            isEvent: isSpecialEvent, // 💡 Bandera clave para que el Card decida la ruta (/movie o /event)
+            isEvent: isSpecialEvent, 
             
-            // Mapeo seguro de snake_case a camelCase para evitar romper el MovieCard
             posterUrl: content.poster_url || content.posterUrl,
             ageClassification: content.age_classification || content.ageClassification
           };
         });
 
-        // 2. Eliminamos duplicados por una clave compuesta (id + tipo) 
-        // 💡 IMPORTANTE: Si usas solo m.id, un evento con ID 1 borraría a una película con ID 1.
+        // Eliminamos duplicados
         const uniqueBillboard = Array.from(
           new Map(processedBillboard.map(m => [`${m.type}-${m.id}`, m])).values()
         );
 
         setReleases(uniqueBillboard)
-        setUpcoming(upcomingData || [])
-        setEvents(eventsData || [])
+        setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
+        setEvents(Array.isArray(eventsData) ? eventsData : [])
       } catch (error) {
         console.error('ERROR EN CAPA VISUAL HOME:', error)
         setError(true)
@@ -86,18 +85,16 @@ export default function Home() {
     })
   }
 
-  // --- LÓGICA DE DETECCIÓN POST-RENDER DE FALLBACKS (SOLUCIÓN INTERNA DE HOME) ---
+  // LÓGICA DE DETECCIÓN POST-RENDER DE FALLBACKS 
   useEffect(() => {
     if (loading || error) return;
 
-    // Buscamos todas las imágenes dentro de los contenedores de scroll pasados unos milisegundos por el lazy-load
     const setupImageFallbacks = () => {
       const cards = document.querySelectorAll('.movie-carousel-card');
       
       cards.forEach(card => {
         const img = card.querySelector('img');
         
-        // Creamos la caja de Fallback idéntica estructuralmente si no existe ya
         if (card && !card.querySelector('.fallback-box-fallback')) {
           const posterContainer = img?.parentElement || card.querySelector('.aspect-\\[2\\/3\\]') || card.firstElementChild;
           
@@ -115,12 +112,10 @@ export default function Home() {
             posterContainer.style.position = 'relative';
             posterContainer.appendChild(fallbackDiv);
 
-            // Si originalmente no venía un source válido, activamos el fallback de inmediato
             if (!img || !img.getAttribute('src') || img.getAttribute('src') === 'undefined' || img.getAttribute('src').includes('null')) {
               if (img) img.style.display = 'none';
               fallbackDiv.style.display = 'flex';
             } else {
-              // Manejador en caso de error de carga asíncrona
               img.addEventListener('error', () => {
                 img.style.display = 'none';
                 fallbackDiv.style.display = 'flex';

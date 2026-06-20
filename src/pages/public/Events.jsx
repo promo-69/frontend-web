@@ -1,18 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import Footer from '../../components/ui/Footer';
+import MovieCard from '../../components/movies/MovieCard'; 
 import { getEvents } from '../../services/events.service'; 
-
-const convertToSlug = (title) => {
-  if (!title) return '';
-  return title
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") 
-    .replace(/[^a-z0-9\s-]/g, "")    
-    .replace(/\s+/g, "-")           
-    .trim();
-};
 
 export default function Events() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -22,18 +11,10 @@ export default function Events() {
     const fetchUpcomingEvents = async () => {
       try {
         const response = await getEvents();
-        console.log("Respuesta exacta de la API (Eventos):", response);
+        console.log("Respuesta exacta recibida del servicio (Eventos):", response);
         
-        let eventsData = [];
-        if (response?.data?.rows) {
-          eventsData = response.data.rows;
-        } else if (response?.rows) {
-          eventsData = response.rows;
-        } else if (response?.data) {
-          eventsData = response.data;
-        } else if (Array.isArray(response)) {
-          eventsData = response;
-        }
+        // Se asume el arreglo limpio que retorna tu servicio desempaquetado
+        const eventsData = Array.isArray(response) ? response : [];
 
         const processedEvents = eventsData.map(event => ({
           ...event,
@@ -102,7 +83,6 @@ export default function Events() {
     if (a === 'Por Confirmar') return 1;
     if (b === 'Por Confirmar') return -1;
 
-    // Separar el string "Mes Año" (Ej: "Noviembre 2025")
     const partsA = a.split(' ');
     const partsB = b.split(' ');
 
@@ -112,7 +92,6 @@ export default function Events() {
     const mesB = monthsDirectory[partsB[0]];
     const anoB = parseInt(partsB[1], 10);
 
-    // Crear objetos Date reales usando el primer día del mes para comparar con precisión
     const dateA = new Date(anoA, mesA, 1);
     const dateB = new Date(anoB, mesB, 1);
 
@@ -174,83 +153,15 @@ export default function Events() {
                     <div className="flex-grow h-[1px] bg-white/5" />
                   </div>
 
-                  {/* Grid de Eventos Unificado */}
+                  {/* Grid de Eventos Unificado delegando al DOM Virtual */}
                   <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-                    {groupedEvents[month].map((event, index) => {
-                      const imageSource = event.poster_url || event.image;
-                      // Al ser la página de eventos, forzamos la ruta base hacia '/eventos'
-                      const detailUrl = `/eventos/${event.id}-${convertToSlug(event.title)}`;
-
-                      return (
-                        <Link
-                          key={`event-${event.id || index}-${index}`}
-                          to={detailUrl}
-                          className="flex flex-col group cursor-pointer block movie-carousel-card"
-                        >
-                          {/* Contenedor del Póster */}
-                          <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
-                            
-                            {imageSource ? (
-                              <img 
-                                src={imageSource} 
-                                alt={event.title}
-                                onError={(e) => { 
-                                  e.target.onerror = null; 
-                                  e.target.style.display = 'none';
-                                  const fallback = e.target.nextSibling;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
-                                loading="lazy"
-                              />
-                            ) : null}
-
-                            {/* Caja de Fallback si no hay póster */}
-                            <div 
-                              className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4"
-                              style={{ display: imageSource ? 'none' : 'flex' }}
-                            >
-                              <span className="text-3xl mb-2">🗓️</span>
-                              <span className="text-[11px] uppercase tracking-wider font-bold text-center px-2">
-                                Sin Imagen Disponible
-                              </span>
-                            </div>
-
-                            {/* Botón Ver Detalles en Hover */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6 px-4 z-20">
-                              <span className="w-full py-2 bg-white text-black text-center font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-widest transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                                Ver Detalles
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Meta Información Inferior */}
-                          <div className="mt-3 text-left space-y-1.5 px-0.5">
-                            <h4 className="text-sm font-bold text-white tracking-wide group-hover:text-amber-400 line-clamp-1 transition-colors duration-300">
-                              {event.title}
-                            </h4>
-                            
-                            {/* Mapeo dinámico de géneros o categorías del evento */}
-                            <div className="flex flex-wrap gap-1.5 items-center">
-                              {event.genres && event.genres.map((g) => (
-                                <span 
-                                  key={g.id} 
-                                  className="px-2 py-0.5 bg-purple-600/20 border border-purple-500/40 rounded-md text-[9px] text-purple-300 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(168,85,247,0.15)]"
-                                >
-                                  {g._Genres?.description || g.description}
-                                </span>
-                              ))}
-
-                              {/* ETIQUETA DISTINTIVA DE EVENTO */}
-                              <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-md text-[9px] text-amber-400 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
-                                ⭐ Evento Especial
-                              </span>
-                            </div>
-                          </div>
-
-                        </Link>
-                      );
-                    })}
+                    {groupedEvents[month].map((event, index) => (
+                      <MovieCard 
+                        key={`event-${event.id || index}-${index}`}
+                        movie={event}
+                        isEventsPage={true}
+                      />
+                    ))}
                   </div>
 
                 </div>

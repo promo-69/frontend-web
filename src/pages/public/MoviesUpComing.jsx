@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import Footer from '../../components/ui/Footer';
+import MovieCard from '../../components/movies/MovieCard'; 
 import { getUpcomingMovies } from '../../services/movies.service';
 
-const convertToSlug = (title) => {
-  if (!title) return '';
-  return title
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") 
-    .replace(/[^a-z0-9\s-]/g, "")    
-    .replace(/\s+/g, "-")           
-    .trim();
-};
- 
 export default function MoviesUpComing() {
   const [billboardMovies, setBillboardMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,20 +11,9 @@ export default function MoviesUpComing() {
     const fetchMovies = async () => {
       try {
         const response = await getUpcomingMovies();
-        console.log("Respuesta exacta de la API:", response);
+        console.log("Respuesta exacta recibida del servicio:", response);
         
-        let moviesData = [];
-        if (response?.data?.rows) {
-          moviesData = response.data.rows;
-        } else if (response?.rows) {
-          moviesData = response.rows;
-        } else if (response?.data) {
-          moviesData = response.data;
-        } else if (Array.isArray(response)) {
-          moviesData = response;
-        }
-
-        setBillboardMovies(moviesData);
+        setBillboardMovies(Array.isArray(response) ? response : []);
       } catch (error) {
         console.error("Error cargando los próximos estrenos:", error);
       } finally {
@@ -46,7 +24,6 @@ export default function MoviesUpComing() {
     fetchMovies();
   }, []);
 
-  // --- FUNCIÓN DE AGRUPACIÓN POR MES (FILTRO FRONTEND) ---
   const getMoviesGroupedByMonth = () => {
     if (!Array.isArray(billboardMovies) || billboardMovies.length === 0) return {};
 
@@ -104,7 +81,6 @@ export default function MoviesUpComing() {
     const mesB = monthsDirectory[partsB[0]];
     const anoB = parseInt(partsB[1], 10);
 
-    // Crear objetos Date reales usando el primer día del mes para comparar con precisión
     const dateA = new Date(anoA, mesA, 1);
     const dateB = new Date(anoB, mesB, 1);
 
@@ -128,7 +104,7 @@ export default function MoviesUpComing() {
   return (
     <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
       
-      {/* Fondos ambientales sutiles unificados */}
+      {/* Fondos ambientales sutiles */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
 
@@ -166,84 +142,20 @@ export default function MoviesUpComing() {
                     <div className="flex-grow h-[1px] bg-white/5" />
                   </div>
 
-                  {/* Grid de Películas Unificado */}
+                  {/* Grid de Películas Unificado delegando al DOM Virtual */}
                   <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
                     {groupedMovies[month].map((movie, index) => {
-                      const imageSource = movie.poster_url || movie.image;
                       const isSpecialEvent = movie.type === 'special_event' || !!movie.event;
-                      const routePrefix = isSpecialEvent ? 'eventos' : 'movies';
-                      const detailUrl = `/${routePrefix}/${movie.id}-${convertToSlug(movie.title)}`;
-
+                      
                       return (
-                        <Link
+                        <MovieCard 
                           key={`${movie.type || 'upcoming'}-${movie.id || index}-${index}`}
-                          to={detailUrl}
-                          className="flex flex-col group cursor-pointer block movie-carousel-card"
-                        >
-                          {/* Contenedor del Póster */}
-                          <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm">
-                            
-                            {imageSource ? (
-                              <img 
-                                src={imageSource} 
-                                alt={movie.title}
-                                onError={(e) => { 
-                                  e.target.onerror = null; 
-                                  e.target.style.display = 'none';
-                                  const fallback = e.target.nextSibling;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700"
-                                loading="lazy"
-                              />
-                            ) : null}
-
-                            {/* Caja de Fallback si no hay póster */}
-                            <div 
-                              className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4"
-                              style={{ display: imageSource ? 'none' : 'flex' }}
-                            >
-                              <span className="text-3xl mb-2">🎬</span>
-                              <span className="text-[11px] uppercase tracking-wider font-bold text-center px-2">
-                                Sin Póster Disponible
-                              </span>
-                            </div>
-
-                            {/* Botón Ver Detalles en Hover */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6 px-4 z-20">
-                              <span className="w-full py-2 bg-white text-black text-center font-bold text-xs rounded-xl shadow-md transition-all uppercase tracking-widest transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                                Ver Detalles
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Meta Información Inferior */}
-                          <div className="mt-3 text-left space-y-1.5 px-0.5">
-                            <h4 className="text-sm font-bold text-white tracking-wide group-hover:text-amber-400 line-clamp-1 transition-colors duration-300">
-                              {movie.title}
-                            </h4>
-                            
-                            {/* Mapeo dinámico de géneros */}
-                            <div className="flex flex-wrap gap-1.5 items-center">
-                              {movie.genres && movie.genres.map((g) => (
-                                <span 
-                                  key={g.id} 
-                                  className="px-2 py-0.5 bg-purple-600/20 border border-purple-500/40 rounded-md text-[9px] text-purple-300 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(168,85,247,0.15)]"
-                                >
-                                  {g._Genres?.description || g.description}
-                                </span>
-                              ))}
-
-                              {/* ETIQUETA DE EVENTO */}
-                              {isSpecialEvent && (
-                                <span className="px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 rounded-md text-[9px] text-amber-400 font-extrabold tracking-wider uppercase shadow-[0_2px_6px_rgba(245,158,11,0.15)]">
-                                  ⭐ Evento Especial
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                        </Link>
+                          movie={{
+                            ...movie,
+                            isEvent: isSpecialEvent
+                          }}
+                          upcoming={true}
+                        />
                       );
                     })}
                   </div>
