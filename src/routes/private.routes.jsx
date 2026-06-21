@@ -1,6 +1,6 @@
 import { Route, Navigate, Outlet } from 'react-router-dom'
 import { useContext } from 'react'
-import { AuthContext } from '../context/AuthContext' // Ajusta la ruta a tu contexto
+import { AuthContext } from '../context/AuthContext'
 import Header from '../components/ui/Header'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
@@ -11,10 +11,20 @@ import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
 import Checkout from '../pages/private/buy/checkout'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
+import Subscriptions from '../pages/private/user/subscriptions'
 
 const PrivateLayout = () => {
-  const { user } = useContext(AuthContext)
-
+  const { user, initializing } = useContext(AuthContext)
+  if (initializing) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#231640] text-white items-center justify-center font-['Montserrat']">
+        <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
+          Verificando sesión...
+        </p>
+      </div>
+    )
+  }
+  
   if (!user) {
     return <Navigate to="/login" replace />
   }
@@ -33,11 +43,21 @@ const PrivateLayout = () => {
 export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
-      <Route path="/favorites" element={<Favorites />} />
+      {/* Rutas del header privadas */}
       <Route path="/profile" element={<Profile />} />
       <Route path="/fidelity" element={<Loyalty />} />
+      <Route path="/subscription" element={<Subscriptions />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
+  {/* <Route path="/loyalty-prices" element={<LoyaltyList />} /> */}
+  {/* <Route path="/room-rent" element={<RoomRent />} /> */}
+      
+      
+      <Route path="/favorites" element={<Favorites />} />
+
+      
+      
+
 
       {/* Flujo de compra completo protegido */}
       <Route

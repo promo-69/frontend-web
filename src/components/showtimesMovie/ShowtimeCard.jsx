@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import ModalMessage from '../ui/ModalMessage'
+import QuestionModal from '../ui/QuestionModal'
 import { useAuth } from '../../context/AuthContext'
 
 export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
@@ -18,19 +18,10 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
     if (isPassed) return
 
     if (!user) {
-      console.log('NO HAY USUARIO EN CONTEXTO, MOSTRAR MODAL')
       setShowLoginModal(true)
       return
     }
 
-    // Log para debug: confirmar IDs antes de navegar
-    console.log('ShowtimeCard.handleClick -> navigating to selectSeats', {
-      movieId,
-      showtimeId: showtime?.id,
-      cinemaId,
-    })
-
-    // Ya estamos obteniendo el cinemaId arriba
     navigate(`/selectSeats/${movieId}/${showtime.id}`, {
       state: { cinemaId },
     })
@@ -45,7 +36,6 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
     })
   }
 
-  // Helper para asignar estilos dinámicos y llamativos según el tipo de proyección
   const getProjectionBadgeStyles = (description) => {
     if (!description) return 'bg-white/5 text-gray-300 border-white/10'
     
@@ -100,7 +90,7 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
 
         {/* Fila Inferior: Contenedor de Badges Técnicos */}
         <div className="mt-4 flex flex-wrap gap-2 items-center">
-          {/* Badge de Proyección (¡El cambio principal!) */}
+          {/* Badge de Proyección */}
           {showtime.projection_type?.description && (
             <span className={`text-[10px] uppercase px-2.5 py-0.5 rounded-md border tracking-wide whitespace-nowrap shadow-sm ${getProjectionBadgeStyles(showtime.projection_type.description)}`}>
               {showtime.projection_type.description}
@@ -116,11 +106,15 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
         </div>
       </div>
 
+      {/* MODAL DE PREGUNTA AL DETECTAR QUE NO HAY USUARIO LOGEADO */}
       {showLoginModal && (
-        <ModalMessage
-          type="error"
-          message="Inicia sesión para comprar tus boletos"
-          onClose={() => {
+        <QuestionModal
+          title="¿Iniciar Sesión?"
+          message="Inicia sesión para seleccionar tus asientos y comprar tus boletos."
+          confirmText="Iniciar Sesión"
+          cancelText="Seguir Viendo"
+          onCancel={() => setShowLoginModal(false)} 
+          onConfirm={() => {
             setShowLoginModal(false)
             navigate('/login', {
               state: { from: location.pathname },

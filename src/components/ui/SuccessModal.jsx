@@ -5,11 +5,11 @@ const SuccessModal = ({ message, onClose }) => {
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose} // Cierra al hacer clic fuera del modal
+      onClick={onClose} 
     >
       <div 
         className="bg-[#231640] p-10 rounded-xl flex flex-col items-center justify-center border border-[#7B1A82] shadow-2xl max-w-sm w-full mx-4"
-        onClick={(e) => e.stopPropagation()} // Evita que el clic dentro del modal lo cierre
+        onClick={(e) => e.stopPropagation()} 
       >
         {/* Círculo Dorado con Icono */}
         <div className="bg-[#D9982F] w-16 h-16 rounded-full flex items-center justify-center mb-6 shadow-lg">
