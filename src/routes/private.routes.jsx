@@ -11,6 +11,7 @@ import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
 import Checkout from '../pages/private/buy/checkout'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
+import Subscriptions from '../pages/private/user/subscriptions'
 
 const PrivateLayout = () => {
   const { user } = useContext(AuthContext)
@@ -33,11 +34,21 @@ const PrivateLayout = () => {
 export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
-      <Route path="/favorites" element={<Favorites />} />
+      {/* Rutas del header privadas */}
       <Route path="/profile" element={<Profile />} />
       <Route path="/fidelity" element={<Loyalty />} />
+      <Route path="/subscription" element={<Subscriptions />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
+  {/* <Route path="/loyalty-prices" element={<LoyaltyList />} /> */}
+  {/* <Route path="/room-rent" element={<RoomRent />} /> */}
+      
+      
+      <Route path="/favorites" element={<Favorites />} />
+
+      
+      
+
 
       {/* Flujo de compra completo protegido */}
       <Route

@@ -92,6 +92,13 @@ function Header() {
         Fidelidad
       </Link>
       <Link
+        to="/subscription"
+        onClick={() => setIsUserMenuOpen(false)}
+        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+      >
+        Subscripciones de Peliculas
+      </Link>
+      <Link
         to="/my-orders"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
