@@ -14,6 +14,7 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
+import TicketSelector from '../../../components/selectSeats/TicketSelector'
 
 
 export default function SelectSeats() {
@@ -46,6 +47,40 @@ export default function SelectSeats() {
   const [loading, setLoading] = useState(true)
   const [quoteReady, setQuoteReady] = useState(false)
   const [quoteError, setQuoteError] = useState(null)
+
+  // ========================================================
+  // Contadores independientes para tipos de boletos
+  // ========================================================
+  const [ticketCounts, setTicketCounts] = useState({
+    1: 0, // Adulto
+    2: 0, // Niño
+    3: 0, // Tercera Edad
+  })
+  // Obtener el límite total permitido configurado por el usuario arriba
+  const totalTicketsAllowed = useMemo(() => {
+    return Object.values(ticketCounts).reduce((a, b) => a + b, 0)
+  }, [ticketCounts])
+  const handleIncrementTicket = (categoryId) => {
+    setTicketCounts((prev) => ({ ...prev, [categoryId]: prev[categoryId] + 1 }))
+  }
+  const handleDecrementTicket = (categoryId) => {
+    setTicketCounts((prev) => {
+      const current = prev[categoryId]
+      if (current === 0) return prev
+
+      const nextCounts = { ...prev, [categoryId]: current - 1 }
+      const newTotal = Object.values(nextCounts).reduce((a, b) => a + b, 0)
+      // Regla de consistencia preventiva: Si baja los contadores por debajo de lo que ya
+      // tiene bloqueado en el mapa de asientos, liberamos de forma segura el último interactuado.
+      if (selectedSeats.length > newTotal) {
+        const lastSeatId = selectedSeats[selectedSeats.length - 1]
+        if (lastSeatId) {
+          socketService.emit('unlock_seat', { seatId: lastSeatId })
+        }
+      }
+      return nextCounts
+    })
+  }
 
   // ============================
   // 1) Cargar showtime + mapa
@@ -188,7 +223,7 @@ export default function SelectSeats() {
       navigate('/')
     }
 
-    // Enlace en caliente si el canal físico parpadea y se reconecta de golpe
+    //reconectar
     const handleReconnectedEmit = () => {
       console.log(
         '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
@@ -230,10 +265,29 @@ export default function SelectSeats() {
     }
   }, [quoteReady, showtimeId])
 
-  // filtrar boletos para el ordersummary
+  // ========================================================
+  // 4) Filtrar boletos enriquecidos secuencialmente con audiencias
+  // ========================================================
   const fullSelectedSeatsObjects = useMemo(() => {
-    return seats.filter((s) => selectedSeats.includes(s.id))
-  }, [seats, selectedSeats])
+    //const fullSelectedSeatsObjects = useMemo(() => {
+    //return seats.filter((s) => selectedSeats.includes(s.id))
+    const filteredSeats = seats.filter((s) => selectedSeats.includes(s.id))
+    //}, [seats, selectedSeats])
+    // Construir una cola plana basada en las selecciones superiores
+    const audienceQueue = []
+    Object.entries(ticketCounts).forEach(([categoryId, count]) => {
+      for (let i = 0; i < count; i++) {
+        audienceQueue.push(Number(categoryId))
+      }
+    })
+    // Inyectamos secuencialmente a cada asiento el tipo de boleto correspondiente
+    return filteredSeats.map((seat, index) => {
+      return {
+        ...seat,
+        assignedAudienceId: audienceQueue[index] || 1, // Fallback seguro a Adulto (ID 1)
+      }
+    })
+  }, [seats, selectedSeats, ticketCounts])
 
   // ============================
   // 5) Toggle asiento
@@ -245,17 +299,37 @@ export default function SelectSeats() {
     if (seat.status === 'sold' || seat.status === 'locked') return
 
     if (seat.status === 'available') {
+      // 🛑 VALIDACIONES PREVENTIVAS DE SEGURIDAD INTERNA:
+      if (totalTicketsAllowed === 0) {
+        alert(
+          'Por favor, indica primero cuántos boletos deseas comprar en la sección superior.',
+        )
+        return
+      }
+      if (selectedSeats.length >= totalTicketsAllowed) {
+        alert(
+          `Ya has seleccionado la cantidad máxima de asientos permitida por tus boletos (${totalTicketsAllowed}).`,
+        )
+        return
+      }
+      // ✅ Solo si pasa la validación emite el bloqueo seguro al socket
       socketService.emit('lock_seat', { seatId })
     } else if (seat.status === 'selected') {
       socketService.emit('unlock_seat', { seatId })
     }
   }
 
-  // ============================
-  // 6) Navegar a confitería
-  // ============================
+  // ========================================================
+  // 6) Lógicas de Navegación (confiteria vs pagar)
+  // ========================================================
   const handleNext = () => {
-    navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
+    navigate(`/buy/${movieId}/${showtimeId}/confectionery`, {
+      state: { cinemaId },
+    })
+  }
+
+  const handleDirectCheckout = () => {
+    navigate(`/buy/${movieId}/${showtimeId}/checkout`, { state: { cinemaId } })
   }
 
   if (loading) {
@@ -297,6 +371,13 @@ export default function SelectSeats() {
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <ShowtimeHeader showtime={showtime} />
 
+        <TicketSelector
+          counts={ticketCounts}
+          onIncrement={handleIncrementTicket}
+          onDecrement={handleDecrementTicket}
+          maxAllowed={10} // Límite máximo general por transacción
+        />
+
         {selectedSeats.length > 0 && (
           <div className="space-y-4">
             <p className="text-center text-yellow-300 font-bold text-xl">
@@ -328,7 +409,9 @@ export default function SelectSeats() {
           </div>
 
           <OrderSummary
+            mode="seats"
             onNext={handleNext}
+            onDirectCheckout={handleDirectCheckout} 
             currentShowtime={showtime}
             selectedSeatsList={fullSelectedSeatsObjects}
           />
