@@ -1,5 +1,5 @@
 import React from 'react';
-import MovieCard from '../movies/MovieCard'; // Ajusta la ruta relativa si es necesario
+import MovieCard from '../movies/MovieCard'; 
 
 export default function HomeEvents({ events }) {
   if (!events || events.length === 0) {

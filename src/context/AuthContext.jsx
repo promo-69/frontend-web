@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react'
 import {
   loginRequest,
   logoutRequest,
@@ -6,109 +6,99 @@ import {
   getPermissionsRequest,
 } from '../services/auth.service'
 import { useLoading } from './LoadingContext'
-import { sendRecoveryEmailRequest } from '../services/auth.service'
-import { verifyRecoveryCodeRequest } from '../services/auth.service'
-import { resetPasswordRequest } from '../services/auth.service'
+import { 
+  sendRecoveryEmailRequest, 
+  verifyRecoveryCodeRequest, 
+  resetPasswordRequest 
+} from '../services/auth.service'
 
-
-export const AuthContext = createContext()
+export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [initializing, setInitializing] = useState(true)
   const { showLoader, hideLoader } = useLoading()
 
-  // 1. CARGAR SESIÓN INICIAL (Se ejecuta al recargar la página)
+  // Derivamos el estado de autenticación directamente del estado del usuario
+  const isAuthenticated = useMemo(() => !!user, [user])
+
+  // CARGAR SESIÓN INICIAL (Manejado de forma segura post-F5)
   useEffect(() => {
+    let isMounted = true
+
     async function initSession() {
       if (!localStorage.getItem('user_logged')) {
-        console.log(
-          'DEBUG CONTEXTO: No hay usuario logueado en localStorage. Modo invitado activo.',
-        )
-        setUser(null)
-        setInitializing(false)
+        console.log('DEBUG CONTEXTO: Modo invitado activo.')
+        if (isMounted) {
+          setUser(null)
+          setInitializing(false)
+        }
         return
       }
 
       showLoader()
       try {
         const resData = await refreshSessionRequest()
+        
+        if (!isMounted) return
 
-        if (resData && resData.data?.user) {
-          let u = resData.data.user
+        const userData = resData?.data?.user || resData?.data?.data?.user
+
+        if (userData) {
           try {
             const perms = await getPermissionsRequest()
-            u.permissions = perms || []
+            userData.permissions = perms || []
           } catch (e) {
             console.error('Error fetching permissions on refresh:', e)
+            userData.permissions = []
           }
-          setUser(u)
-          localStorage.setItem('user', JSON.stringify(u))
-        } else if (resData && resData.data?.data?.user) {
-          let u = resData.data.data.user
-          try {
-            const perms = await getPermissionsRequest()
-            u.permissions = perms || []
-          } catch (e) {
-            console.error('Error fetching permissions on refresh:', e)
-          }
-          setUser(u)
-          localStorage.setItem('user', JSON.stringify(u))
+          
+          setUser(userData)
+          localStorage.setItem('user', JSON.stringify(userData))
         } else {
-          console.warn(
-            "DEBUG CONTEXTO: El backend respondió exitosamente pero no se encontró la propiedad '.user'",
-          )
+          console.warn("DEBUG CONTEXTO: Respuesta exitosa sin objeto 'user'.")
           localStorage.removeItem('user_logged')
+          localStorage.removeItem('user')
           setUser(null)
         }
       } catch (err) {
-        console.error(
-          'CATCH INTERNO CONTEXTO - Error crítico en initSession:',
-          err,
-        )
+        if (!isMounted) return
+        console.error('DEBUG CONTEXTO: La sesión expiró o es inválida.', err?.response?.status)
+        
         localStorage.removeItem('user_logged')
+        localStorage.removeItem('user')
         setUser(null)
       } finally {
-        hideLoader()
-        setInitializing(false)
+        if (isMounted) {
+          hideLoader()
+          setInitializing(false)
+        }
       }
     }
 
     initSession()
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
-  // Escuchar eventos de logout emitidos por el interceptor (p.ej. refresh fallido)
   useEffect(() => {
     const handleExternalLogout = () => {
       localStorage.removeItem('user_logged')
+      localStorage.removeItem('user')
       setUser(null)
     }
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('auth:logout', handleExternalLogout)
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('auth:logout', handleExternalLogout)
-      }
-    }
+    window.addEventListener('auth:logout', handleExternalLogout)
+    return () => window.removeEventListener('auth:logout', handleExternalLogout)
   }, [])
 
-  // 2. INICIAR SESIÓN
-  const login = async (credentials) => {
-    
+  const login = useCallback(async (credentials) => {
     try {
       const loginRes = await loginRequest(credentials)
-      console.log(
-        'DEBUG CONTEXTO - Respuesta directa de loginRequest:',
-        loginRes,
-      )
-
-      // Intentamos tomar el usuario directamente del login primero
       let userData = loginRes?.data?.user || loginRes?.data?.data?.user
 
-      // Fallback: Si el backend no manda el usuario en el login, hacemos el refresh
       if (!userData) {
         const resData = await refreshSessionRequest()
         userData = resData?.data?.user || resData?.data?.data?.user
@@ -117,8 +107,7 @@ export function AuthProvider({ children }) {
       if (!userData) {
         return {
           success: false,
-          message:
-            'No se pudieron recuperar los datos del usuario tras el login.',
+          message: 'No se pudieron recuperar los datos del usuario tras el login.',
         }
       }
 
@@ -127,6 +116,7 @@ export function AuthProvider({ children }) {
         userData.permissions = perms || []
       } catch (e) {
         console.error('Error fetching permissions on login:', e)
+        userData.permissions = []
       }
 
       setUser(userData)
@@ -135,108 +125,85 @@ export function AuthProvider({ children }) {
 
       return { success: true, user: userData }
     } catch (error) {
-      // ?. para evitar que la consola rompa la app
-      console.log('ERROR COMPLETO LOGIN:', error?.response)
-      console.error('CATCH INTERNO CONTEXTO - Error en login:', error)
-
+      console.error('CATCH CONTEXTO - Error en login:', error)
       return {
         success: false,
         message: error?.response?.data?.message || 'Error al iniciar sesión',
         status: error?.response?.status || 500,
         code: error?.response?.data?.code || 'UNKNOWN_ERROR',
       }
-    } 
-  }
+    }
+  }, [])
 
-  //recuperar contraseña paso 1:enviar correo
-  const sendRecoveryEmail = async (email) => {
+  const logout = useCallback(async () => {
+    showLoader()
+    try {
+      await logoutRequest()
+    } catch (err) {
+      console.error('Error en llamada a API logout:', err)
+    } finally {
+      localStorage.removeItem('user_logged')
+      localStorage.removeItem('user')
+      setUser(null)
+      hideLoader()
+    }
+  }, [showLoader, hideLoader])
+
+  const sendRecoveryEmail = useCallback(async (email) => {
     try {
       const res = await sendRecoveryEmailRequest(email)
       return { success: true, data: res }
     } catch (error) {
-      console.error('ERROR EN sendRecoveryEmail:', error)
-      return {
-        success: false,
-        message: error.response?.data?.message || 'No se pudo enviar el correo',
-      }
+      return { success: false, message: error.response?.data?.message || 'Error' }
     }
-  }
+  }, [])
 
-  //recuperar contraseña paso 2:validar código
-  const verifyRecoveryCode = async (email, code) => {
+  const verifyRecoveryCode = useCallback(async (email, code) => {
     try {
       const res = await verifyRecoveryCodeRequest(email, code)
       return { success: true, data: res }
     } catch (error) {
-      console.error('ERROR EN verifyRecoveryCode:', error)
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Código inválido',
-      }
+      return { success: false, message: error.response?.data?.message || 'Código inválido' }
     }
-  }
+  }, [])
 
-  //recuperar contraseña paso 3:restablecer contraseña
-  const resetPassword = async ({ email, newPassword, resetToken }) => {
+  const resetPassword = useCallback(async (payload) => {
     try {
-      const res = await resetPasswordRequest({ email, newPassword, resetToken })
+      const res = await resetPasswordRequest(payload)
       return { success: true, data: res }
     } catch (error) {
-      console.error('ERROR EN resetPassword:', error)
-      return {
-        success: false,
-        message:
-          error.response?.data?.message || 'No se pudo cambiar la contraseña',
-      }
+      return { success: false, message: error.response?.data?.message || 'Error' }
     }
-  }
+  }, [])
 
+  const updateProfileState = useCallback((newEmail) => {
+    setUser((prev) => (prev ? { ...prev, email: newEmail, personalEmail: newEmail } : null))
+  }, [])
 
-  // 3. CERRAR SESIÓN
-  const logout = async () => {
-    showLoader()
-    try {
-      await logoutRequest()
-      localStorage.removeItem('user_logged')
-      setUser(null)
-    } catch (err) {
-      console.error('CATCH INTERNO CONTEXTO - Error en logout:', err)
-    } finally {
-      hideLoader()
-    }
-  }
-
-  // actualizar perfil de usuario 
-  const updateProfileState = (newEmail) => {
-    setUser((prev) => {
-      if (!prev) return null
-      return {
-        ...prev,
-        email: newEmail,
-        personalEmail: newEmail,
-      }
-    })
-  }
+  const contextValue = useMemo(() => ({
+    user,
+    setUser,
+    isAuthenticated,
+    initializing,
+    login,
+    logout,
+    sendRecoveryEmail,
+    verifyRecoveryCode,
+    resetPassword,
+    updateProfileState
+  }), [user, isAuthenticated, initializing, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState])
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        setUser,
-        login,
-        logout,
-        sendRecoveryEmail,
-        verifyRecoveryCode,
-        resetPassword,
-        updateProfileState,
-        initializing,
-      }}
-    >
-      {initializing ? null : children}
+    <AuthContext.Provider value={contextValue}>
+      {children}
     </AuthContext.Provider>
   )
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider')
+  }
+  return context
 }

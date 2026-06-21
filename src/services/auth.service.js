@@ -9,7 +9,7 @@ export const loginRequest = async (data) => {
   })
   return response
 }
-
+ 
 // ---------------------------------------------------------
 // OBTENER USUARIO ACTUAL 
 // ---------------------------------------------------------
@@ -18,11 +18,11 @@ export const refreshSessionRequest = async () => {
     const response = await performRefresh()
     return response
   } catch (error) {
-    // Log detallado para diagnosticar respuestas 500/unauthorized en refresh
     const status = error.response?.status
     const data = error.response?.data
     console.error('refreshSessionRequest error:', { status, data, message: error.message })
-    return null
+    
+    throw error 
   }
 }
 

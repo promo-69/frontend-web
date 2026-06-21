@@ -17,7 +17,7 @@ const NAV_LINKS = [
 
 function Header() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, initializing } = useAuth()
   const { cart } = useCart()
 
   // MENÚS DESPLEGABLES
@@ -92,6 +92,13 @@ function Header() {
         Fidelidad
       </Link>
       <Link
+        to="/subscription"
+        onClick={() => setIsUserMenuOpen(false)}
+        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+      >
+        Subscripciones de Peliculas
+      </Link>
+      <Link
         to="/my-orders"
         onClick={() => setIsUserMenuOpen(false)}
         className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
@@ -157,7 +164,6 @@ function Header() {
         )}
       </AnimatePresence>
 
-      {/* py-2 en móviles y h-16 en pantallas medianas/grandes para hacerlo más delgado */}
       <div className="relative z-[60] flex flex-wrap md:flex-nowrap items-center justify-between px-4 max-w-7xl mx-auto py-2 md:py-0 md:h-16 gap-y-2">
         {/* LOGO */}
         <div
@@ -212,19 +218,21 @@ function Header() {
           </ul>
         </nav>
 
-        {/* ACCIONES */}
-        <div className="order-2 md:order-3 flex items-center gap-2 md:gap-4 min-w-0">
-          {/* LOGIN / PERFIL */}
-          {!isLoggedIn ? (
+        {/* ACCIONES INTERCEPTADAS POR INITIALIZING */}
+        <div className="order-2 md:order-3 flex items-center gap-2 md:gap-4 min-w-[100px] sm:min-w-[130px] justify-end">
+          {initializing ? (
+            // 🟢 Mientras verifica la sesión, dejamos un espacio vacío o un micro-spinner discreto
+            <div className="w-5 h-5 border-2 border-[#F6AD38] border-t-transparent rounded-full animate-spin opacity-40 mr-4" />
+          ) : !isLoggedIn ? (
             <button
               onClick={() => navigate('/login')}
-              className="flex items-center gap-1 border border-[#F6AD38] text-[#F6AD38] px-2 sm:px-3 md:px-5 py-1 rounded-full font-bold text-[8px] sm:text-[10px] md:text-sm hover:bg-[#F6AD38] hover:text-[#2A154B] transition-all whitespace-nowrap"
+              className="flex items-center gap-1 border border-[#F6AD38] text-[#F6AD38] px-2 sm:px-3 md:px-5 py-1 rounded-full font-bold text-[8px] sm:text-[10px] md:text-sm hover:bg-[#F6AD38] hover:text-[#2A154B] transition-all whitespace-nowrap animate-fadeIn"
             >
               INGRESAR
               <LoginIcon className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 shrink-0" />
             </button>
           ) : (
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0 animate-fadeIn">
               {/* CARRITO */}
               <div className="relative">
                 <button
