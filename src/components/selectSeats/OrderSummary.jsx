@@ -4,7 +4,9 @@ import { usePurchase } from '../../context/PurchaseContext'
 
 export default function OrderSummary({
   onNext,
-  mode = 'flow',
+  onDirectCheckout,
+  //mode = 'flow',
+  mode = 'seats',
   currentShowtime = null,
   selectedSeatsList = [],
 }) {
@@ -34,9 +36,8 @@ export default function OrderSummary({
     const matrix = currentShowtime.pricing.pricing_matrix
 
     const list = selectedSeatsList.map((seat) => {
-
       const currentAudienceId = seat.assignedAudienceId || 1
-      // Cruzamos el ID de categoría del asiento con el ID 
+      // Cruzamos el ID de categoría del asiento con el ID
       const priceMatch = matrix.find(
         (p) =>
           p.seat_category.id === seat.category.id &&
@@ -198,18 +199,46 @@ export default function OrderSummary({
         </div>
       </div>
 
-      {/* 🚀 BOTÓN ACCIÓN */}
-      <button
-        onClick={onNext}
-        disabled={
-          !isPublicMode &&
-          selectedSeats.length === 0 &&
-          cart.products.length === 0
-        }
-        className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
-      >
-        {isPublicMode ? 'Proceder al Pago' : 'Siguiente Paso'}
-      </button>
+      {/* ========================================================
+          🚀 BLOQUE DE BOTONES DE ACCIÓN CONFIGURABLE
+         ======================================================== */}
+      <div className="space-y-2 pt-2">
+        {/* CASO A: desde Seleccion de asientos (Mostramos dos opciones) */}
+        {mode === 'seats' && (
+          <>
+            {/* Botón Principal: Continuar agregando golosinas */}
+            <button
+              onClick={onNext}
+              disabled={isSelectionEmpty}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
+            >
+              🍿 Añadir Confitería
+            </button>
+
+            {/* Botón Secundario: Ir directo a pagar saltándose la dulcería */}
+            <button
+              onClick={onDirectCheckout}
+              disabled={isSelectionEmpty}
+              className="w-full border border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 disabled:border-gray-600 disabled:text-gray-500 disabled:hover:bg-transparent disabled:cursor-not-allowed py-2.5 rounded-xl font-bold transition uppercase tracking-wider text-xs"
+            >
+              🎟️ Omitir e ir a Pagar
+            </button>
+          </>
+        )}
+
+        {/* CASO B: Esta en (Confitería)*/}
+        {mode !== 'seats' && (
+          <button
+            onClick={onNext}
+            disabled={
+              isPublicMode ? cart.products.length === 0 : isSelectionEmpty
+            }
+            className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
+          >
+            {isPublicMode ? 'Proceder al Pago' : 'Confirmar y Pagar'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

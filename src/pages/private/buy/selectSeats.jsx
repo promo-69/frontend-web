@@ -269,10 +269,10 @@ export default function SelectSeats() {
   // 4) Filtrar boletos enriquecidos secuencialmente con audiencias
   // ========================================================
   const fullSelectedSeatsObjects = useMemo(() => {
-    const fullSelectedSeatsObjects = useMemo(() => {
-      return seats.filter((s) => selectedSeats.includes(s.id))
-      const filteredSeats = seats.filter((s) => selectedSeats.includes(s.id))
-    }, [seats, selectedSeats])
+    //const fullSelectedSeatsObjects = useMemo(() => {
+    //return seats.filter((s) => selectedSeats.includes(s.id))
+    const filteredSeats = seats.filter((s) => selectedSeats.includes(s.id))
+    //}, [seats, selectedSeats])
     // Construir una cola plana basada en las selecciones superiores
     const audienceQueue = []
     Object.entries(ticketCounts).forEach(([categoryId, count]) => {
@@ -319,11 +319,17 @@ export default function SelectSeats() {
     }
   }
 
-  // ============================
-  // 6) Navegar a confitería
-  // ============================
+  // ========================================================
+  // 6) Lógicas de Navegación (confiteria vs pagar)
+  // ========================================================
   const handleNext = () => {
-    navigate(`/buy/${movieId}/${showtimeId}/confectionery`)
+    navigate(`/buy/${movieId}/${showtimeId}/confectionery`, {
+      state: { cinemaId },
+    })
+  }
+
+  const handleDirectCheckout = () => {
+    navigate(`/buy/${movieId}/${showtimeId}/checkout`, { state: { cinemaId } })
   }
 
   if (loading) {
@@ -403,7 +409,9 @@ export default function SelectSeats() {
           </div>
 
           <OrderSummary
+            mode="seats"
             onNext={handleNext}
+            onDirectCheckout={handleDirectCheckout} 
             currentShowtime={showtime}
             selectedSeatsList={fullSelectedSeatsObjects}
           />
