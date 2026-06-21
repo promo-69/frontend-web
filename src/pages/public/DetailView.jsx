@@ -22,14 +22,11 @@ export default function DetailView() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  // Reactivamos el estado dinámico de autenticación
   const { isAuthenticated } = useAuth()
 
-  // Identificar pelicula o evento
   const isMovie = !!movieSlug
   const activeSlug = movieSlug || eventSlug
 
-  // Helpers internos para manejo preciso de fechas sin desfase horario
   const getLocalDateString = (date) => {
     const offset = date.getTimezoneOffset()
     const localDate = new Date(date.getTime() - (offset * 60 * 1000))
@@ -46,7 +43,7 @@ export default function DetailView() {
   const [loadingShowtimes, setLoadingShowtimes] = useState(false)
   const [isVideoOpen, setIsVideoOpen] = useState(false)
 
-  // Estado para manejar el listado local de suscripciones del usuario activo
+  // Estado local de suscripciones del usuario activo
   const [userSubscriptions, setUserSubscriptions] = useState([])
 
   // Estados de control de Modales Declarativos
@@ -62,7 +59,7 @@ export default function DetailView() {
     })
   }, [activeSlug])
 
-  // Efecto para obtener las suscripciones si el usuario está autenticado
+  // Efecto para obtener las suscripciones con tolerancia a cambios del backend
   useEffect(() => {
     async function fetchSubscriptions() {
       if (!isAuthenticated) {
@@ -71,10 +68,11 @@ export default function DetailView() {
       }
       try {
         const res = await getMovieSubscriptions()
-        const rawData = res?.data ? res.data : res
+        // Blindaje completo ante reestructuraciones de David/Alirio en el JSON de respuesta
+        const rawData = res?.data || res?.subscriptions || res
+
         setUserSubscriptions(Array.isArray(rawData) ? rawData : [])
       } catch (error) {
-        // Mantenemos solo reportes de fallos estructurales de red/servidor
         setUserSubscriptions([])
       }
     }
@@ -192,11 +190,6 @@ export default function DetailView() {
   const entityId = activeSlug ? activeSlug.split('-')[0] : null
   const isUpcoming = item.lifecycle?.toLowerCase().includes('próximamente') || item.lifecycle?.toLowerCase().includes('proximamente')
 
-  // Comprobamos si el ID de la película actual está presente en la lista del usuario logueado
-  const isCurrentlySubscribed = userSubscriptions.some(
-    (sub) => String(sub.movie_id || sub.id || sub.movieId) === String(item.id)
-  )
-
   return (
     <div className="min-h-screen bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] text-white pb-20">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 md:px-10 pt-6 md:pt-10">
@@ -278,7 +271,7 @@ export default function DetailView() {
                 </div>
               )}
               
-              {/* BOTONES ACCIÓN (TRAILER / SUSCRIPCIÓN) */}
+              {/* BOTONES ACCIÓN */}
               <div className="col-span-2 pt-2 border-t border-white/5 flex flex-col sm:flex-row gap-3">
                 {item.trailer_url && (
                   <button 
@@ -292,19 +285,27 @@ export default function DetailView() {
                   </button>
                 )}
 
-                {/* BOTÓN DE SUSCRIPCIÓN ADAPTADO CON VERIFICACIÓN INTERNA POR LISTA */}
+                {/* BOTÓN DE SUSCRIPCIÓN ADAPTADO CON ESCANEO MULTI-LLAVE */}
                 {isUpcoming && (
                   <SubscribeButton 
                     movieId={item.id}
-                    initialIsSubscribed={isCurrentlySubscribed}
+                    initialIsSubscribed={userSubscriptions.some(sub => {
+                      // Agregamos sub?.movie y sub?._Movies?.id que es como viene en tu JSON real
+                      const subMovieId = sub?.movie || sub?._Movies?.id || sub?.movie_id || sub?.id || sub?.movieId || sub?.Movie?.id;
+                      return String(subMovieId) === String(item.id);
+                    })}
                     onAuthRequired={() => setShowLoginModal(true)}
                     onSuccess={(message) => {
                       setSuccessModalMessage(message)
                       
                       if (message.includes('removida')) {
-                        setUserSubscriptions(prev => prev.filter(sub => String(sub.movie_id || sub.id) !== String(item.id)))
+                        setUserSubscriptions(prev => prev.filter(sub => {
+                          const subMovieId = sub?.movie || sub?._Movies?.id || sub?.movie_id || sub?.id || sub?.movieId || sub?.Movie?.id;
+                          return String(subMovieId) !== String(item.id);
+                        }))
                       } else {
-                        setUserSubscriptions(prev => [...prev, { movie_id: item.id }])
+                        // Para mantener sincronizado el estado local inmediatamente al hacer click
+                        setUserSubscriptions(prev => [...prev, { movie: Number(item.id) }])
                       }
                     }}
                   />
@@ -314,7 +315,7 @@ export default function DetailView() {
           </div>
         </div>
 
-        {/* SECCIÓN HORARIOS, FECHAS Y SUCURSALES */}
+        {/* SECCIÓN HORARIOS */}
         <div className="mt-16 border-t border-white/10 pt-10 text-left">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div>
@@ -387,7 +388,7 @@ export default function DetailView() {
           </div>
         )}
 
-        {/* MODAL DE VALIDACIÓN DE INICIO DE SESIÓN COMPARTIDO */}
+        {/* MODAL DE INICIO DE SESIÓN */}
         {showLoginModal && (
           <QuestionModal
             title="¿Iniciar Sesión?"

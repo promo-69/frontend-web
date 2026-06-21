@@ -14,18 +14,21 @@ export default function SubscribeButton({ movieId, initialIsSubscribed = false, 
 
   const handleToggle = async () => {
     if (!isAuthenticated) {
-      onAuthRequired() // Llama al modal declarativo del padre
+      onAuthRequired() 
       return
     }
 
     setLoading(true)
     try {
+      // Forzamos el ID de la entidad a número/string limpio según corresponda
+      const targetId = Number(movieId)
+
       if (isSubscribed) {
-        await unsubscribeFromMovie(movieId)
+        await unsubscribeFromMovie(targetId)
         setIsSubscribed(false)
         onSuccess('Suscripción removida correctamente.')
       } else {
-        await subscribeToMovie(movieId)
+        await subscribeToMovie(targetId)
         setIsSubscribed(true)
         onSuccess('¡Te has suscrito con éxito! Te avisaremos el día del estreno.')
       }
@@ -58,7 +61,7 @@ export default function SubscribeButton({ movieId, initialIsSubscribed = false, 
       ) : (
         <>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-            <path d="M5.85 3.5a.75.75 0 0 0-1.117-1A9.719 9.719 0 0 0 2.25 9.25a.75.75 0 0 0 1.5 0c0-1.996.643-3.842 1.735-5.343ZM19.267 2.5a.75.75 0 1 0-1.118 1a8.22 8.22 0 0 1 1.735 5.343.75.75 0 0 0 1.5 0 9.719 9.719 0 0 0-2.117-6.743ZM12 1.5a.75.75 0 0 0-.75.75v1.5a.75.75 0 0 0 1.5 0v-1.5A.75.75 0 0 0 12 1.5ZM4.331 18.232a.75.75 0 0 0-.832 1.25A11.936 11.936 0 0 0 12 22.5a11.936 11.936 0 0 0 8.501-3.018.75.75 0 0 0-.832-1.25A10.436 10.436 0 0 1 12 21a10.436 10.436 0 0 1-7.669-2.768Z" />
+            <path d="M5.85 3.5a.75.75 0 0 0-1.117-1A9.719 9.719 0 0 0 2.25 9.25a.75.75 0 0 0 1.5 0c0-1.996.643-3.842 1.735-5.343ZM19.267 2.5a.75.75 0 1 0-1.118 1a8.22 8.22 0 0 1 1.735 5.343.75.75 0 0 0 1.5 0 9.719 9.719 0 0 0-2.117-6.743ZM19.267 2.5a.75.75 0 1 0-1.118 1a8.22 8.22 0 0 1 1.735 5.343.75.75 0 0 0 1.5 0 9.719 9.719 0 0 0-2.117-6.743ZM12 1.5a.75.75 0 0 0-.75.75v1.5a.75.75 0 0 0 1.5 0v-1.5A.75.75 0 0 0 12 1.5ZM4.331 18.232a.75.75 0 0 0-.832 1.25A11.936 11.936 0 0 0 12 22.5a11.936 11.936 0 0 0 8.501-3.018.75.75 0 0 0-.832-1.25A10.436 10.436 0 0 1 12 21a10.436 10.436 0 0 1-7.669-2.768Z" />
             <path fillRule="evenodd" d="M12 4a6 6 0 0 0-6 6v3.586l-.707.707A1 1 0 0 0 6 16h12a1 1 0 0 0 .707-1.707L18 13.586V10a6 6 0 0 0-6-6Zm0 14a3 3 0 0 1-2.83-2h5.66A3 3 0 0 1 12 18Z" clipRule="evenodd" />
           </svg>
           Avisarme cuando estrene
