@@ -12,7 +12,7 @@ export default function TicketSelector({
     {
       id: 3,
       name: 'Tercera Edad',
-      description: 'Mayores de 60 años / Personas con discapacidad',
+      description: 'Mayores de 60 años',
     },
   ]
 
@@ -21,7 +21,7 @@ export default function TicketSelector({
   return (
     <div className="bg-[#2D1748]/40 border border-purple-900/30 p-5 rounded-xl text-white my-4 shadow-inner">
       <h3 className="text-sm font-bold text-[#F6AD38] uppercase tracking-wider mb-3">
-        1. Selecciona la cantidad y tipo de boletos
+        Selecciona la cantidad y tipo de boletos
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
