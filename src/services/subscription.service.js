@@ -37,7 +37,7 @@ export const unsubscribeFromMovie = async (movieId) => {
 export const unsubscribeFromMoviesBatch = async (movieIds) => {
   try {
     const response = await api.delete('/users/me/movie-subscriptions', {
-      data: { movieIds }
+      data: movieIds 
     })
     return response.data
   } catch (error) {
