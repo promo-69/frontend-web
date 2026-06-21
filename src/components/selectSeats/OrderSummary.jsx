@@ -25,15 +25,33 @@ export default function OrderSummary({
   // 💸 CÁLCULO DE BOLETOS BASADO EN LA MATRIZ DE PRECIOS
   // ========================================================
   const ticketsCalculated = useMemo(() => {
+    console.log('=== [OrderSummary] Ejecutando ticketsCalculated ===')
+    console.log('isPublicMode:', isPublicMode)
+    console.log('selectedSeatsList longitud:', selectedSeatsList?.length)
+    console.log(
+      'pricing_matrix disponible:',
+      !!currentShowtime?.pricing?.pricing_matrix,
+    )
+    console.log('Estructura completa de currentShowtime:', currentShowtime)
+
     if (
       isPublicMode ||
       !selectedSeatsList.length ||
-      !currentShowtime?.pricing?.pricing_matrix
+      //!currentShowtime?.pricing?.pricing_matrix
+      !selectedSeatsList.length
     ) {
+      console.warn(
+        '[OrderSummary] Salida prematura: No hay asientos seleccionados o es modo público.',
+      )
       return { list: [], subtotal: 0 }
     }
 
-    const matrix = currentShowtime.pricing.pricing_matrix
+    const matrix = currentShowtime?.pricing?.pricing_matrix || []
+    if (matrix.length === 0) {
+      console.warn(
+        '[OrderSummary] ¡Alerta! La matriz de precios viene vacía de la API.',
+      )
+    }
 
     const list = selectedSeatsList.map((seat) => {
       const currentAudienceId = seat.assignedAudienceId || 1
@@ -50,7 +68,11 @@ export default function OrderSummary({
       // Si no hay match en la matriz, usamos el precio base del showtime o el quemado en el asiento
       const finalPrice = priceMatch
         ? priceMatch.final_price
-        : seat.price || currentShowtime.pricing.base_price || 6.0
+        : seat.price || currentShowtime.pricing.base_price || 6.0;
+
+        console.log(
+          `Asiento ${seat.label || seat.id}: Precio asignado -> $${finalPrice}`,
+        )
 
       return {
         id: seat.id || seat.seatId,
@@ -64,6 +86,7 @@ export default function OrderSummary({
     })
 
     const subtotal = list.reduce((sum, ticket) => sum + ticket.price, 0)
+    console.log('Subtotal final de boletos calculado:', subtotal)
 
     return { list, subtotal }
   }, [selectedSeatsList, currentShowtime, isPublicMode])

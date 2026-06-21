@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react'
 import {
   initializeOrderQuote,
-  deleteOrderSessionWithRetries,
+  getOrderSessionDetails,
+  deleteOrderSessionWithRetries
 } from '../services/orders.service'
 import socketService from '../services/socket.service'
 
@@ -21,59 +22,76 @@ export function PurchaseProvider({ children }) {
   // =====================================================
   // 1) Inicializar o recuperar sesión de compra (quote)
   // =====================================================
-  const startQuote = async (cinemaId) => {
-    if (!cinemaId) return false
+  const startQuote = async (targetCinemaId) => {
+    if (!targetCinemaId) return false
 
-    try {
-      console.log(
-        '[PurchaseContext] Verificando existencia de sesión en el servidor...',
-      )
-      const sessionData = await getOrderSessionDetails()
-
-      if (sessionData && sessionData.success && sessionData.data) {
-        const activeSession = sessionData.data
-        console.log(
-          '[PurchaseContext] Sesión activa recuperada del servidor:',
-          activeSession,
-        )
-
-        // Si el servidor ya tiene una sesion guardada en Redis, usamos ese, si no, el que viene por parámetro
-        setCinemaId(activeSession.cinemaId || cinemaId)
-
-        const expires = activeSession.expires_in || 300
-        setExpiresAt(Date.now() + expires * 1000)
-        setTimeLeft(expires)
-
-        quoteInitializedRef.current = true
-        return true
-      }
-    } catch (err) {
-      console.log(
-        '[PurchaseContext] No hay sesión activa previa. Procediendo a crear una nueva...',
-      )
-    }
-
+    // Si ya fue inicializada con éxito por este contexto en este ciclo, evitamos re-peticiones
     if (quoteInitializedRef.current) return true
+    quoteInitializedRef.current = true
 
     try {
-      console.log(
-        '[PurchaseContext] Creando una nueva cotización (Quote) para la sucursal:',
-        cinemaId,
-      )
+      console.log('[PurchaseContext] Intentando crear la cotización primero en el servidor...')
       
-      const resp = await initializeOrderQuote({ cinema: Number(cinemaId) })
+      const resp = await initializeOrderQuote({
+        cinema: Number(targetCinemaId)
+      })
 
+      // Si se crea con éxito, extraemos y configuramos los tiempos de Redis
       const expires = resp?.data?.expires_in || resp?.expires_in || 300
       setExpiresAt(Date.now() + expires * 1000)
       setTimeLeft(expires)
-      setCinemaId(cinemaId) 
+      setCinemaId(targetCinemaId)
 
-      quoteInitializedRef.current = true
       return true
     } catch (err) {
-      console.error('Error iniciando quote en Context:', err)
-      quoteInitializedRef.current = false
-      return false
+      const status = err?.response?.status
+      console.warn(`[PurchaseContext] Error al crear cotización (Status: ${status}). Intentando rescatar sesión existente...`)
+
+      if (status === 409) {
+        try {
+          const existingSession = await getOrderSessionDetails()
+          if (!existingSession?.data?.session) {
+            throw err
+          }
+
+          const activeSession = existingSession.data.session
+          console.log('[PurchaseContext] Sesión concurrente (409) recuperada exitosamente:', activeSession)
+
+          setCinemaId(activeSession.cinemaId || targetCinemaId)
+          
+          const expires = existingSession.data.expires_in || 300
+          setExpiresAt(Date.now() + expires * 1000)
+          setTimeLeft(expires)
+
+          return true
+        } catch (innerErr) {
+          console.error('[PurchaseContext] No se pudo reutilizar la sesión tras el conflicto 409:', innerErr)
+          quoteInitializedRef.current = false
+          return false
+        }
+      } else {
+        try {
+          const existingSession = await getOrderSessionDetails()
+          if (!existingSession?.data?.session) {
+            throw err
+          }
+
+          const activeSession = existingSession.data.session
+          console.log('[PurchaseContext] Sesión alternativa recuperada exitosamente tras error:', activeSession)
+
+          setCinemaId(activeSession.cinemaId || targetCinemaId)
+          
+          const expires = existingSession.data.expires_in || 300
+          setExpiresAt(Date.now() + expires * 1000)
+          setTimeLeft(expires)
+
+          return true
+        } catch (innerErr) {
+          console.error('[PurchaseContext] Error absoluto: No se pudo crear ni recuperar ninguna sesión activa:', innerErr)
+          quoteInitializedRef.current = false
+          return false
+        }
+      }
     }
   }
 
