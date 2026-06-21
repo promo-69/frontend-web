@@ -77,6 +77,8 @@ export default function OrderSummary({
   const globalIva = globalSubtotal * 0.16 // IVA del 16%
   const globalTotal = globalSubtotal + globalIva
 
+  const isSelectionEmpty = !isPublicMode && selectedSeatsList.length === 0
+
   // 📝 CONSOLE.LOG EXCLUSIVO PARA RECTIFICAR LA ESTRUCTURA QUE SE ENVIARÁ AL CHECKOUT
   console.log('--- 🛒 INFORMACIÓN PREPARADA PARA EL CHECKOUT ---', {
     showtimeId: currentShowtime?.id || 'No definido',
