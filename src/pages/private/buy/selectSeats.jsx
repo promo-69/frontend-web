@@ -301,14 +301,26 @@ export default function SelectSeats() {
   // Sincronización Automática con el CartContext
   // ========================================================
   useEffect(() => {
+    console.log('=== [SelectSeats EFFECT] Evaluando asientos ===')
+    console.log(
+      'Asientos calculados en el mapa (fullSelectedSeatsObjects):',
+      fullSelectedSeatsObjects,
+    )
+    console.log(
+      'Tickets actualmente guardados en el Cart Global:',
+      cart.tickets,
+    )
     if (fullSelectedSeatsObjects.length === 0) {
       if (cart.tickets.length > 0) {
-        fullSelectedSeatsObjects.forEach((t) => removeTicket(t.seatId))
+        cart.tickets.forEach((cartTicket) => removeTicket(cartTicket.seatId))
       }
       return
     }
 
     fullSelectedSeatsObjects.forEach((ticket) => {
+      console.log(
+        `-> Sincronizando asiento ${ticket.seatId} hacia el CartContext`,
+      )
       addTicket(ticket)
     })
 
@@ -320,7 +332,7 @@ export default function SelectSeats() {
         removeTicket(cartTicket.seatId)
       }
     })
-  }, [fullSelectedSeatsObjects])
+  }, [fullSelectedSeatsObjects, cart.tickets, addTicket, removeTicket])
 
   // ============================
   // Toggle asiento
@@ -357,7 +369,7 @@ export default function SelectSeats() {
   // ============================
   const handleCancelPurchase = () => {
     cancelPurchase('manual')
-    clearCart() // Asegura limpiar la persistencia local de la transacción entera
+    clearCart() 
     navigate('/')
   }
 
