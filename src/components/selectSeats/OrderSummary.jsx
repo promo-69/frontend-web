@@ -37,21 +37,26 @@ export default function OrderSummary({
 
     const list = selectedSeatsList.map((seat) => {
       const currentAudienceId = seat.assignedAudienceId || 1
-      // Cruzamos el ID de categoría del asiento con el ID
+
+      const seatCategoryId =
+        seat.category?.id || seat.seat_category_id || seat.seatCategoryId || 1
+
       const priceMatch = matrix.find(
         (p) =>
-          p.seat_category.id === seat.category.id &&
-          p.audience_category.id === currentAudienceId,
+          p.seat_category?.id === seatCategoryId &&
+          p.audience_category?.id === currentAudienceId,
       )
 
+      // Si no hay match en la matriz, usamos el precio base del showtime o el quemado en el asiento
       const finalPrice = priceMatch
         ? priceMatch.final_price
-        : currentShowtime.pricing.base_price || 6.0
+        : seat.price || currentShowtime.pricing.base_price || 6.0
 
       return {
-        id: seat.id,
-        label: seat.label,
-        categoryName: seat.category.description,
+        id: seat.id || seat.seatId,
+        label: seat.label || `${seat.row}${seat.column}`,
+        categoryName:
+          seat.category?.description || seat.categoryName || 'General',
         price: finalPrice,
         audienceCategoryId: currentAudienceId,
         audienceLabel: audienceNames[currentAudienceId] || 'Adulto',
@@ -114,14 +119,19 @@ export default function OrderSummary({
             {currentShowtime.movie?.title || 'Película'}
           </p>
           <p className="text-gray-300">
-            Sala: {currentShowtime.room_id || 'N/A'}
+            Sala: {currentShowtime.room?.name || currentShowtime.room_id}
           </p>
           <p className="text-gray-300">
             Hora:{' '}
-            {new Date(currentShowtime.start_time).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {currentShowtime?.start_time
+              ? new Date(
+                  currentShowtime.start_time.replace(' ', 'T'),
+                ).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+              : 'N/A'}
           </p>
         </div>
       )}

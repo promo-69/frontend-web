@@ -22,7 +22,7 @@ export default function SelectSeats() {
   const navigate = useNavigate()
 
   // ============================
-  // 0) Obtener cinemaId desde navegación
+  // Obtener cinemaId desde navegación
   // ============================
   const locationState = useLocation().state || {}
   const cinemaId = locationState.cinemaId || null
@@ -40,7 +40,7 @@ export default function SelectSeats() {
     cancelPurchase,
   } = usePurchase()
 
-  const { clearCart } = useCart()
+  const { cart, clearCart, addTicket, removeTicket } = useCart()
 
   const [showtime, setShowtime] = useState(null)
   const [seats, setSeats] = useState([])
@@ -83,7 +83,7 @@ export default function SelectSeats() {
   }
 
   // ============================
-  // 1) Cargar showtime + mapa
+  // Cargar showtime + mapa
   // ============================
   useEffect(() => {
     async function load() {
@@ -104,7 +104,7 @@ export default function SelectSeats() {
   }, [cinemaId, showtimeId])
 
   // ============================
-  // 2) Inicializar Quote + Socket
+  // Inicializar Quote + Socket
   // ============================
   useEffect(() => {
     if (!cinemaId || !showtimeId) return
@@ -147,7 +147,7 @@ export default function SelectSeats() {
   }, [cinemaId, showtimeId])
 
   // ============================
-  // 3) Unirse a la sala y escuchar eventos
+  // Unirse a la sala y escuchar eventos
   // ============================
   useEffect(() => {
     if (!quoteReady || !showtimeId) return
@@ -200,7 +200,7 @@ export default function SelectSeats() {
     }
 
     const onSeatsUnlockedBulk = ({ seatIds }) => {
-      console.log('🔓 [Socket] Asiento liberado:', seatId)
+      console.log('🔓 [Socket] Asientos liberados bulk')
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
@@ -220,6 +220,7 @@ export default function SelectSeats() {
     const onQuoteExpired = () => {
       alert('Tu tiempo de compra expiró')
       cancelPurchase('ttl_expired')
+      clearCart()
       navigate('/')
     }
 
@@ -231,7 +232,7 @@ export default function SelectSeats() {
       socketService.joinShowtime(showtimeId)
     }
 
-    // 1. Acoplar receptores
+    // Acoplar receptores
     socketService.on('connect', handleReconnectedEmit)
 
     socketService.on('join_success', onJoinSuccess)
@@ -248,7 +249,6 @@ export default function SelectSeats() {
     console.log(' Emitiendo joinShowtime para:', showtimeId)
     socketService.joinShowtime(showtimeId)
 
-    // 3. Desacoplamiento estructural al salir de la pantalla
     return () => {
       console.log(' Limpiando listeners del showtime:', showtimeId)
       socketService.leaveShowtime(showtimeId)
@@ -266,13 +266,10 @@ export default function SelectSeats() {
   }, [quoteReady, showtimeId])
 
   // ========================================================
-  // 4) Filtrar boletos enriquecidos secuencialmente con audiencias
+  //  Filtrar boletos enriquecidos secuencialmente con audiencias
   // ========================================================
   const fullSelectedSeatsObjects = useMemo(() => {
-    //const fullSelectedSeatsObjects = useMemo(() => {
-    //return seats.filter((s) => selectedSeats.includes(s.id))
     const filteredSeats = seats.filter((s) => selectedSeats.includes(s.id))
-    //}, [seats, selectedSeats])
     // Construir una cola plana basada en las selecciones superiores
     const audienceQueue = []
     Object.entries(ticketCounts).forEach(([categoryId, count]) => {
@@ -280,17 +277,53 @@ export default function SelectSeats() {
         audienceQueue.push(Number(categoryId))
       }
     })
+
+    const categoryNames = {
+      1: 'Adulto',
+      2: 'Niño',
+      3: 'Tercera Edad',
+    }
     // Inyectamos secuencialmente a cada asiento el tipo de boleto correspondiente
     return filteredSeats.map((seat, index) => {
+      const categoryId = audienceQueue[index] || 1
       return {
         ...seat,
-        assignedAudienceId: audienceQueue[index] || 1, // Fallback seguro a Adulto (ID 1)
+        seatId: seat.id, // coincida con lo que espera el carrito
+        label: seat.label || `${seat.row}${seat.column}`,
+        price: seat.price || 6.0, // Fallback si el mapa no trae costo base
+        assignedAudienceId: categoryId,
+        categoryName: categoryNames[categoryId],
       }
     })
   }, [seats, selectedSeats, ticketCounts])
 
+  // ========================================================
+  // Sincronización Automática con el CartContext
+  // ========================================================
+  useEffect(() => {
+    if (fullSelectedSeatsObjects.length === 0) {
+      if (cart.tickets.length > 0) {
+        fullSelectedSeatsObjects.forEach((t) => removeTicket(t.seatId))
+      }
+      return
+    }
+
+    fullSelectedSeatsObjects.forEach((ticket) => {
+      addTicket(ticket)
+    })
+
+    cart.tickets.forEach((cartTicket) => {
+      const remainsSelected = fullSelectedSeatsObjects.some(
+        (t) => t.seatId === cartTicket.seatId,
+      )
+      if (!remainsSelected) {
+        removeTicket(cartTicket.seatId)
+      }
+    })
+  }, [fullSelectedSeatsObjects])
+
   // ============================
-  // 5) Toggle asiento
+  // Toggle asiento
   // ============================
   const toggleSeat = (seatId) => {
     const seat = seats.find((s) => s.id === seatId)
@@ -319,8 +352,17 @@ export default function SelectSeats() {
     }
   }
 
+  // ============================
+  // Cancelación Manual
+  // ============================
+  const handleCancelPurchase = () => {
+    cancelPurchase('manual')
+    clearCart() // Asegura limpiar la persistencia local de la transacción entera
+    navigate('/')
+  }
+
   // ========================================================
-  // 6) Lógicas de Navegación (confiteria vs pagar)
+  // Lógicas de Navegación (confiteria vs pagar)
   // ========================================================
   const handleNext = () => {
     navigate(`/buy/${movieId}/${showtimeId}/confectionery`, {
@@ -387,7 +429,7 @@ export default function SelectSeats() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
-                onClick={() => cancelPurchase('manual')}
+                onClick={handleCancelPurchase}
                 className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition"
               >
                 Cancelar compra
@@ -411,7 +453,7 @@ export default function SelectSeats() {
           <OrderSummary
             mode="seats"
             onNext={handleNext}
-            onDirectCheckout={handleDirectCheckout} 
+            onDirectCheckout={handleDirectCheckout}
             currentShowtime={showtime}
             selectedSeatsList={fullSelectedSeatsObjects}
           />
