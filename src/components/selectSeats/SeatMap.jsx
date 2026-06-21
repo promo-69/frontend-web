@@ -45,8 +45,16 @@ export default function SeatMap({ seats, onToggle }) {
                       onToggle(seat.id)
                     }
                   }}
-                  className={`w-7 h-7 rounded-md transition-transform ${color}`}
-                />
+                  className={`
+                    w-7 h-7 rounded-md
+                    transition-transform
+                    flex items-center justify-center
+                    text-[10px] font-bold text-white
+                    ${color}
+                  `}
+                >
+                  {seat.column}
+                </div>
               )
             })}
           </div>
