@@ -59,7 +59,7 @@ api.interceptors.response.use(
     ) {
       return Promise.reject(error)
     }
-
+ 
     // 🛡️ Si es 401 y no se ha reintentado → refrescar
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (originalRequest.url?.includes('/auth/refresh')) {
@@ -103,7 +103,7 @@ api.interceptors.response.use(
         return Promise.reject(err)
       }
     }
-
+ 
     return Promise.reject(error)
   },
 )

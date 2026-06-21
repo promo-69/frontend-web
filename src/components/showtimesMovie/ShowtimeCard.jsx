@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import QuestionModal from '../ui/QuestionModal' // <-- Importamos el nuevo modal de pregunta
+import QuestionModal from '../ui/QuestionModal'
 import { useAuth } from '../../context/AuthContext'
 
 export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
