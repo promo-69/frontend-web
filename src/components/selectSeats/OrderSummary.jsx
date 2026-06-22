@@ -132,7 +132,7 @@ export default function OrderSummary({
   return (
     <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-5 shadow-lg border border-purple-900/40 h-fit">
       <h2 className="text-xl font-bold border-b border-white/10 pb-2 text-[#F6AD38]">
-        Resumen de la Orden
+        Resumen de Compra
       </h2>
 
       {/* 🎬 Render de Información de Película (Solo si está en flujo de boletos) */}
@@ -142,13 +142,13 @@ export default function OrderSummary({
             {currentShowtime.movie?.title || 'Película'}
           </p>
           <p className="text-gray-300">
-            Sala: {currentShowtime.room?.name || currentShowtime.room_id}
+            Sala: {currentShowtime.booking?.room?.name || currentShowtime.room_id}
           </p>
           <p className="text-gray-300">
             Hora:{' '}
-            {currentShowtime?.start_time
+            {currentShowtime?.booking?.start_time
               ? new Date(
-                  currentShowtime.start_time.replace(' ', 'T'),
+                  currentShowtime.booking?.start_time.replace(' ', 'T'),
                 ).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -270,7 +270,7 @@ export default function OrderSummary({
             }
             className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
           >
-            {isPublicMode ? 'Proceder al Pago' : 'Confirmar y Pagar'}
+            {isPublicMode ? 'Pagar' : 'Confirmar y Pagar'}
           </button>
         )}
       </div>

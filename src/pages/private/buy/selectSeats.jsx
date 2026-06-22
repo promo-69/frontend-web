@@ -70,8 +70,7 @@ export default function SelectSeats() {
 
       const nextCounts = { ...prev, [categoryId]: current - 1 }
       const newTotal = Object.values(nextCounts).reduce((a, b) => a + b, 0)
-      // Regla de consistencia preventiva: Si baja los contadores por debajo de lo que ya
-      // tiene bloqueado en el mapa de asientos, liberamos de forma segura el último interactuado.
+      
       if (selectedSeats.length > newTotal) {
         const lastSeatId = selectedSeats[selectedSeats.length - 1]
         if (lastSeatId) {
@@ -161,7 +160,7 @@ export default function SelectSeats() {
     }
 
     console.log('--- COLGANDO LISTENERS DEL SOCKET ---')
-    // Definición de handlers de eventos
+    
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -344,7 +343,7 @@ export default function SelectSeats() {
     if (seat.status === 'sold' || seat.status === 'locked') return
 
     if (seat.status === 'available') {
-      // 🛑 VALIDACIONES PREVENTIVAS DE SEGURIDAD INTERNA:
+      //  VALIDACIONES PREVENTIVAS DE SEGURIDAD INTERNA:
       if (totalTicketsAllowed === 0) {
         alert(
           'Por favor, indica primero cuántos boletos deseas comprar en la sección superior.',
