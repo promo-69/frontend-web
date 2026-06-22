@@ -65,7 +65,7 @@ export default function OrderSummary({
           p.audience_category?.id === currentAudienceId,
       )
 
-      // Si no hay match en la matriz, usamos el precio base del showtime o el quemado en el asiento
+      // Si no hay match en la matriz, usamos el precio base del showtime 
       const finalPrice = priceMatch
         ? priceMatch.final_price
         : seat.price || currentShowtime.pricing.base_price || 6.0;

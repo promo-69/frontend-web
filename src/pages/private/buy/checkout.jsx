@@ -119,12 +119,6 @@ export default function Checkout() {
           setPaymentCurrency(2)
         }
       } catch (err) {
-
-        console.error('Error detallado en el checkout inicial:', err)
-        console.error('Mensaje del error:', err?.message)
-        console.error('Respuesta del servidor:', err?.response?.data)
-
-        
         console.error('Error en el checkout inicial:', err)
         setError('No pudimos procesar y asegurar tu orden. Inténtalo de nuevo.')
         await attemptCancelOrder('checkout_init_error')
