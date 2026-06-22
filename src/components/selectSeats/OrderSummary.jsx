@@ -142,7 +142,7 @@ export default function OrderSummary({
             {currentShowtime.movie?.title || 'Película'}
           </p>
           <p className="text-gray-300">
-            Sala: {currentShowtime.booking?.room?.name || currentShowtime.room_id}
+            Sala id: {currentShowtime.booking?.room || currentShowtime.room_id}
           </p>
           <p className="text-gray-300">
             Hora:{' '}
