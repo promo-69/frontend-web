@@ -47,10 +47,10 @@ export default function Checkout() {
 
         checkoutStartedRef.current = true
 
-        // 🧠 Estructuramos el payload exactamente
+        // 🧠 Paylod para la peticion
         const payload = {
           tickets: (cart.tickets || []).map((t) => ({
-            booking: 1, // Tu identificador o id base temporal de reserva
+            booking: 1, // id base temporal de reserva
             seatId: t.originalId || t.id, // ID del asiento de base de datos
             audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
           })),
@@ -119,6 +119,12 @@ export default function Checkout() {
           setPaymentCurrency(2)
         }
       } catch (err) {
+
+        console.error('Error detallado en el checkout inicial:', err)
+        console.error('Mensaje del error:', err?.message)
+        console.error('Respuesta del servidor:', err?.response?.data)
+
+        
         console.error('Error en el checkout inicial:', err)
         setError('No pudimos procesar y asegurar tu orden. Inténtalo de nuevo.')
         await attemptCancelOrder('checkout_init_error')
@@ -172,7 +178,7 @@ export default function Checkout() {
 
     ;(cart.tickets || []).forEach((t) => {
       const seatId = t.originalId || t.id
-      socket.emit('unlock_seat', { seatId })
+      socket.emit('seat_unlocked', { seatId })
     })
     socketService.leaveShowtime(showtimeId)
   }
