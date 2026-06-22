@@ -1,5 +1,33 @@
 import api, { performRefresh } from '../api/axios'
 
+// Verificacion para cambiar contraseña - Mary
+export const verifySecurityIdentityRequest = async (payload) => {
+
+  const response = await api.post('/users/me/security/verify', payload, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// Cambio de datos de seguridad - Mary
+export const changeSecurityDataRequest = async (payload) => {
+  const response = await api.post('/users/me/security/change', payload, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// Editar perfil general - Mary
+export const updateProfileRequest = async (data) => {
+  const response = await api.patch('/users/me/profile', data, {
+    withCredentials: true,
+  })
+  return response
+}
+
+
+
+
 // ---------------------------------------------------------
 // LOGIN (backend envía cookies HttpOnly)
 // ---------------------------------------------------------
@@ -104,7 +132,7 @@ export const verifyAccountRequest = async ({ email, code }) => {
 // ---------------------------------------------------------
 // UPDATE PROFILE
 // ---------------------------------------------------------
-export const updateProfileRequest = async (data) => {
+export const updateProfileRequestddd = async (data) => {
   const response = await api.patch('/users/me/profile', data, {
     withCredentials: true,
   })

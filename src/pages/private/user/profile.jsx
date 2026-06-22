@@ -1,18 +1,25 @@
 import { useState, useContext } from 'react'
-import profileImage from '../../../assets/images/profile.png'
+import profileImage  from '../../../assets/images/profile.png'
 import Edit from '../../../components/ui/Edit'
 import FormEditProfile from '../../../components/forms/FormEditProfile'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import { AuthContext } from '../../../context/AuthContext'
-import { updateProfileRequest } from '../../../services/auth.service'
+import { 
+  updateProfileRequest, 
+  verifySecurityIdentityRequest, 
+  changeSecurityDataRequest 
+} from '../../../services/auth.service'
 
 function Profile() {
   const { user, updateProfileState } = useContext(AuthContext)
   console.log('¿Qué tiene el estado USER en Profile?:', user)
+  
   const [step, setStep] = useState('view')
   const [showSuccess, setShowSuccess] = useState(false)
+  const [securityToken, setSecurityToken] = useState(null)
+  const [loadingAction, setLoadingAction] = useState(false)
 
-  // 🔄 MAPEO SINCRONIZADO CON EL JSON DEL GET
+  // MAPEO SINCRONIZADO CON EL JSON DEL GET
   const profileData = {
     name: user?.firstName || 'No asignado',
     lastname: user?.lastName || 'No asignado',
@@ -23,25 +30,90 @@ function Profile() {
     password: '••••••••',
   }
 
-  // 🚀 MANEJADOR DEL PATCH
-  const handleUpdate = async (updatedData) => {
-    const payload = {
-      personal_email: updatedData.email.trim(),
-    }
-
+  // VERIFICAR CONTRASEÑA EN BACKEND Y TRAER TOKEN DE SEGURIDAD
+  const handleVerifyIdentity = async (passwordInput) => {
+    setLoadingAction(true)
     try {
-      const res = await updateProfileRequest(payload)
+      const response = await verifySecurityIdentityRequest({ password: passwordInput })
+      const token = response?.data?.securityChangeToken || response?.securityChangeToken
 
-      if (res.success) {
-        updateProfileState(payload.personal_email)
-        setStep('view')
-        setShowSuccess(true)
+      if (token) {
+        setSecurityToken(token)
+        setStep('editing')
       } else {
-        alert(res.message || 'No se pudo procesar la actualización')
+        // Lanza error para activar el cartel rojo en el modal Edit
+        throw new Error();
       }
     } catch (error) {
-      console.error('Error al guardar cambios de perfil:', error)
-      alert(error.response?.data?.message || 'Error inesperado en el servidor.')
+      console.error('Error al verificar identidad:', error)
+      throw error; // Re-lanzamos para que el modal Edit maneje el estado de error interno
+    } finally {
+      setLoadingAction(false)
+    }
+  }
+
+  // PASO 2: ENVIAR CAMBIOS JUNTO AL TOKEN DE SEGURIDAD (VÁLIDO POR 15 MIN)
+  const handleUpdate = async (updatedData) => {
+    if (!securityToken) {
+      alert('El token de seguridad ha expirado o no es válido. Por favor, vuelve a verificar tu contraseña.')
+      setStep('view')
+      return
+    }
+
+    // 1. Evaluamos qué datos de seguridad cambiaron realmente
+    const currentEmail = (user?.email || user?._People?.personal_email || '').trim().toLowerCase();
+    const targetEmail = updatedData.email.trim().toLowerCase();
+    
+    const hasEmailChanged = targetEmail !== currentEmail;
+    const hasPasswordChanged = !!updatedData.password;
+
+    // 2. Construimos el payload de seguridad con el contrato de llaves correcto del Backend (newEmail, newPassword)
+    const payload = {
+      securityChangeToken: securityToken
+    }
+
+    if (hasEmailChanged) payload.newEmail = updatedData.email.trim();
+    if (hasPasswordChanged) payload.newPassword = updatedData.password;
+
+    setLoadingAction(true)
+    try {
+      // Si cambió correo o clave, se dispara la solicitud a la ruta crítica de seguridad
+      if (hasEmailChanged || hasPasswordChanged) {
+        const response = await changeSecurityDataRequest(payload)
+        
+        if (!(response?.success || response?.status === 200 || response?.data)) {
+          alert(response?.message || 'No se pudo procesar el cambio de seguridad.')
+          setLoadingAction(false)
+          return
+        }
+      }
+
+      // 3. Actualización de campos de perfil generales (como el teléfono si fue alterado)
+      const currentPhone = (user?.phoneNumber || '').trim();
+      const targetPhone = updatedData.cellphone.trim();
+      const hasPhoneChanged = targetPhone !== currentPhone;
+
+      if (hasEmailChanged || hasPhoneChanged) {
+        const profilePayload = {};
+        if (hasEmailChanged) profilePayload.personal_email = updatedData.email.trim();
+        if (hasPhoneChanged) profilePayload.phoneNumber = updatedData.cellphone.trim();
+
+        await updateProfileRequest(profilePayload).catch((err) => {
+          console.error('Error no crítico al actualizar metadatos del perfil:', err)
+        })
+      }
+
+      // Sincronizamos el estado global del contexto de autenticación
+      updateProfileState(updatedData.email.trim())
+      setSecurityToken(null)
+      setStep('view')
+      setShowSuccess(true)
+      
+    } catch (error) {
+      console.error('Error al guardar cambios de seguridad de perfil:', error)
+      alert(error.response?.data?.message || 'Error inesperado o token expirado (límite 15 min).')
+    } finally {
+      setLoadingAction(false)
     }
   }
 
@@ -73,22 +145,23 @@ function Profile() {
             step={step}
             setStep={setStep}
             onSave={handleUpdate}
+            loading={loadingAction}
           />
         </div>
       </div>
 
-      {/* Modales */}
+      {/* Modales Interactivos */}
       {step === 'confirming' && (
         <Edit
-          correctPassword={user?.password}
-          onConfirm={() => setStep('editing')}
+          onConfirm={handleVerifyIdentity}
           onCancel={() => setStep('view')}
+          loading={loadingAction}
         />
       )}
 
       {showSuccess && (
         <SuccessModal
-          message="Tu correo de perfil ha sido actualizado con éxito."
+          message="Tu información de perfil y seguridad ha sido actualizada con éxito."
           onClose={() => setShowSuccess(false)}
         />
       )}
