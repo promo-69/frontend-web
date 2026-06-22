@@ -8,14 +8,12 @@ import {
   getOrderSessionDetails,
   deleteOrderSessionWithRetries,
 } from '../../../services/orders.service'
-import { io } from 'socket.io-client'
+import socketService from '../../../services/socket.service'
 
 export default function Checkout() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
   const { cart, getTotals, clearCart } = useCart()
-
-  const socketRef = useRef(null)
 
   // Estados de control del componente
   const [checkingOut, setCheckingOut] = useState(true)
@@ -49,7 +47,7 @@ export default function Checkout() {
 
         checkoutStartedRef.current = true
 
-        // 🧠 Estructuramos el payload exactamente 
+        // 🧠 Estructuramos el payload exactamente
         const payload = {
           tickets: (cart.tickets || []).map((t) => ({
             booking: 1, // Tu identificador o id base temporal de reserva
@@ -74,6 +72,21 @@ export default function Checkout() {
 
         console.log('[CHECKOUT INIT] Respuesta completa del backend:', response)
 
+        setCheckoutData(response)
+        setRemainingBalance(null)
+        // Prefer backend-provided base-currency totals when available.
+        const respData = response?.data ?? response
+        const totalBase =
+          respData?.total_amount_base_currency ??
+          respData?.total_base_currency ??
+          respData?.total ??
+          response?.total
+        const currencyFromResp =
+          respData?.system_base_currency ??
+          respData?.currency ??
+          respData?.currency_id ??
+          null
+
         //logs para pruebas
         console.log('[CHECKOUT DEBUG DETALLADO] respData es:', respData)
         console.log(
@@ -92,21 +105,6 @@ export default function Checkout() {
           '[CHECKOUT DEBUG DETALLADO] Fallback de CartContext total:',
           getTotals().total,
         )
-
-        setCheckoutData(response)
-        setRemainingBalance(null)
-        // Prefer backend-provided base-currency totals when available.
-        const respData = response?.data ?? response
-        const totalBase =
-          respData?.total_amount_base_currency ??
-          respData?.total_base_currency ??
-          respData?.total ??
-          response?.total
-        const currencyFromResp =
-          respData?.system_base_currency ??
-          respData?.currency ??
-          respData?.currency_id ??
-          null
 
         if (typeof totalBase !== 'undefined') {
           setAmountInput(parseFloat(totalBase))
@@ -169,14 +167,14 @@ export default function Checkout() {
   }
 
   const releaseLocksAndLeave = () => {
-    const socket = socketRef.current
+    const socket = socketService.getSocket()
     if (!socket) return
 
     ;(cart.tickets || []).forEach((t) => {
       const seatId = t.originalId || t.id
-      socket.emit('unlockseat', { seatId })
+      socket.emit('unlock_seat', { seatId })
     })
-    socket.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
+    socketService.leaveShowtime(showtimeId)
   }
 
   const attemptCancelOrder = async (reason = 'manual') => {
@@ -313,9 +311,9 @@ export default function Checkout() {
         } catch (e) {
           console.warn('Could not write last_order to sessionStorage', e)
         }
-        // Navigate first to avoid Checkout's "cart empty => navigate('/')" effect
+        
         navigate('/order-success', { state: { orderId, qrCode } })
-        // Clear cart after a short delay to allow OrderSuccess to mount/read state
+      
         setTimeout(() => clearCart(), 300)
         return
       }
@@ -412,24 +410,20 @@ export default function Checkout() {
     setError(null)
   }
 
-  // Conectar socket para liberar asientos si es necesario y escuchar pagos en la room del usuario
+  // Conectar socket desde el servicio para liberar asientos si es necesario
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user) return
+    const socket = socketService.getSocket()
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: { token: localStorage.getItem('token') },
-    })
-
-    socketRef.current = socket
-
-    socket.on('connect', () => {
+    //no hace falta volve a emitir join porque esos datos vienen del cartcontext
+     {/*socket.on('connect', () => {
       console.log('Checkout socket conectado:', socket.id)
       if (showtimeId) {
         socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
       }
-    })
+    }) */}
+
 
     socket.on('payment_success', (payload) => {
       console.log('socket payment_success payload:', payload)
@@ -472,12 +466,22 @@ export default function Checkout() {
     })
 
     return () => {
-      if (socketRef.current) {
+      {
+        /*if (socketRef.current) {
         socketRef.current.emit('leaveshowtime', {
           showtimeId: Number(showtimeId),
         })
-        socketRef.current.disconnect()
+        socketRef.current.disconnect()} */
       }
+      // NO cerramos la conexión ni mandamos `leave_showtime`
+      // si el usuario refresca o el pago fue exitoso romperíamos la persistencia.
+      console.log(
+        '[Checkout] Removiendo oyentes del socket para evitar duplicados.',
+      )
+      // removemos los listeners locales para que no queden duplicados en memoria.
+      socket.off('payment_success')
+      socket.off('billing_required')
+      socket.off('seatlocksuccess')
     }
   }, [navigate, clearCart, showtimeId])
 

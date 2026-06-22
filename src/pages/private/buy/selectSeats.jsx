@@ -233,7 +233,6 @@ export default function SelectSeats() {
 
     // Acoplar receptores
     socketService.on('connect', handleReconnectedEmit)
-
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -250,7 +249,6 @@ export default function SelectSeats() {
 
     return () => {
       console.log(' Limpiando listeners del showtime:', showtimeId)
-      socketService.leaveShowtime(showtimeId)
       socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
