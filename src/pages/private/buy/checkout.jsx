@@ -74,6 +74,25 @@ export default function Checkout() {
 
         console.log('[CHECKOUT INIT] Respuesta completa del backend:', response)
 
+        //logs para pruebas
+        console.log('[CHECKOUT DEBUG DETALLADO] respData es:', respData)
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total_amount_base_currency:',
+          respData?.total_amount_base_currency,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total_base_currency:',
+          respData?.total_base_currency,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total de respData:',
+          respData?.total,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] Fallback de CartContext total:',
+          getTotals().total,
+        )
+
         setCheckoutData(response)
         setRemainingBalance(null)
         // Prefer backend-provided base-currency totals when available.
