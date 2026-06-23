@@ -320,7 +320,7 @@ export default function DetailView() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div>
               <h2 className="text-2xl font-black uppercase tracking-wide bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-                🗓️ Funciones y Horarios Disponibles
+                Funciones y Horarios Disponibles
               </h2>
               <p className="text-xs text-gray-400 mt-1">
                 Selecciona una fecha para ver la cartelera de ese día.
@@ -353,10 +353,10 @@ export default function DetailView() {
                 >
                   <div className="w-full md:w-1/4 shrink-0">
                     <h3 className="text-xl font-bold text-white tracking-wide">
-                      🏢 {item.cinema.name}
+                      {item.cinema.name}
                     </h3>
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      📍 Complejo disponible. Selecciona la hora exacta en la que deseas asistir para reservar tus butacas de inmediato.
+                      Complejo disponible. Selecciona la hora exacta en la que deseas asistir para reservar tus butacas de inmediato.
                     </p>
                   </div>
 

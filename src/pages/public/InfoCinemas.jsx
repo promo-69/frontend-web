@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom' // 🌟 Importamos Link para la navegación
+import { Link } from 'react-router-dom'
 import Footer from '../../components/ui/Footer'
 import { getCinemas } from '../../services/info.service' 
 
-// 📝 Helper para formatear la URL de la sucursal de forma limpia (SEO friendly)
+// 📝 Helper para formatear la URL de la sucursal de forma limpia
 const convertToSlug = (title) => {
   if (!title) return ''
   return title
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remueve acentos
-    .replace(/[^a-z0-9\s-]/g, "")    // Remueve caracteres especiales
-    .replace(/\s+/g, "-")           // Espacios por guiones
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")   
+    .replace(/\s+/g, "-")           
     .trim()
 }
 
