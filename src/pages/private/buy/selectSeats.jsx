@@ -70,8 +70,7 @@ export default function SelectSeats() {
 
       const nextCounts = { ...prev, [categoryId]: current - 1 }
       const newTotal = Object.values(nextCounts).reduce((a, b) => a + b, 0)
-      // Regla de consistencia preventiva: Si baja los contadores por debajo de lo que ya
-      // tiene bloqueado en el mapa de asientos, liberamos de forma segura el último interactuado.
+      
       if (selectedSeats.length > newTotal) {
         const lastSeatId = selectedSeats[selectedSeats.length - 1]
         if (lastSeatId) {
@@ -161,7 +160,7 @@ export default function SelectSeats() {
     }
 
     console.log('--- COLGANDO LISTENERS DEL SOCKET ---')
-    // Definición de handlers de eventos
+    
     const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
 
     const onJoinError = ({ message }) => {
@@ -234,7 +233,6 @@ export default function SelectSeats() {
 
     // Acoplar receptores
     socketService.on('connect', handleReconnectedEmit)
-
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -251,7 +249,6 @@ export default function SelectSeats() {
 
     return () => {
       console.log(' Limpiando listeners del showtime:', showtimeId)
-      socketService.leaveShowtime(showtimeId)
       socketService.off('connect', handleReconnectedEmit)
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
@@ -301,14 +298,26 @@ export default function SelectSeats() {
   // Sincronización Automática con el CartContext
   // ========================================================
   useEffect(() => {
+    console.log('=== [SelectSeats EFFECT] Evaluando asientos ===')
+    console.log(
+      'Asientos calculados en el mapa (fullSelectedSeatsObjects):',
+      fullSelectedSeatsObjects,
+    )
+    console.log(
+      'Tickets actualmente guardados en el Cart Global:',
+      cart.tickets,
+    )
     if (fullSelectedSeatsObjects.length === 0) {
       if (cart.tickets.length > 0) {
-        fullSelectedSeatsObjects.forEach((t) => removeTicket(t.seatId))
+        cart.tickets.forEach((cartTicket) => removeTicket(cartTicket.seatId))
       }
       return
     }
 
     fullSelectedSeatsObjects.forEach((ticket) => {
+      console.log(
+        `-> Sincronizando asiento ${ticket.seatId} hacia el CartContext`,
+      )
       addTicket(ticket)
     })
 
@@ -320,7 +329,7 @@ export default function SelectSeats() {
         removeTicket(cartTicket.seatId)
       }
     })
-  }, [fullSelectedSeatsObjects])
+  }, [fullSelectedSeatsObjects, cart.tickets, addTicket, removeTicket])
 
   // ============================
   // Toggle asiento
@@ -332,7 +341,7 @@ export default function SelectSeats() {
     if (seat.status === 'sold' || seat.status === 'locked') return
 
     if (seat.status === 'available') {
-      // 🛑 VALIDACIONES PREVENTIVAS DE SEGURIDAD INTERNA:
+      //  VALIDACIONES PREVENTIVAS DE SEGURIDAD INTERNA:
       if (totalTicketsAllowed === 0) {
         alert(
           'Por favor, indica primero cuántos boletos deseas comprar en la sección superior.',
@@ -357,7 +366,7 @@ export default function SelectSeats() {
   // ============================
   const handleCancelPurchase = () => {
     cancelPurchase('manual')
-    clearCart() // Asegura limpiar la persistencia local de la transacción entera
+    clearCart() 
     navigate('/')
   }
 

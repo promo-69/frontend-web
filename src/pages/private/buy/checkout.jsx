@@ -8,14 +8,12 @@ import {
   getOrderSessionDetails,
   deleteOrderSessionWithRetries,
 } from '../../../services/orders.service'
-import { io } from 'socket.io-client'
+import socketService from '../../../services/socket.service'
 
 export default function Checkout() {
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
   const { cart, getTotals, clearCart } = useCart()
-
-  const socketRef = useRef(null)
 
   // Estados de control del componente
   const [checkingOut, setCheckingOut] = useState(true)
@@ -49,10 +47,10 @@ export default function Checkout() {
 
         checkoutStartedRef.current = true
 
-        // 🧠 Estructuramos el payload exactamente como lo exige tu Backend
+        // 🧠 Paylod para la peticion
         const payload = {
           tickets: (cart.tickets || []).map((t) => ({
-            booking: 1, // Tu identificador o id base temporal de reserva
+            booking: 1, // id base temporal de reserva
             seatId: t.originalId || t.id, // ID del asiento de base de datos
             audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
           })),
@@ -65,17 +63,48 @@ export default function Checkout() {
           })),
         }
 
+        console.log(
+          '[CHECKOUT INIT] Enviando payload a /orders/checkout:',
+          payload,
+        )
         // Llamada a la API: POST /orders/checkout
         const response = await createOrderCheckout(payload)
+
+        console.log('[CHECKOUT INIT] Respuesta completa del backend:', response)
 
         setCheckoutData(response)
         setRemainingBalance(null)
         // Prefer backend-provided base-currency totals when available.
         const respData = response?.data ?? response
         const totalBase =
-          respData?.total_amount_base_currency ?? respData?.total_base_currency ?? respData?.total ?? response?.total
+          respData?.total_amount_base_currency ??
+          respData?.total_base_currency ??
+          respData?.total ??
+          response?.total
         const currencyFromResp =
-          respData?.system_base_currency ?? respData?.currency ?? respData?.currency_id ?? null
+          respData?.system_base_currency ??
+          respData?.currency ??
+          respData?.currency_id ??
+          null
+
+        //logs para pruebas
+        console.log('[CHECKOUT DEBUG DETALLADO] respData es:', respData)
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total_amount_base_currency:',
+          respData?.total_amount_base_currency,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total_base_currency:',
+          respData?.total_base_currency,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] total de respData:',
+          respData?.total,
+        )
+        console.log(
+          '[CHECKOUT DEBUG DETALLADO] Fallback de CartContext total:',
+          getTotals().total,
+        )
 
         if (typeof totalBase !== 'undefined') {
           setAmountInput(parseFloat(totalBase))
@@ -90,6 +119,12 @@ export default function Checkout() {
           setPaymentCurrency(2)
         }
       } catch (err) {
+
+        console.error('Error detallado en el checkout inicial:', err)
+        console.error('Mensaje del error:', err?.message)
+        console.error('Respuesta del servidor:', err?.response?.data)
+
+        
         console.error('Error en el checkout inicial:', err)
         setError('No pudimos procesar y asegurar tu orden. Inténtalo de nuevo.')
         await attemptCancelOrder('checkout_init_error')
@@ -109,12 +144,21 @@ export default function Checkout() {
     if (!checkoutStartedRef.current) {
       initCheckout()
     }
-  }, [cart.tickets.length, cart.products.length, cart.products, getTotals, navigate])
+  }, [
+    cart.tickets.length,
+    cart.products.length,
+    cart.products,
+    getTotals,
+    navigate,
+  ])
 
   // Fase B: Registrar el Pago definitivo
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-  const waitForCancellationConfirmation = async (attempts = 3, intervalMs = 1000) => {
+  const waitForCancellationConfirmation = async (
+    attempts = 3,
+    intervalMs = 1000,
+  ) => {
     for (let tryIndex = 1; tryIndex <= attempts; tryIndex += 1) {
       const details = await getOrderSessionDetails()
       const session = details?.data?.session
@@ -129,14 +173,14 @@ export default function Checkout() {
   }
 
   const releaseLocksAndLeave = () => {
-    const socket = socketRef.current
+    const socket = socketService.getSocket()
     if (!socket) return
 
-    (cart.tickets || []).forEach((t) => {
+    ;(cart.tickets || []).forEach((t) => {
       const seatId = t.originalId || t.id
-      socket.emit('unlockseat', { seatId })
+      socket.emit('seat_unlocked', { seatId })
     })
-    socket.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
+    socketService.leaveShowtime(showtimeId)
   }
 
   const attemptCancelOrder = async (reason = 'manual') => {
@@ -153,7 +197,11 @@ export default function Checkout() {
       const orderStatus = details?.data?.order?.order_status
 
       if (orderId && orderStatus != null) {
-        console.log('Cancelación de orden detectada:', { orderId, orderStatus, reason })
+        console.log('Cancelación de orden detectada:', {
+          orderId,
+          orderStatus,
+          reason,
+        })
       }
 
       await deleteOrderSessionWithRetries()
@@ -200,6 +248,11 @@ export default function Checkout() {
         reference_number: referenceNumber.trim(),
       }
 
+      console.log(
+        '[PAYMENT HTTP] Registrando pago con payload:',
+        paymentPayload,
+      )
+
       const response = await registerPayment(paymentPayload)
       console.log('registerPayment response:', response)
 
@@ -208,9 +261,15 @@ export default function Checkout() {
       const respData = wrapper?.data ?? wrapper
 
       const remainingBalance =
-        respData?.remaining_balance ?? respData?.remainingBalance ?? wrapper?.remaining_balance ?? wrapper?.remainingBalance
+        respData?.remaining_balance ??
+        respData?.remainingBalance ??
+        wrapper?.remaining_balance ??
+        wrapper?.remainingBalance
 
-      if (typeof remainingBalance !== 'undefined' && remainingBalance !== null) {
+      if (
+        typeof remainingBalance !== 'undefined' &&
+        remainingBalance !== null
+      ) {
         setRemainingBalance(remainingBalance)
         setAmountInput(remainingBalance)
         setError(
@@ -221,30 +280,58 @@ export default function Checkout() {
 
       // Accept id under several possible keys, including `id` inside `data`
       const orderId =
-        respData?.orderId ?? respData?.order_id ?? respData?.id ?? wrapper?.orderId ?? wrapper?.order_id ?? wrapper?.id
+        respData?.orderId ??
+        respData?.order_id ??
+        respData?.id ??
+        wrapper?.orderId ??
+        wrapper?.order_id ??
+        wrapper?.id
       const qrCode =
-        respData?.qrCode ?? respData?.qr_code ?? respData?.qr_code ?? respData?.qrcode ?? respData?.qr ?? wrapper?.qrCode ?? wrapper?.qr_code ?? wrapper?.qrcode
+        respData?.qrCode ??
+        respData?.qr_code ??
+        respData?.qr_code ??
+        respData?.qrcode ??
+        respData?.qr ??
+        wrapper?.qrCode ??
+        wrapper?.qr_code ??
+        wrapper?.qrcode
 
-      console.log('Normalized payment response:', { wrapper, respData, orderId, qrCode })
+      console.log('Normalized payment response:', {
+        wrapper,
+        respData,
+        orderId,
+        qrCode,
+      })
 
       if (orderId) {
-        console.log('Payment registered, navigating to success:', { orderId, qrCode })
+        console.log('Payment registered, navigating to success:', {
+          orderId,
+          qrCode,
+        })
         // Persist last order to sessionStorage as a fallback in case location.state is lost
         try {
-          sessionStorage.setItem('last_order', JSON.stringify({ orderId, qrCode }))
+          sessionStorage.setItem(
+            'last_order',
+            JSON.stringify({ orderId, qrCode }),
+          )
         } catch (e) {
           console.warn('Could not write last_order to sessionStorage', e)
         }
-        // Navigate first to avoid Checkout's "cart empty => navigate('/')" effect
+        
         navigate('/order-success', { state: { orderId, qrCode } })
-        // Clear cart after a short delay to allow OrderSuccess to mount/read state
+      
         setTimeout(() => clearCart(), 300)
         return
       }
 
       // No identificador de orden: mostrar error y permitir acción manual del usuario
-      console.warn('Payment registered but no order id found in response', { wrapper, respData })
-      setError('No se recibió confirmación de pago. Verifica tu pago o pulsa Forzar cancelación.')
+      console.warn('Payment registered but no order id found in response', {
+        wrapper,
+        respData,
+      })
+      setError(
+        'No se recibió confirmación de pago. Verifica tu pago o pulsa Forzar cancelación.',
+      )
     } catch (err) {
       console.error('Error registrando el pago:', err)
       const status = err.response?.status
@@ -271,27 +358,43 @@ export default function Checkout() {
   const validateReference = (method, ref) => {
     const value = (ref || '').toString().trim()
     if (!value) {
-      return { valid: false, message: 'Por favor, ingresa el número de referencia de la transacción.' }
+      return {
+        valid: false,
+        message:
+          'Por favor, ingresa el número de referencia de la transacción.',
+      }
     }
 
     if (method === 'transfer') {
       // Sólo dígitos, 10-12 caracteres
       if (!/^\d{10,12}$/.test(value)) {
-        return { valid: false, message: 'Referencia de transferencia inválida. Debe contener entre 10 y 12 dígitos.' }
+        return {
+          valid: false,
+          message:
+            'Referencia de transferencia inválida. Debe contener entre 10 y 12 dígitos.',
+        }
       }
     }
 
     if (method === 'mobile') {
       // Sólo dígitos, 7-11 caracteres
       if (!/^\d{7,11}$/.test(value)) {
-        return { valid: false, message: 'Referencia de Pago Móvil inválida. Debe contener entre 7 y 11 dígitos.' }
+        return {
+          valid: false,
+          message:
+            'Referencia de Pago Móvil inválida. Debe contener entre 7 y 11 dígitos.',
+        }
       }
     }
 
     if (method === 'card') {
       // Alfanumérico aceptado, 6-30 caracteres
       if (!/^[A-Za-z0-9\-\_\s]{6,30}$/.test(value)) {
-        return { valid: false, message: 'Referencia de tarjeta inválida. Use 6-30 caracteres alfanuméricos.' }
+        return {
+          valid: false,
+          message:
+            'Referencia de tarjeta inválida. Use 6-30 caracteres alfanuméricos.',
+        }
       }
     }
 
@@ -313,33 +416,44 @@ export default function Checkout() {
     setError(null)
   }
 
-  // Conectar socket para liberar asientos si es necesario y escuchar pagos en la room del usuario
+  // Conectar socket desde el servicio para liberar asientos si es necesario
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user) return
+    const socket = socketService.getSocket()
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: { token: localStorage.getItem('token') },
-    })
-
-    socketRef.current = socket
-
-    socket.on('connect', () => {
+    //no hace falta volve a emitir join porque esos datos vienen del cartcontext
+     {/*socket.on('connect', () => {
       console.log('Checkout socket conectado:', socket.id)
       if (showtimeId) {
         socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
       }
-    })
+    }) */}
+
 
     socket.on('payment_success', (payload) => {
       console.log('socket payment_success payload:', payload)
       // Normalize payload (some backends wrap under `data` or use `id`)
       const wrapper = payload?.data ?? payload
-      const orderId = payload?.orderId ?? payload?.order_id ?? payload?.id ?? wrapper?.orderId ?? wrapper?.order_id ?? wrapper?.id
-      const qrCode = payload?.qrCode ?? payload?.qr_code ?? payload?.qrcode ?? wrapper?.qrCode ?? wrapper?.qr_code ?? wrapper?.qrcode
+      const orderId =
+        payload?.orderId ??
+        payload?.order_id ??
+        payload?.id ??
+        wrapper?.orderId ??
+        wrapper?.order_id ??
+        wrapper?.id
+      const qrCode =
+        payload?.qrCode ??
+        payload?.qr_code ??
+        payload?.qrcode ??
+        wrapper?.qrCode ??
+        wrapper?.qr_code ??
+        wrapper?.qrcode
       try {
-        sessionStorage.setItem('last_order', JSON.stringify({ orderId, qrCode }))
+        sessionStorage.setItem(
+          'last_order',
+          JSON.stringify({ orderId, qrCode }),
+        )
       } catch (e) {
         console.warn('Could not write last_order to sessionStorage (socket)', e)
       }
@@ -358,10 +472,22 @@ export default function Checkout() {
     })
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
-        socketRef.current.disconnect()
+      {
+        /*if (socketRef.current) {
+        socketRef.current.emit('leaveshowtime', {
+          showtimeId: Number(showtimeId),
+        })
+        socketRef.current.disconnect()} */
       }
+      // NO cerramos la conexión ni mandamos `leave_showtime`
+      // si el usuario refresca o el pago fue exitoso romperíamos la persistencia.
+      console.log(
+        '[Checkout] Removiendo oyentes del socket para evitar duplicados.',
+      )
+      // removemos los listeners locales para que no queden duplicados en memoria.
+      socket.off('payment_success')
+      socket.off('billing_required')
+      socket.off('seatlocksuccess')
     }
   }, [navigate, clearCart, showtimeId])
 
@@ -459,8 +585,8 @@ export default function Checkout() {
                     paymentMethod === 'transfer'
                       ? 'Ej: 0123456789 (10-12 dígitos)'
                       : paymentMethod === 'mobile'
-                      ? 'Ej: 04125555555 (7-11 dígitos)'
-                      : 'Ej: TRX-1234AB (6-30 caracteres)'
+                        ? 'Ej: 04125555555 (7-11 dígitos)'
+                        : 'Ej: TRX-1234AB (6-30 caracteres)'
                   }
                   aria-invalid={referenceError ? 'true' : 'false'}
                   className="w-full bg-[#2a1b4e] border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400 transition-colors placeholder:text-gray-500"
@@ -531,8 +657,12 @@ export default function Checkout() {
             <div className="mt-6 space-y-3">
               {remainingBalance != null && (
                 <div className="bg-yellow-500/10 border border-yellow-400/30 p-4 rounded-xl text-yellow-200">
-                  Pago parcial detectado. Faltan <span className="font-bold">${parseFloat(remainingBalance).toFixed(2)}</span> por pagar.
-                  Si ya realizaste el abono, vuelve a intentar o cancela la orden.
+                  Pago parcial detectado. Faltan{' '}
+                  <span className="font-bold">
+                    ${parseFloat(remainingBalance).toFixed(2)}
+                  </span>{' '}
+                  por pagar. Si ya realizaste el abono, vuelve a intentar o
+                  cancela la orden.
                 </div>
               )}
 
@@ -558,7 +688,12 @@ export default function Checkout() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.open('mailto:soporte@cineflix.com?subject=Ayuda%20cancelación%20de%20orden', '_blank')}
+                      onClick={() =>
+                        window.open(
+                          'mailto:soporte@cineflix.com?subject=Ayuda%20cancelación%20de%20orden',
+                          '_blank',
+                        )
+                      }
                       className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-xl font-semibold"
                     >
                       Contactar Soporte

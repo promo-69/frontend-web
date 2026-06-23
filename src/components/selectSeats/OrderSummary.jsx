@@ -25,15 +25,33 @@ export default function OrderSummary({
   // 💸 CÁLCULO DE BOLETOS BASADO EN LA MATRIZ DE PRECIOS
   // ========================================================
   const ticketsCalculated = useMemo(() => {
+    console.log('=== [OrderSummary] Ejecutando ticketsCalculated ===')
+    console.log('isPublicMode:', isPublicMode)
+    console.log('selectedSeatsList longitud:', selectedSeatsList?.length)
+    console.log(
+      'pricing_matrix disponible:',
+      !!currentShowtime?.pricing?.pricing_matrix,
+    )
+    console.log('Estructura completa de currentShowtime:', currentShowtime)
+
     if (
       isPublicMode ||
       !selectedSeatsList.length ||
-      !currentShowtime?.pricing?.pricing_matrix
+      //!currentShowtime?.pricing?.pricing_matrix
+      !selectedSeatsList.length
     ) {
+      console.warn(
+        '[OrderSummary] Salida prematura: No hay asientos seleccionados o es modo público.',
+      )
       return { list: [], subtotal: 0 }
     }
 
-    const matrix = currentShowtime.pricing.pricing_matrix
+    const matrix = currentShowtime?.pricing?.pricing_matrix || []
+    if (matrix.length === 0) {
+      console.warn(
+        '[OrderSummary] ¡Alerta! La matriz de precios viene vacía de la API.',
+      )
+    }
 
     const list = selectedSeatsList.map((seat) => {
       const currentAudienceId = seat.assignedAudienceId || 1
@@ -50,7 +68,11 @@ export default function OrderSummary({
       // Si no hay match en la matriz, usamos el precio base del showtime o el quemado en el asiento
       const finalPrice = priceMatch
         ? priceMatch.final_price
-        : seat.price || currentShowtime.pricing.base_price || 6.0
+        : seat.price || currentShowtime.pricing.base_price || 6.0;
+
+        console.log(
+          `Asiento ${seat.label || seat.id}: Precio asignado -> $${finalPrice}`,
+        )
 
       return {
         id: seat.id || seat.seatId,
@@ -64,6 +86,7 @@ export default function OrderSummary({
     })
 
     const subtotal = list.reduce((sum, ticket) => sum + ticket.price, 0)
+    console.log('Subtotal final de boletos calculado:', subtotal)
 
     return { list, subtotal }
   }, [selectedSeatsList, currentShowtime, isPublicMode])
@@ -109,7 +132,7 @@ export default function OrderSummary({
   return (
     <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-5 shadow-lg border border-purple-900/40 h-fit">
       <h2 className="text-xl font-bold border-b border-white/10 pb-2 text-[#F6AD38]">
-        Resumen de la Orden
+        Resumen de Compra
       </h2>
 
       {/* 🎬 Render de Información de Película (Solo si está en flujo de boletos) */}
@@ -119,13 +142,13 @@ export default function OrderSummary({
             {currentShowtime.movie?.title || 'Película'}
           </p>
           <p className="text-gray-300">
-            Sala: {currentShowtime.room?.name || currentShowtime.room_id}
+            Sala id: {currentShowtime.booking?.room || currentShowtime.room_id}
           </p>
           <p className="text-gray-300">
             Hora:{' '}
-            {currentShowtime?.start_time
+            {currentShowtime?.booking?.start_time
               ? new Date(
-                  currentShowtime.start_time.replace(' ', 'T'),
+                  currentShowtime.booking?.start_time.replace(' ', 'T'),
                 ).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -247,7 +270,7 @@ export default function OrderSummary({
             }
             className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-black py-3 rounded-xl font-bold transition shadow-md uppercase tracking-wider text-sm"
           >
-            {isPublicMode ? 'Proceder al Pago' : 'Confirmar y Pagar'}
+            {isPublicMode ? 'Pagar' : 'Confirmar y Pagar'}
           </button>
         )}
       </div>

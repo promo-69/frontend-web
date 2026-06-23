@@ -97,7 +97,7 @@ const joinShowtime = (showtimeId) => {
 const leaveShowtime = (showtimeId) => {
   if (!socket) return
   console.log('[Socket] emit leave_showtime', { showtimeId })
-  socket.emit('leave_time', { showtimeId: Number(showtimeId) })
+  socket.emit('leave_showtime', { showtimeId: Number(showtimeId) })
 }
 
 // ===============================

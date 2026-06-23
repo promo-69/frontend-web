@@ -372,6 +372,12 @@ export default function Confectionery() {
     }
   }
 
+  const handleNextCheckout = () => {
+    navigate(`/buy/${movieId}/${showtimeId}/checkout`, {
+      state: { cinemaId: effectiveCinemaId },
+    })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white bg-[#231640]">
@@ -399,13 +405,17 @@ export default function Confectionery() {
             <div className="text-red-300 text-sm">{cinemasError}</div>
           ) : (
             <div className="flex items-center gap-3">
-              <label className="text-xs text-gray-300 uppercase font-bold">Sucursal</label>
+              <label className="text-xs text-gray-300 uppercase font-bold">
+                Sucursal
+              </label>
               <div className="relative">
                 <select
                   value={cart?.cinema?.id ?? ''}
                   onChange={(e) => {
                     const id = e.target.value
-                    const selected = cinemas.find((c) => String(c.id) === String(id))
+                    const selected = cinemas.find(
+                      (c) => String(c.id) === String(id),
+                    )
                     setCinema(selected || null)
                   }}
                   className="appearance-none bg-white/[0.03] border border-white/10 text-white px-4 py-2 rounded-full pr-8 focus:outline-none hover:bg-white/[0.05]"
@@ -417,7 +427,9 @@ export default function Confectionery() {
                     </option>
                   ))}
                 </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">▾</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/70">
+                  ▾
+                </span>
               </div>
             </div>
           )}
@@ -460,16 +472,16 @@ export default function Confectionery() {
                   className="bg-[#1f1533] border border-gray-700 rounded-2xl overflow-hidden hover:shadow-md transition-all flex flex-col"
                 >
                   <div className="h-44 bg-gray-900 flex items-center justify-center">
-                                <img
-                                  src={p.image || placeholderImg}
-                                  alt={p.name}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.onerror = null
-                                    e.currentTarget.src = placeholderImg
-                                  }}
-                                />
-                              </div>
+                    <img
+                      src={p.image || placeholderImg}
+                      alt={p.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null
+                        e.currentTarget.src = placeholderImg
+                      }}
+                    />
+                  </div>
 
                   <div className="p-4 flex flex-col flex-1 space-y-3 text-white">
                     <div className="flex justify-between items-start gap-2">
@@ -522,9 +534,12 @@ export default function Confectionery() {
       <div className="lg:col-span-1 space-y-4">
         {isFlowCompra && (
           <div className="bg-[#2D1748]/60 border border-red-500/30 rounded-2xl p-4 text-sm text-red-200">
-            <p className="font-semibold text-yellow-400 mb-2">¿Deseas cancelar tu compra?</p>
+            <p className="font-semibold text-yellow-400 mb-2">
+              ¿Deseas cancelar tu compra?
+            </p>
             <p className="mb-3">
-              Si continuas y hay un error en el flujo, puedes cancelar para liberar los asientos.
+              Si continuas y hay un error en el flujo, puedes cancelar para
+              liberar los asientos.
             </p>
             <button
               type="button"
@@ -541,8 +556,12 @@ export default function Confectionery() {
         )}
 
         <OrderSummary
-          mode={isFlowCompra ? 'flow' : 'public'}
-          onNext={() => navigate(`/buy/${movieId}/${showtimeId}/checkout`)}
+          mode="confectionery"
+          //mode={isFlowCompra ? 'flow' : 'public'}
+          isPublicMode={!isFlowCompra}
+          onNext={handleNextCheckout}
+          currentShowtime={cart?.showtime || null} // Para que no de error al buscar la matriz de precios y pinte la película
+          selectedSeatsList={cart?.tickets || []}
         />
       </div>
     </div>
