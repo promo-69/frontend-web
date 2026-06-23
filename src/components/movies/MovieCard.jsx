@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { MovieWait } from '../../components/ui/IconosProyect'; 
 
 const convertToSlug = (title) => {
   if (!title) return '';
@@ -40,8 +41,9 @@ export default function MovieCard({ movie, upcoming = false, isEventsPage = fals
           />
         ) : (
           /* FALLBACK DECLARATIVO DE REACT */
-          <div className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4">
-            <span className="text-3xl mb-2">{isEventsPage || movie.isEvent ? '🗓️' : '🎬'}</span>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-[#1b1032] text-gray-500 p-4 gap-2">
+
+            <MovieWait className="w-8 h-8 text-amber-500 transition-colors" />
             <span className="text-[11px] uppercase tracking-wider font-bold text-center px-2">
               Sin Imagen Disponible
             </span>
