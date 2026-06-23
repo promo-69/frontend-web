@@ -41,18 +41,17 @@ function Profile() {
         setSecurityToken(token)
         setStep('editing')
       } else {
-        // Lanza error para activar el cartel rojo en el modal Edit
         throw new Error();
       }
     } catch (error) {
       console.error('Error al verificar identidad:', error)
-      throw error; // Re-lanzamos para que el modal Edit maneje el estado de error interno
+      throw error;
     } finally {
       setLoadingAction(false)
     }
   }
 
-  // PASO 2: ENVIAR CAMBIOS JUNTO AL TOKEN DE SEGURIDAD (VÁLIDO POR 15 MIN)
+  // ENVIAR CAMBIOS JUNTO AL TOKEN DE SEGURIDAD
   const handleUpdate = async (updatedData) => {
     if (!securityToken) {
       alert('El token de seguridad ha expirado o no es válido. Por favor, vuelve a verificar tu contraseña.')
@@ -60,14 +59,12 @@ function Profile() {
       return
     }
 
-    // 1. Evaluamos qué datos de seguridad cambiaron realmente
     const currentEmail = (user?.email || user?._People?.personal_email || '').trim().toLowerCase();
     const targetEmail = updatedData.email.trim().toLowerCase();
     
     const hasEmailChanged = targetEmail !== currentEmail;
     const hasPasswordChanged = !!updatedData.password;
 
-    // 2. Construimos el payload de seguridad con el contrato de llaves correcto del Backend (newEmail, newPassword)
     const payload = {
       securityChangeToken: securityToken
     }
@@ -77,7 +74,6 @@ function Profile() {
 
     setLoadingAction(true)
     try {
-      // Si cambió correo o clave, se dispara la solicitud a la ruta crítica de seguridad
       if (hasEmailChanged || hasPasswordChanged) {
         const response = await changeSecurityDataRequest(payload)
         
@@ -88,7 +84,6 @@ function Profile() {
         }
       }
 
-      // 3. Actualización de campos de perfil generales (como el teléfono si fue alterado)
       const currentPhone = (user?.phoneNumber || '').trim();
       const targetPhone = updatedData.cellphone.trim();
       const hasPhoneChanged = targetPhone !== currentPhone;
@@ -103,7 +98,6 @@ function Profile() {
         })
       }
 
-      // Sincronizamos el estado global del contexto de autenticación
       updateProfileState(updatedData.email.trim())
       setSecurityToken(null)
       setStep('view')
@@ -118,37 +112,42 @@ function Profile() {
   }
 
   return (
-    <div className="bg-[#231640] min-h-[calc(100vh-80px)] w-full flex flex-col md:flex-row font-montserrat relative overflow-hidden">
-      {/* Sección Izquierda: Imagen */}
-      <div className="hidden md:block md:w-1/2 h-auto">
-        <img
-          src={profileImage}
-          className="w-full h-full object-cover object-left-top"
-          alt="perfil"
-        />
-      </div>
-
-      {/* Sección Derecha: Formulario */}
-      <div className="w-full md:w-1/2 min-h-full flex flex-col items-center justify-center p-6 md:p-12 z-10 bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)]">
-        <div className="flex flex-col items-center w-full max-w-sm lg:max-w-md pt-4">
-          <div className="text-center mb-4">
-            <h1 className="text-[#D9982F] text-3xl md:text-5xl font-bold tracking-tight">
-              Perfil
-            </h1>
-            <p className="text-white text-s font-bold mt-1">
-              Gestiona tu información personal
-            </p>
-          </div>
-
-          <FormEditProfile
-            userData={profileData}
-            step={step}
-            setStep={setStep}
-            onSave={handleUpdate}
-            loading={loadingAction}
+    <div className="min-h-screen bg-[#231640] text-white flex flex-col justify-between font-montserrat overflow-x-hidden">
+      
+      {/* Contenedor Principal de la Vista */}
+      <main className="flex-grow flex flex-col md:flex-row relative overflow-hidden">
+        
+        {/* Sección Izquierda: Imagen */}
+        <div className="hidden md:block md:w-1/2">
+          <img
+            src={profileImage}
+            className="w-full h-full object-cover object-left-top min-h-[calc(100vh-80px)]"
+            alt="perfil"
           />
         </div>
-      </div>
+
+        {/* Sección Derecha: Formulario (Se corrigió min-h y se ajustó pt para pantallas grandes) */}
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-start pt-10 md:pt-16 lg:pt-24 p-6 md:p-12 z-10 bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-[calc(100vh-80px)]">
+          <div className="flex flex-col items-center w-full max-w-sm lg:max-w-md pt-0">
+            <div className="text-center mb-6">
+              <h1 className="text-[#D9982F] text-3xl md:text-5xl font-bold tracking-tight">
+                Perfil
+              </h1>
+              <p className="text-white text-sm font-bold mt-1">
+                Gestiona tu información personal
+              </p>
+            </div>
+
+            <FormEditProfile
+              userData={profileData}
+              step={step}
+              setStep={setStep}
+              onSave={handleUpdate}
+              loading={loadingAction}
+            />
+          </div>
+        </div>
+      </main>
 
       {/* Modales Interactivos */}
       {step === 'confirming' && (
