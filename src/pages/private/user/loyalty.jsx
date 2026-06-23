@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from 'react'
 import { AuthContext } from '../../../context/AuthContext'
 import { getMyLoyaltyRequest, getMyLoyaltyLedgersRequest } from '../../../services/users.service'
+import Footer from '../../../components/ui/Footer' // <-- Asegúrate de tener importado tu Footer aquí
 
 // Definición estática de niveles según backend (solo id -> name, usado como fallback)
 const LOYALTY_LEVELS = [
@@ -97,7 +98,21 @@ function Loyalty() {
     fetchData()
   }, [page, limit])
 
-  if (loading) return <div className="p-6 text-white">Cargando fidelidad...</div>
+  /* SE REEMPLAZÓ: Pantalla de carga integrada con el degradado idéntica a Subscriptions */
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-montserrat relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] animate-pulse" />
+        <div className="flex-grow flex items-center justify-center relative z-10">
+          <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
+            Cargando fidelidad...
+          </p>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   if (error) return <div className="p-6 text-red-400">Error cargando datos.</div>
 
   return (
@@ -171,6 +186,9 @@ function Loyalty() {
           </section>
         </div>
       </main>
+      
+      {/* Footer al fondo para mantener concordancia con la estructura general */}
+      <Footer />
     </div>
   )
 }
