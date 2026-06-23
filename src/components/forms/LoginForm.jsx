@@ -66,7 +66,6 @@ function LoginForm() {
 
         // ⭐ DETECCIÓN DE CUENTA NO VERIFICADA
         if (
-          res.status === 401 ||
           errorCode === 'UNVERIFIED_ACCOUNT' ||
           lowerMessage.includes('no verificada')
         ) {
