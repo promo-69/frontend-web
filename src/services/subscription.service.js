@@ -11,6 +11,17 @@ export const getMovieSubscriptions = async () => {
   }
 }
 
+// Chequeo de subscripcion - Mary
+export const getCheckSubscription = async (movieId) => {
+  try {
+    const response = await api.get(`/users/me/movie-subscriptions/${movieId}`)
+    return response.data.data || response.data
+  } catch (error) {
+    console.error(`Error al verificar suscripción para ID ${movieId}:`, error)
+    throw error
+  }
+}
+
 // Subscribirse a una pelicula - Mary
 export const subscribeToMovie = async (movieId) => {
   try {

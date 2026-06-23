@@ -37,20 +37,14 @@ export const getMoviesBillboard = async (id) => {
 }
 
 
-
-
-// https://backend-jog6.onrender.com/api/v1/test/showtimes/billboard/full
-export const getMoviesReleasessssdwe = async () => {
-  const response = await apiPublic.get('/movies/showtimes')
-  return response.data?.data || []
-}
-
+// Endpoint para proximos estrenos - Mary
 export const getUpcomingMovies = async () => {
-  const response = await apiPublic.get('/movies/upcoming')
+  const response = await api.get('/movies/upcoming')
   return response.data?.data || []
 }
 
-export const getMoviesReleases = async () => {
-  const response = await api.get('/movies')
+// Endpoint de peliculas activas - Mary
+export const getActiveMovies = async () => {
+  const response = await api.get('/movies/active')
   return response.data?.data || []
 }

@@ -12,6 +12,9 @@ import {
   getUpcomingMovies,
 } from '../../services/movies.service'
 
+// Importación unificada y corregida desde UI
+import { Movies, NextMovies, Events } from '../../components/ui/IconosProyect' 
+
 export default function Home() {
   const [releases, setReleases] = useState([])
   const [upcoming, setUpcoming] = useState([])
@@ -128,8 +131,8 @@ export default function Home() {
         {/* CARTELERA EN ESTRENO */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              🎬 Cartelera en Estreno
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+              <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Cartelera en Estreno
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button 
@@ -164,8 +167,8 @@ export default function Home() {
         {/* PRÓXIMOS ESTRENOS */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              ✨ Próximos Estrenos
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+              <NextMovies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Próximos Estrenos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button 
@@ -200,8 +203,8 @@ export default function Home() {
         {/* SECCIÓN: PRÓXIMOS EVENTOS */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-              🗓️ Eventos
+            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+              <Events className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Eventos
             </h2>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button 

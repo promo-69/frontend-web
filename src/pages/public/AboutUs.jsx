@@ -196,9 +196,8 @@ function AboutUs() {
 
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden flex flex-col justify-between font-['Montserrat']">
-      
-      
-      <main className="flex-grow px-4 sm:px-8 md:px-16 pt-20 md:pt-24 pb-12">
+
+      <main className="flex-grow px-4 sm:px-8 md:px-16 pt-6 md:pt-8 pb-12">
         <div className="max-w-6xl mx-auto">
           
           <InfoTabs tabs={empresaTabs} />
@@ -206,7 +205,6 @@ function AboutUs() {
         </div>
       </main>
 
-      {/* Footer consistente */}
       <Footer />
     </div>
   )
