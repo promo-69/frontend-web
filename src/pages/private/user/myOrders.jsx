@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyOrdersRequest } from '../../../services/users.service'
 import { fetchAndAttachProductNames } from '../../../services/productCache'
+import Footer from '../../../components/ui/Footer'
 
 function MyOrders() {
   const [orders, setOrders] = useState([])
@@ -97,81 +98,102 @@ function MyOrders() {
     4: 'Cancelado',
   }
 
-  if (loading) return <div className="p-6 text-white">Cargando órdenes...</div>
+  /* SE ACTUALIZÓ: Indicativo de carga idéntico con fondo en degradado y animación */
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-montserrat relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] animate-pulse" />
+        <div className="flex-grow flex items-center justify-center relative z-10">
+          <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
+            Cargando órdenes...
+          </p>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   if (error) return <div className="p-6 text-red-400">{error}</div>
 
   return (
-    <div className="bg-[#231640] min-h-[calc(100vh-80px)] w-full flex flex-col items-center py-8 font-montserrat text-white">
-      <div className="w-full max-w-3xl p-6 bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold text-[#D9982F] mb-4">Historial de Compra</h1>
+    /* SE CORRIGIÓ: Fondo degradado unificado a min-h-screen para solventar la línea blanca */
+    <div className="bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] min-h-screen w-full flex flex-col justify-between font-montserrat text-white overflow-x-hidden">
+      
+      <main className="flex-grow w-full flex flex-col items-center px-4 pt-4 md:pt-10 pb-12">
+        {/* SE ACTUALIZÓ: La tarjeta pasa a ser de color morado sólido con bordes sutiles */}
+        <div className="w-full max-w-3xl p-6 bg-[#231640] border border-white/5 rounded-2xl shadow-2xl shadow-black/30">
+          <h1 className="text-3xl font-bold text-[#D9982F] mb-4">Historial de Compra</h1>
 
-        {orders.length === 0 ? (
-          <div className="bg-white/5 p-6 rounded">
-            <p className="mb-2">No tienes órdenes registradas aún.</p>
-            <Link to="/" className="text-[#F6AD38] font-bold">
-              Ir a cartelera
-            </Link>
-          </div>
-        ) : (
-          <ul className="space-y-4">
-            {orders.map((order) => (
-              <li
-                key={order.id || order.orderId}
-                className="p-4 bg-white/5 rounded flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex-1">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <p className="font-bold">Orden #{order.id || order.orderId}</p>
-                    <p className="text-sm text-white/80">{formatDate(order.createdAt || order.date)}</p>
-                  </div>
+          {orders.length === 0 ? (
+            <div className="bg-white/5 p-6 rounded-xl">
+              <p className="mb-2">No tienes órdenes registradas aún.</p>
+              <Link to="/" className="text-[#F6AD38] font-bold">
+                Ir a cartelera
+              </Link>
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {orders.map((order) => (
+                <li
+                  key={order.id || order.orderId}
+                  className="p-4 bg-white/5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <p className="font-bold">Orden #{order.id || order.orderId}</p>
+                      <p className="text-sm text-white/80">{formatDate(order.createdAt || order.date)}</p>
+                    </div>
 
-                  <p className="text-sm mt-1">Cine: {order._Cinemas?.name || '—'}</p>
-                  <p className="text-sm">Estado: {statusMap[order.order_status] || order.order_status || '—'}</p>
-                  <p className="text-sm">Puntos generados: {order.generated_points ?? '0'}</p>
+                    <p className="text-sm mt-1">Cine: {order._Cinemas?.name || '—'}</p>
+                    <p className="text-sm">Estado: {statusMap[order.order_status] || order.order_status || '—'}</p>
+                    <p className="text-sm">Puntos generados: {order.generated_points ?? '0'}</p>
 
-                  <div className="mt-2">
-                    <p className="font-semibold">Items:</p>
-                    <ul className="ml-4 list-disc text-sm">
-                      {Array.isArray(order._OrderLines) && order._OrderLines.length > 0 ? (
-                        order._OrderLines.map((line) => (
-                          <li key={line.id}>
-                            {line.quantity ?? 1} × {line.productName || line.name || `Producto #${line.product}`} — {formatNumber(line.unit_price ?? line.original_unit_price)}
-                          </li>
+                    <div className="mt-2">
+                      <p className="font-semibold">Items:</p>
+                      <ul className="ml-4 list-disc text-sm text-white/90">
+                        {Array.isArray(order._OrderLines) && order._OrderLines.length > 0 ? (
+                          order._OrderLines.map((line) => (
+                            <li key={line.id}>
+                              {line.quantity ?? 1} × {line.productName || line.name || `Producto #${line.product}`} — {formatNumber(line.unit_price ?? line.original_unit_price)}
+                            </li>
+                          ))
+                        ) : (
+                          <li>—</li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div className="mt-2">
+                      <p className="font-semibold">Pagos:</p>
+                      {Array.isArray(order._OrderPayments) && order._OrderPayments.length > 0 ? (
+                        order._OrderPayments.map((p) => (
+                          <div key={p.id} className="text-sm text-white/80">
+                            Método #{p.payment_method} — {formatNumber(p.amount)} {p.reference_number ? ` (ref ${p.reference_number})` : ''}
+                          </div>
                         ))
                       ) : (
-                        <li>—</li>
+                        <div className="text-sm text-white/60">—</div>
                       )}
-                    </ul>
+                    </div>
                   </div>
 
-                  <div className="mt-2">
-                    <p className="font-semibold">Pagos:</p>
-                    {Array.isArray(order._OrderPayments) && order._OrderPayments.length > 0 ? (
-                      order._OrderPayments.map((p) => (
-                        <div key={p.id} className="text-sm">
-                          Método #{p.payment_method} — {formatNumber(p.amount)} {p.reference_number ? ` (ref ${p.reference_number})` : ''}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm">—</div>
-                    )}
+                  <div className="flex flex-col items-end self-end sm:self-center">
+                    <p className="font-bold text-xl text-white">Total: {order.total ?? order.total_amount_base_currency ?? order.subtotal_base_currency ?? '—'}</p>
+                    <Link
+                      to={`/mis-compras/${order.id || order.orderId}/ticket`}
+                      className="mt-3 px-4 py-2 bg-[#F6AD38] hover:bg-[#d9982f] text-black font-bold rounded-lg transition-colors duration-200"
+                    >
+                      Ver ticket
+                    </Link>
                   </div>
-                </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </main>
 
-                <div className="flex flex-col items-end">
-                  <p className="font-bold text-xl">Total: {order.total ?? order.total_amount_base_currency ?? order.subtotal_base_currency ?? '—'}</p>
-                  <Link
-                    to={`/mis-compras/${order.id || order.orderId}/ticket`}
-                    className="mt-3 px-4 py-2 bg-[#F6AD38] text-black font-bold rounded-lg"
-                  >
-                    Ver ticket
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <Footer />
     </div>
   )
 }

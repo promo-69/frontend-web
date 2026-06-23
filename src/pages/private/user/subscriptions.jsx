@@ -108,7 +108,8 @@ export default function Subscriptions() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
+      /* SE CORRIGIÓ: Fondo en Loading para mantener homogeneidad mientras se esperan los datos */
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-[80px] animate-pulse" />
         <div className="flex-grow flex items-center justify-center relative z-10">
           <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-gray-300">
@@ -121,7 +122,8 @@ export default function Subscriptions() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
+    /* SE ACTUALIZÓ: Se reemplazó bg-[#231640] por el degradado unificado */
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
       
       {/* Fondos ambientales sutiles */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
@@ -149,7 +151,7 @@ export default function Subscriptions() {
                     onClick={() => setIsBatchMode(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
                   >
-                    Seleccionar en lote
+                    Desubscipción en lote
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
@@ -169,7 +171,7 @@ export default function Subscriptions() {
                           : 'bg-red-600 border border-red-500 text-white hover:bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
                       }`}
                     >
-                      <FiTrash2 /> Eliminar ({selectedSubIds.length})
+                      <FiTrash2 /> Eliminar Subscripción ({selectedSubIds.length})
                     </button>
                     <button
                       onClick={handleCancelBatchMode}
