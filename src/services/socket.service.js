@@ -58,7 +58,7 @@ const connect = () => {
 
   socket.on('disconnect', (reason) => {
     logSocket('DISCONNECT', 'disconnect', reason)
-    
+
     if (
       reason === 'io server disconnect' ||
       reason === 'io client disconnect'
@@ -99,6 +99,7 @@ const joinShowtime = (showtimeId) => {
   }
 
   const emitJoin = () => {
+    console.log('[Socket] join_showtime', { showtimeId: numericShowtimeId })
     logSocket('SEND', 'join_showtime', { showtimeId: numericShowtimeId })
     socket.emit('join_showtime', { showtimeId: numericShowtimeId })
   }
