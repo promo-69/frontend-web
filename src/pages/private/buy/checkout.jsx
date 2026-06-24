@@ -173,12 +173,10 @@ export default function Checkout() {
   }
 
   const releaseLocksAndLeave = () => {
-    const socket = socketService.getSocket()
-    if (!socket) return
-
+    // Emitir unlock_seat para cada butaca (el servidor espera `unlock_seat`)
     ;(cart.tickets || []).forEach((t) => {
       const seatId = t.originalId || t.id
-      socket.emit('seat_unlocked', { seatId })
+      socketService.emit('unlock_seat', { seatId })
     })
     socketService.leaveShowtime(showtimeId)
   }
@@ -420,18 +418,9 @@ export default function Checkout() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user) return
-    const socket = socketService.getSocket()
 
-    //no hace falta volve a emitir join porque esos datos vienen del cartcontext
-     {/*socket.on('connect', () => {
-      console.log('Checkout socket conectado:', socket.id)
-      if (showtimeId) {
-        socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
-      }
-    }) */}
-
-
-    socket.on('payment_success', (payload) => {
+    // Conectar handlers usando socketService (evitar nombres de evento inconsistentes)
+    socketService.on('payment_success', (payload) => {
       console.log('socket payment_success payload:', payload)
       // Normalize payload (some backends wrap under `data` or use `id`)
       const wrapper = payload?.data ?? payload
@@ -462,12 +451,11 @@ export default function Checkout() {
       setTimeout(() => clearCart(), 300)
     })
 
-    socket.on('billing_required', (payload) => {
+    socketService.on('billing_required', (payload) => {
       alert('Se requiere facturación para completar la compra.')
       console.log('billing_required', payload)
     })
-
-    socket.on('seatlocksuccess', ({ seatId }) => {
+    socketService.on('seat_lock_success', ({ seatId }) => {
       console.log('Seat lock success while in checkout:', seatId)
     })
 
@@ -485,9 +473,9 @@ export default function Checkout() {
         '[Checkout] Removiendo oyentes del socket para evitar duplicados.',
       )
       // removemos los listeners locales para que no queden duplicados en memoria.
-      socket.off('payment_success')
-      socket.off('billing_required')
-      socket.off('seatlocksuccess')
+      socketService.off('payment_success')
+      socketService.off('billing_required')
+      socketService.off('seat_lock_success')
     }
   }, [navigate, clearCart, showtimeId])
 

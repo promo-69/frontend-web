@@ -6,9 +6,6 @@ export default function ShowtimeHeader({ showtime }) {
       hour12: false,
     })
 
-  console.log("→ ShowtimeHeader recibe:", showtime)
-
-
   return (
     <div className="bg-[#2D1748]/50 border border-white/10 rounded-2xl p-6 shadow-xl">
       <h2 className="text-3xl font-bold text-[#F6AD38] mb-4">
