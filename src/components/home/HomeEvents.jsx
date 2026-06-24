@@ -1,6 +1,6 @@
 import React from 'react';
 import MovieCard from '../movies/MovieCard'; 
-
+ 
 export default function HomeEvents({ events }) {
   if (!events || events.length === 0) {
     return (

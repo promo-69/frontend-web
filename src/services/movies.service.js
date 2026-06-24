@@ -48,3 +48,10 @@ export const getActiveMovies = async () => {
   const response = await api.get('/movies/active')
   return response.data?.data || []
 }
+
+// Lista las peliculas con mis generos favoritos seleccionados - Mary
+export const getMoviesByGenres = async () => {
+  const response = await api.get('/users/me/movie-genres')
+  return response.data?.data || []
+}
+
