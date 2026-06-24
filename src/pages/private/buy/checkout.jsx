@@ -37,6 +37,7 @@ export default function Checkout() {
 
   // 🔄 Fase A: Bloquear e inicializar Checkout al cargar la pantalla
   const checkoutStartedRef = useRef(false)
+  const lockedByClientRef = useRef(new Set())
 
   useEffect(() => {
     const initCheckout = async () => {
@@ -76,6 +77,115 @@ export default function Checkout() {
           '[CHECKOUT INIT] Enviando payload a /orders/checkout:',
           payload,
         )
+        // Asegurar que los locks siguen vigentes: reemitir `lock_seat` y esperar confirmación
+        // Inicializar el set local de locks detectados desde el carrito
+        try {
+          lockedByClientRef.current = new Set((cart.tickets || []).map((t) => t.originalId || t.id))
+        } catch (e) {
+          lockedByClientRef.current = new Set()
+        }
+
+        const seatIds = (payload.tickets || []).map((t) => t.seatId).filter(Boolean)
+        if (seatIds.length > 0) {
+          try {
+            if (!socketService.getSocket()) {
+              socketService.connect()
+            }
+
+            const waitForSeatLocks = (ids, timeoutMs = 4000) =>
+              new Promise((resolve) => {
+                const pending = new Set(ids)
+                const succeeded = new Set()
+                const failed = new Set()
+
+                const cleanup = () => {
+                  socketService.off('seat_lock_success', onSuccess)
+                  socketService.off('seat_lock_error', onError)
+                  socketService.off('seat_locked_by_other', onLockedByOther)
+                }
+
+                const onSuccess = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    succeeded.add(seatId)
+                    try {
+                      lockedByClientRef.current.add(seatId)
+                    } catch (e) {}
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                const onError = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    failed.add(seatId)
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                const onLockedByOther = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    failed.add(seatId)
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                socketService.on('seat_lock_success', onSuccess)
+                socketService.on('seat_lock_error', onError)
+                socketService.on('seat_locked_by_other', onLockedByOther)
+
+                // Emitir locks sólo para los asientos que NO hayan sido bloqueados por este cliente
+                ids.forEach((id) => {
+                  if (lockedByClientRef.current.has(id)) {
+                    // Ya lo teníamos bloqueado localmente: marcar como exitoso
+                    pending.delete(id)
+                    succeeded.add(id)
+                    return
+                  }
+                  try {
+                    socketService.emit('lock_seat', { seatId: id })
+                  } catch (e) {
+                    console.warn('[CHECKOUT] emit lock_seat fallo para', id, e)
+                    if (pending.has(id)) {
+                      pending.delete(id)
+                      failed.add(id)
+                    }
+                  }
+                })
+
+                // Timeout fallback
+                setTimeout(() => {
+                  if (pending.size > 0) {
+                    pending.forEach((id) => failed.add(id))
+                    pending.clear()
+                  }
+                  cleanup()
+                  resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                }, timeoutMs)
+              })
+
+            const { lockedIds, failedIds } = await waitForSeatLocks(seatIds, 4000)
+            if (failedIds && failedIds.length > 0) {
+              console.warn('[CHECKOUT] Algunos asientos no pudieron bloquearse:', failedIds)
+              setError('Uno o más asientos ya no están disponibles. Por favor revisa tu selección.')
+              await attemptCancelOrder('locks_failed')
+              setCheckingOut(false)
+              return
+            }
+          } catch (e) {
+            console.warn('[CHECKOUT] error al esperar seat_lock_success:', e)
+          }
+        }
         // Llamada a la API: POST /orders/checkout
         const response = await createOrderCheckout(payload)
 
@@ -464,9 +574,8 @@ export default function Checkout() {
       alert('Se requiere facturación para completar la compra.')
       console.log('billing_required', payload)
     })
-    socketService.on('seat_lock_success', ({ seatId }) => {
-      console.log('Seat lock success while in checkout:', seatId)
-    })
+    // NOTE: no registrar aquí `seat_lock_success` para logging; el flujo
+    // de checkout espera confirmaciones puntuales cuando es necesario.
 
     return () => {
       {

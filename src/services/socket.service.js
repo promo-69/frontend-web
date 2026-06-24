@@ -5,6 +5,7 @@ let socket = null
 let lastJoinedShowtimeId = null
 let pendingEmits = []
 const recentEmitTimestamps = new Map()
+// listenerWrappers: event -> { socketHandler: Function, originals: Set<Function> }
 const listenerWrappers = new Map()
 const SOCKET_DEBUG = true
 
@@ -101,6 +102,14 @@ const disconnect = () => {
   lastJoinedShowtimeId = null
   pendingEmits = []
   recentEmitTimestamps.clear()
+  // remove socket-level handlers managed by service
+  listenerWrappers.forEach((entry, event) => {
+    try {
+      if (socket && entry && entry.socketHandler) socket.off(event, entry.socketHandler)
+    } catch (e) {
+      // ignore
+    }
+  })
   listenerWrappers.clear()
 }
 
@@ -178,42 +187,59 @@ const leaveShowtime = (showtimeId) => {
 // 5. Listeners de Eventos
 // ===============================
 const on = (event, cb) => {
+  if (typeof cb !== 'function') return
+
   if (!socket) {
     connect()
   }
   if (!socket) return
 
-  const wrapper = (payload) => {
-    logSocket('RECV', event, payload)
-    cb(payload)
+  const entry = listenerWrappers.get(event)
+  if (entry) {
+    // agregar al set de callbacks locales
+    entry.originals.add(cb)
+    return
   }
-  socket.on(event, wrapper)
 
-  const existing = listenerWrappers.get(event) || []
-  listenerWrappers.set(event, [...existing, { original: cb, wrapper }])
+  // crear un solo handler a nivel de socket que despache a todos los callbacks locales
+  const originals = new Set([cb])
+  const socketHandler = (payload) => {
+    logSocket('RECV', event, payload)
+    // iterar sobre una copia para evitar mutaciones durante iteración
+    Array.from(originals).forEach((fn) => {
+      try {
+        fn(payload)
+      } catch (e) {
+        console.error('[Socket] listener error for', event, e)
+      }
+    })
+  }
+
+  socket.on(event, socketHandler)
+  listenerWrappers.set(event, { socketHandler, originals })
 }
 
 const off = (event, cb) => {
   if (!socket) return
-  const wrappers = listenerWrappers.get(event)
-  if (!wrappers) {
-    socket.off(event, cb)
+  const entry = listenerWrappers.get(event)
+  if (!entry) {
+    // no tenemos wrapper gestionado por el servicio; delegar al socket
+    if (cb) socket.off(event, cb)
+    else socket.off(event)
     return
   }
 
   if (cb) {
-    const match = wrappers.find((entry) => entry.original === cb)
-    if (match) {
-      socket.off(event, match.wrapper)
-      listenerWrappers.set(
-        event,
-        wrappers.filter((entry) => entry.original !== cb),
-      )
+    entry.originals.delete(cb)
+    // si no quedan callbacks locales, eliminar el handler a nivel socket
+    if (entry.originals.size === 0) {
+      socket.off(event, entry.socketHandler)
+      listenerWrappers.delete(event)
     }
   } else {
-    wrappers.forEach((entry) => socket.off(event, entry.wrapper))
+    // remover todo
+    socket.off(event, entry.socketHandler)
     listenerWrappers.delete(event)
-    socket.off(event)
   }
 }
 
