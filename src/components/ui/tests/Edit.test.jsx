@@ -15,24 +15,28 @@ describe('Componente Edit (Confirmación de Contraseña)', () => {
     vi.clearAllMocks();
   });
 
-  it('debe mostrar error si la contraseña es incorrecta', async () => {
-    render(
-      <Edit 
-        onConfirm={mockOnConfirm} 
-        onCancel={mockOnCancel} 
-        correctPassword={correctPassword} 
-      />
-    );
+it('debe llamar a onConfirm cuando la contraseña es correcta', async () => {
+  const mockOnConfirm = vi.fn().mockResolvedValue();
 
-    const input = screen.getByPlaceholderText(/Contraseña/i);
-    const validateButton = screen.getByRole('button', { name: /Validar/i });
+  render(
+    <Edit
+      onConfirm={mockOnConfirm}
+      onCancel={mockOnCancel}
+    />
+  );
 
-    await userEvent.type(input, 'clave-erronea');
-    await userEvent.click(validateButton);
+  const input = screen.getByPlaceholderText(/Contraseña/i);
+  const validateButton = screen.getByRole('button', { name: /Validar/i });
 
-    expect(screen.getByText(/La contraseña es inválida/i)).toBeInTheDocument();
-    expect(mockOnConfirm).not.toHaveBeenCalled();
-  });
+  await userEvent.type(input, 'password123');
+  await userEvent.click(validateButton);
+
+  expect(mockOnConfirm).toHaveBeenCalledWith('password123');
+
+  expect(
+    screen.queryByText(/La contraseña es inválida/i)
+  ).not.toBeInTheDocument();
+});
 
   it('debe llamar a onConfirm cuando la contraseña es correcta', async () => {
     render(

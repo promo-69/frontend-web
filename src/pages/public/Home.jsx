@@ -3,6 +3,7 @@ import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 import Footer from '../../components/ui/Footer'
 import Carousel from '../../components/home/Carousel'
+import ForU from '../../components/home/ForU'
 import HomeReleases from '../../components/home/HomeReleases'
 import HomeUpcoming from '../../components/home/HomeUpcoming'
 import HomeEvents from '../../components/home/HomeEvents'
@@ -128,6 +129,9 @@ export default function Home() {
 
       <main className="px-6 md:px-16 py-12 flex flex-col gap-16">
         
+        {/* SECCIÓN PERSONALIZADA / CARRUSEL PUBLICITARIO */}
+        <ForU />
+
         {/* CARTELERA EN ESTRENO */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">

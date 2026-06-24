@@ -12,6 +12,7 @@ import Confectionery from '../pages/private/buy/confectionery'
 import Checkout from '../pages/private/buy/checkout'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
 import Subscriptions from '../pages/private/user/subscriptions'
+import MoviesGenres from '../pages/private/user/myGenres'
 
 const PrivateLayout = () => {
   const { user, initializing } = useContext(AuthContext)
@@ -47,6 +48,7 @@ export const privateRoutes = (
       <Route path="/profile" element={<Profile />} />
       <Route path="/fidelity" element={<Loyalty />} />
       <Route path="/subscription" element={<Subscriptions />} />
+      <Route path="/myGenres" element={<MoviesGenres />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
   {/* <Route path="/loyalty-prices" element={<LoyaltyList />} /> */}
