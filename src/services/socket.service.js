@@ -130,7 +130,11 @@ const leaveShowtime = (showtimeId) => {
 // 5. Listeners de Eventos
 // ===============================
 const on = (event, cb) => {
+  if (!socket) {
+    connect()
+  }
   if (!socket) return
+
   socket.on(event, (payload) => {
     logSocket('RECV', event, payload)
     cb(payload)

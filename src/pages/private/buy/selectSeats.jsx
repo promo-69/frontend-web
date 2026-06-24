@@ -165,12 +165,13 @@ export default function SelectSeats() {
   useEffect(() => {
     if (!quoteReady || !showtimeId) return
 
-    const socket = socketService.getSocket()
+    let socket = socketService.getSocket()
     if (!socket) {
       console.warn(
-        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+        'SelectSeats: No se detectó un socket instanciado, conectando ahora...',
       )
-      return
+      socketService.connect()
+      socket = socketService.getSocket()
     }
 
     const onJoinSuccess = () => {}
@@ -284,6 +285,11 @@ export default function SelectSeats() {
       return {
         ...seat,
         seatId: seat.id, // coincida con lo que espera el carrito
+        bookingId:
+          showtime?.booking?.id ||
+          showtime?.booking?.booking_id ||
+          showtime?.booking?.bookingId ||
+          null,
         label: seat.label || `${seat.row}${seat.column}`,
         price: seat.price || 6.0, // Fallback si el mapa no trae costo base
         assignedAudienceId: categoryId,

@@ -49,11 +49,20 @@ export default function Checkout() {
 
         // 🧠 Paylod para la peticion
         const payload = {
-          tickets: (cart.tickets || []).map((t) => ({
-            booking: 1, // id base temporal de reserva
-            seatId: t.originalId || t.id, // ID del asiento de base de datos
-            audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
-          })),
+          tickets: (cart.tickets || []).map((t) => {
+            if (!t.bookingId) {
+              console.warn(
+                '[CHECKOUT INIT] Ticket sin bookingId, revisa si SelectSeats está agregando bookingId correctamente:',
+                t,
+              )
+            }
+
+            return {
+              booking: t.bookingId ?? Number(showtimeId),
+              seatId: t.originalId || t.id, // ID del asiento de base de datos
+              audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
+            }
+          }),
           concessions: (cart.products || []).map((p) => ({
             line_type: p.type === 'product' ? 1 : 2, // 1 = Producto Simple, 2 = Combo
             ...(p.type === 'product'
