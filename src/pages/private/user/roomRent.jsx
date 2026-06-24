@@ -3,7 +3,7 @@ import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTag, FiBookOpen, FiInfo } fro
 import Footer from '../../../components/ui/Footer'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import cinemaPeopleImg from '../../../assets/images/room-rent.webp'
-import { getCinemas, getRoomsByCinema } from '../../../services/info.service'
+import { getCinemas, getRoomsByCinema, createRequestRentRoom } from '../../../services/info.service'
 
 const EVENT_TYPES = [
   { id: 1, name: "Corporativo" },
@@ -30,6 +30,7 @@ export default function RoomRent() {
 
   const [loadingCinemas, setLoadingCinemas] = useState(true)
   const [loadingRooms, setLoadingRooms] = useState(false)
+  const [submitting, setSubmitting] = useState(false) 
   const [successModalMessage, setSuccessModalMessage] = useState('')
 
   const getMinEventDate = () => {
@@ -92,7 +93,7 @@ export default function RoomRent() {
     setFormData(prev => ({ ...prev, [name]: value === '' ? '' : parseInt(value, 10) }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     const { room, event_type, event_name, event_description, event_date, requested_start_time, requested_end_time, attendees } = formData
@@ -114,16 +115,30 @@ export default function RoomRent() {
       return
     }
 
-    const startISO = new Date(`${event_date}T${requested_start_time}:00Z`).toISOString()
-    const endISO = new Date(`${event_date}T${requested_end_time}:00Z`).toISOString()
+    setSubmitting(true)
 
-    const submissionData = { ...formData, requested_start_time: startISO, requested_end_time: endISO }
-    console.log('🚀 Payload validado:', submissionData)
-    
-    setSuccessModalMessage('¡Solicitud enviada con éxito! Te contactaremos pronto.')
-    
-    setFormData({ room: '', event_type: '', event_name: '', event_description: '', event_date: '', requested_start_time: '', requested_end_time: '', attendees: '' })
-    setSelectedCinemaId('')
+    try {
+      const startISO = new Date(`${event_date}T${requested_start_time}:00Z`).toISOString()
+      const endISO = new Date(`${event_date}T${requested_end_time}:00Z`).toISOString()
+
+      const submissionData = { 
+        ...formData, 
+        requested_start_time: startISO, 
+        requested_end_time: endISO 
+      }
+
+      await createRequestRentRoom(submissionData)
+      setSuccessModalMessage('¡Solicitud enviada con éxito! Te contactaremos pronto.')
+      
+      setFormData({ room: '', event_type: '', event_name: '', event_description: '', event_date: '', requested_start_time: '', requested_end_time: '', attendees: '' })
+      setSelectedCinemaId('')
+
+    } catch (error) {
+      console.error('❌ Error al enviar la solicitud al servidor:', error)
+      alert(error?.response?.data?.message || 'Hubo un inconveniente al procesar tu solicitud de alquiler. Por favor, intenta de nuevo.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const commonInputClass = "bg-white/10 w-full text-white outline-none py-3 px-4 text-sm rounded-xl border border-white/10 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all placeholder:text-white/30"
@@ -141,34 +156,36 @@ export default function RoomRent() {
               Alquiler <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">de Sala</span>
             </h3>
             <p className="text-sm text-gray-300 mt-2 max-w-xl">
-              Organiza tus eventos privados con la mejor tecnología cinematográfica.
+              Organiza tus eventos privados con la mejor tecnología cinematográfica. Planifica tu evento perfecto en nuestras instalaciones.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          {/* Grid modificado: lg:items-stretch para forzar alturas iguales */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-stretch items-start">
             
+            {/* Formulario adaptado para aprovechar el espacio exacto sin desbordarse */}
             <form 
               onSubmit={handleSubmit} 
-              className="bg-[#231640] p-6 md:p-10 rounded-[2rem] border border-white/10 shadow-2xl lg:order-1 flex flex-col gap-5"
+              className="bg-[#231640] p-6 md:p-8 lg:p-8 rounded-[2rem] border border-white/10 shadow-2xl lg:order-1 flex flex-col gap-4 lg:gap-3.5 justify-between lg:h-full"
             >
                 {/* Sucursal y Sala */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Sucursal *</label>
                     <div className="relative flex items-center">
                       <FiMapPin className="absolute left-4 text-gray-400" />
-                      <select value={selectedCinemaId} onChange={handleCinemaChange} required className={`${commonInputClass} pl-11`}>
+                      <select value={selectedCinemaId} onChange={handleCinemaChange} required disabled={submitting} className={`${commonInputClass} pl-11`}>
                         <option value="" className={dropdownOptionClass}>Seleccionar...</option>
                         {cinemas.map(c => <option key={c.id} value={c.id} className={dropdownOptionClass}>{c.name}</option>)}
                       </select>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Sala *</label>
                     <div className="relative flex items-center">
                       <FiBookOpen className="absolute left-4 text-gray-400" />
-                      <select name="room" value={formData.room} onChange={handleNumberInputChange} required disabled={!selectedCinemaId} className={`${commonInputClass} pl-11`}>
+                      <select name="room" value={formData.room} onChange={handleNumberInputChange} required disabled={!selectedCinemaId || submitting} className={`${commonInputClass} pl-11`}>
                         <option value="" className={dropdownOptionClass}>{loadingRooms ? 'Cargando...' : 'Seleccionar...'}</option>
                         {rooms.map(r => <option key={r.id} value={r.id} className={dropdownOptionClass}>{r.name} ({r.current_capacity || r.capacity} pers.)</option>)}
                       </select>
@@ -178,28 +195,28 @@ export default function RoomRent() {
 
                 {/* Tipo y Nombre */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-2 col-span-1">
+                  <div className="flex flex-col gap-1.5 col-span-1">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Categoría *</label>
-                    <select name="event_type" value={formData.event_type} onChange={handleNumberInputChange} required className={commonInputClass}>
+                    <select name="event_type" value={formData.event_type} onChange={handleNumberInputChange} required disabled={submitting} className={commonInputClass}>
                       <option value="" className={dropdownOptionClass}>Tipo...</option>
                       {EVENT_TYPES.map(t => <option key={t.id} value={t.id} className={dropdownOptionClass}>{t.name}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-2 col-span-2">
+                  <div className="flex flex-col gap-1.5 col-span-2">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Nombre del Evento *</label>
-                    <input type="text" name="event_name" value={formData.event_name} onChange={handleInputChange} required placeholder="Ej: Mi Fiesta VIP" className={commonInputClass} />
+                    <input type="text" name="event_name" value={formData.event_name} onChange={handleInputChange} required disabled={submitting} placeholder="Ej: Mi Fiesta VIP" className={commonInputClass} />
                   </div>
                 </div>
 
                 {/* Descripción */}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Descripción y Requerimientos *</label>
-                  <textarea name="event_description" value={formData.event_description} onChange={handleInputChange} required rows="3" placeholder="Detalles obligatorios del evento..." className={commonInputClass} />
+                  <textarea name="event_description" value={formData.event_description} onChange={handleInputChange} required disabled={submitting} rows="2" placeholder="Detalles obligatorios del evento..." className={`${commonInputClass} resize-none`} />
                 </div>
 
                 {/* Fecha y Horas */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Fecha *</label>
                     <div className="relative flex items-center">
                       <FiCalendar className="absolute left-4 text-gray-400" />
@@ -210,61 +227,63 @@ export default function RoomRent() {
                         onChange={handleInputChange} 
                         min={getMinEventDate()}
                         required 
+                        disabled={submitting}
                         className={`${commonInputClass} pl-11`} 
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Hora Inicio *</label>
                     <div className="relative flex items-center">
                       <FiClock className="absolute left-4 text-gray-400" />
-                      <input type="time" name="requested_start_time" value={formData.requested_start_time} onChange={handleInputChange} required className={`${commonInputClass} pl-11`} />
+                      <input type="time" name="requested_start_time" value={formData.requested_start_time} onChange={handleInputChange} required disabled={submitting} className={`${commonInputClass} pl-11`} />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Hora Fin *</label>
                     <div className="relative flex items-center">
                       <FiClock className="absolute left-4 text-gray-400" />
-                      <input type="time" name="requested_end_time" value={formData.requested_end_time} onChange={handleInputChange} required className={`${commonInputClass} pl-11`} />
+                      <input type="time" name="requested_end_time" value={formData.requested_end_time} onChange={handleInputChange} required disabled={submitting} className={`${commonInputClass} pl-11`} />
                     </div>
                   </div>
                 </div>
 
                 {/* Asistentes */}
-                <div className="flex flex-col gap-2 md:max-w-[150px]">
+                <div className="flex flex-col gap-1.5 md:max-w-[150px]">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Asistentes *</label>
                     <div className="relative flex items-center">
                       <FiUsers className="absolute left-4 text-gray-400" />
-                      <input type="number" name="attendees" value={formData.attendees} onChange={handleNumberInputChange} required min="1" placeholder="0" className={`${commonInputClass} pl-11`} />
+                      <input type="number" name="attendees" value={formData.attendees} onChange={handleNumberInputChange} required min="1" disabled={submitting} placeholder="0" className={`${commonInputClass} pl-11`} />
                     </div>
                 </div>
 
                 {/* BLOQUE DE NOTA DE ANTICIPACIÓN */}
-                <div className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-xs text-amber-400/90 leading-relaxed mt-2">
+                <div className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-xl text-xs text-amber-400/90 leading-relaxed">
                   <FiInfo className="w-4 h-4 mt-0.5 shrink-0 text-yellow-500" />
                   <p>
-                    <strong>Nota importante:</strong> Por políticas del establecimiento, la solicitud de reserva y el alquiler deben tramitarse con un mínimo de <strong>2 semanas (14 días) de anticipación</strong> a la fecha propuesta del evento.
+                    <strong>Nota importante:</strong> Solicitud con un mínimo de <strong>2 semanas (14 días) de anticipación</strong>.
                   </p>
                 </div>
 
                 <button 
                   type="submit" 
-                  disabled={loadingCinemas || loadingRooms}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-[#231640] font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl uppercase tracking-widest disabled:opacity-50"
+                  disabled={loadingCinemas || loadingRooms || submitting}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-[#231640] font-black py-3.5 rounded-xl hover:scale-[1.01] active:scale-95 transition-all shadow-xl uppercase tracking-widest disabled:opacity-50 text-xs md:text-sm"
                 >
-                  {loadingCinemas ? 'Cargando...' : 'Solicitar Alquiler'}
+                  {submitting ? 'Enviando solicitud...' : (loadingCinemas ? 'Cargando sucursales...' : 'Solicitar Alquiler')}
                 </button>
             </form>
 
-            {/* IMAGEN LADO DERECHO */}
-            <div className="lg:sticky lg:top-10 lg:order-2">
-              <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl aspect-video lg:aspect-square">
+            {/* IMAGEN LADO DERECHO - Ahora se expande simétricamente para calzar al 100% con la altura del form */}
+            <div className="lg:order-2 lg:h-full flex flex-col">
+              <div className="w-full h-full relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl aspect-video lg:aspect-auto lg:grow flex">
                 <img src={cinemaPeopleImg} alt="Gente en el cine" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#231640]/80 via-transparent to-transparent" />
               </div>
             </div>
+
           </div>
         </div>
       </section>

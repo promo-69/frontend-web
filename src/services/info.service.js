@@ -35,4 +35,10 @@ export const getRoomsByCinema = async (cinemaId) => {
   return response.data.data || response.data || [];
 };
 
-//
+// Solicitud de alquiler de salas - Mary
+export const createRequestRentRoom = async (payload) => {
+  const response = await api.post('/rentals/requests', payload, {
+    withCredentials: true,
+  });
+  return response.data;
+};
