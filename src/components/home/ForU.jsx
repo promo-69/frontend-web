@@ -83,25 +83,25 @@ export default function ForU() {
     return (
       <div className="w-full relative overflow-hidden rounded-2xl bg-slate-950 h-64 sm:h-72 md:h-80 lg:h-96 shadow-xl font-montserrat my-6 group">
         
-        {/* Banner 1: Selección de Géneros */}
+        {/* Selección de Géneros */}
         <div 
           className={`absolute inset-0 w-full h-full flex flex-col justify-center px-6 sm:px-12 md:px-16 transition-all duration-1000 ease-in-out cursor-pointer ${
             currentBanner === 0 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
           }`}
           onClick={handleGenreBannerClick}
         >
-          {/* Capa 1: Imagen de fondo para Géneros (Desplazada sutilmente a la derecha para no obstruir el texto) */}
+          {/* Imagen de fondo para Géneros (Desplazada sutilmente a la derecha para no obstruir el texto) */}
           <img 
             src={genresImg} 
             alt="Géneros de películas Cineflix" 
             className="absolute inset-0 w-full h-full object-cover object-[75%_center] pointer-events-none opacity-90 transition-transform duration-700 group-hover:scale-[1.01]"
           />
 
-          {/* Capa 2: Mix de degradados púrpuras cinematográficos colocados encima de la imagen */}
+          {/* Mix de degradados púrpuras cinematográficos colocados encima de la imagen */}
           <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/20 via-slate-900/10 to-transparent opacity-40 mix-blend-overlay pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1c1035] via-[#130b24]/90 sm:via-[#130b24]/60 to-transparent z-0" />
           
-          {/* Capa 3: Contenido de texto */}
+          {/* Contenido de texto */}
           <div className="relative z-10 max-w-[90%] sm:max-w-md md:max-w-xl transition-transform duration-500 group-hover:translate-x-1">
             <span className="text-amber-400 uppercase tracking-widest text-[10px] sm:text-xs font-black mb-2 block">
               Recomendaciones personalizadas
@@ -115,24 +115,24 @@ export default function ForU() {
           </div>
         </div>
 
-        {/* Banner 2: Alquiler de Salas (Tu nueva imagen implementada) */}
+        {/* Alquiler de Salas (Tu nueva imagen implementada) */}
         <div 
           className={`absolute inset-0 w-full h-full flex flex-col justify-center px-6 sm:px-12 md:px-16 transition-all duration-1000 ease-in-out cursor-pointer ${
             currentBanner === 1 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
           }`}
           onClick={handleRoomsBannerClick}
         >
-          {/* Capa 1: Tu nueva imagen de alquiler */}
+          {/* Imagen de alquiler */}
           <img 
             src={roomRentImg} 
             alt="Alquiler de salas Cineflix" 
             className="absolute inset-0 w-full h-full object-cover object-[85%_0%] pointer-events-none opacity-95 transition-transform duration-700 group-hover:scale-[1.01]"
           />
           
-          {/* Capa 2: Degradado oscuro */}
+          {/* Degradado oscuro */}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 sm:via-slate-950/50 to-transparent z-0" />
           
-          {/* Capa 3: Contenido de texto */}
+          {/* Contenido de texto */}
           <div className="relative z-10 max-w-[80%] sm:max-w-md md:max-w-lg lg:max-w-xl transition-transform duration-500 group-hover:translate-x-1">
             <span className="text-cyan-400 uppercase tracking-widest text-[10px] sm:text-xs font-black mb-1 sm:mb-2 block">
               Experiencias exclusivas Cineflix
