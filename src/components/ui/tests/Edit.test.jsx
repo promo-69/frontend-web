@@ -28,7 +28,7 @@ describe('Componente Edit (Confirmación de Contraseña)', () => {
     await userEvent.type(input, 'clave-erronea');
     await userEvent.click(validateButton);
 
-    //  Usar await + findByText para esperar que React renderice el error
+    // 🌟 CORRECCIÓN CRÍTICA: Usar await + findByText para esperar que React renderice el error
     expect(await screen.findByText(/La contraseña es inválida/i)).toBeInTheDocument();
     expect(mockOnConfirm).not.toHaveBeenCalled();
   });
@@ -48,7 +48,7 @@ describe('Componente Edit (Confirmación de Contraseña)', () => {
     await userEvent.type(input, correctPassword);
     await userEvent.click(validateButton);
 
-    // Esperamos a que la función mock sea llamada asíncronamente
+    // 🌟 PROTECCIÓN EXTRA: Esperamos a que la función mock sea llamada asíncronamente
     await waitFor(() => {
       expect(mockOnConfirm).toHaveBeenCalledTimes(1);
     });
