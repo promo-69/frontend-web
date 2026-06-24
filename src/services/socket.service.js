@@ -3,6 +3,9 @@ import { io } from 'socket.io-client'
 // Mantener la instancia del socket en una variable mutable accesible por todo el servicio
 let socket = null
 let lastJoinedShowtimeId = null
+let pendingEmits = []
+const recentEmitTimestamps = new Map()
+const listenerWrappers = new Map()
 const SOCKET_DEBUG = true
 
 const timestamp = () => new Date().toISOString()
@@ -50,6 +53,16 @@ const connect = () => {
 
   socket.on('connect', () => {
     logSocket('CONNECT', 'connect', { connected: socket.connected })
+    if (pendingEmits.length > 0) {
+      const queued = pendingEmits.slice()
+      pendingEmits = []
+      queued.forEach(({ event, payload }) => {
+        if (socket && socket.connected) {
+          logSocket('SEND', event, payload)
+          socket.emit(event, payload)
+        }
+      })
+    }
   })
 
   socket.on('connect_error', (err) => {
@@ -58,6 +71,9 @@ const connect = () => {
 
   socket.on('disconnect', (reason) => {
     logSocket('DISCONNECT', 'disconnect', reason)
+
+    pendingEmits = []
+    recentEmitTimestamps.clear()
 
     if (
       reason === 'io server disconnect' ||
@@ -83,6 +99,38 @@ const disconnect = () => {
   socket.disconnect()
   socket = null
   lastJoinedShowtimeId = null
+  pendingEmits = []
+  recentEmitTimestamps.clear()
+  listenerWrappers.clear()
+}
+
+const shouldSendEmit = (event, payload) => {
+  const key = `${event}:${JSON.stringify(payload)}`
+  const now = Date.now()
+  const lastSent = recentEmitTimestamps.get(key) || 0
+  const duplicateWindow = 250
+  if (now - lastSent < duplicateWindow) {
+    return false
+  }
+  recentEmitTimestamps.set(key, now)
+  return true
+}
+
+const sendOrQueueEmit = (event, payload) => {
+  const now = Date.now()
+  const emitter = () => {
+    if (!socket) return
+    logSocket('SEND', event, payload)
+    socket.emit(event, payload)
+  }
+  if (!shouldSendEmit(event, payload)) {
+    return
+  }
+  if (!socket || !socket.connected) {
+    pendingEmits.push({ event, payload, when: now })
+    return
+  }
+  emitter()
 }
 
 // ===============================
@@ -90,6 +138,10 @@ const disconnect = () => {
 // ===============================
 const joinShowtime = (showtimeId) => {
   const numericShowtimeId = Number(showtimeId)
+
+  if (lastJoinedShowtimeId === numericShowtimeId) {
+    return
+  }
 
   if (!socket) {
     console.warn(
@@ -104,13 +156,9 @@ const joinShowtime = (showtimeId) => {
     socket.emit('join_showtime', { showtimeId: numericShowtimeId })
   }
 
-  if (lastJoinedShowtimeId === numericShowtimeId && socket?.connected) {
-    return
-  }
-
   if (socket && socket.connected) {
     emitJoin()
-  } else {
+  } else if (socket) {
     socket.once('connect', emitJoin)
   }
 
@@ -122,8 +170,8 @@ const joinShowtime = (showtimeId) => {
 // ===============================
 const leaveShowtime = (showtimeId) => {
   if (!socket) return
-  logSocket('SEND', 'leave_showtime', { showtimeId: Number(showtimeId) })
-  socket.emit('leave_showtime', { showtimeId: Number(showtimeId) })
+  sendOrQueueEmit('leave_showtime', { showtimeId: Number(showtimeId) })
+  lastJoinedShowtimeId = null
 }
 
 // ===============================
@@ -135,24 +183,45 @@ const on = (event, cb) => {
   }
   if (!socket) return
 
-  socket.on(event, (payload) => {
+  const wrapper = (payload) => {
     logSocket('RECV', event, payload)
     cb(payload)
-  })
+  }
+  socket.on(event, wrapper)
+
+  const existing = listenerWrappers.get(event) || []
+  listenerWrappers.set(event, [...existing, { original: cb, wrapper }])
 }
 
 const off = (event, cb) => {
   if (!socket) return
-  if (cb) socket.off(event, cb)
-  else socket.off(event)
+  const wrappers = listenerWrappers.get(event)
+  if (!wrappers) {
+    socket.off(event, cb)
+    return
+  }
+
+  if (cb) {
+    const match = wrappers.find((entry) => entry.original === cb)
+    if (match) {
+      socket.off(event, match.wrapper)
+      listenerWrappers.set(
+        event,
+        wrappers.filter((entry) => entry.original !== cb),
+      )
+    }
+  } else {
+    wrappers.forEach((entry) => socket.off(event, entry.wrapper))
+    listenerWrappers.delete(event)
+    socket.off(event)
+  }
 }
 
 // ===============================
 // 6. Emitir eventos generales
 // ===============================
 const emit = (event, payload) => {
-  if (!socket) return
-  socket.emit(event, payload)
+  sendOrQueueEmit(event, payload)
 }
 
 // ===============================
