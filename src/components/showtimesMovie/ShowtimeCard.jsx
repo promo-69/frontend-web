@@ -14,6 +14,13 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
   const currentDate = new Date()
   const isPassed = showtimeDate < currentDate
 
+  const resolvedCinemaId =
+    cinemaId ||
+    showtime?.cinema?.id ||
+    showtime?.cinemaId ||
+    showtime?.cinema_id ||
+    null
+
   const handleClick = () => {
     if (isPassed) return
 
@@ -23,7 +30,7 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
     }
 
     navigate(`/selectSeats/${movieId}/${showtime.id}`, {
-      state: { cinemaId },
+      state: { cinemaId: resolvedCinemaId },
     })
   }
 

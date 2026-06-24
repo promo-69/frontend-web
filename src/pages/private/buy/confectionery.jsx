@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCart } from '../../../context/CartContext'
 import OrderSummary from '../../../components/selectSeats/OrderSummary'
-import { io } from 'socket.io-client'
+import socketService from '../../../services/socket.service'
 
 import {
   getConcessionProducts,
@@ -38,6 +38,7 @@ export default function Confectionery() {
   const [cinemasError, setCinemasError] = useState(null)
 
   // Si es flujo de compra, usamos el cine de la compra. Si es público, usamos el cine seleccionado en el Header
+  // usamos socketService para manejar conexiones/rooms centralizadas
   const socketRef = useRef(null)
   const quoteInitializedRef = useRef(false)
   const lastRequestedCinemaRef = useRef(null)
@@ -246,26 +247,16 @@ export default function Confectionery() {
   useEffect(() => {
     if (!showtimeId) return
 
-    const socket = io(import.meta.env.VITE_WS_URL, {
-      transports: ['websocket'],
-      auth: { token: localStorage.getItem('token') },
-    })
+    socketService.connect()
+    socketService.joinShowtime(showtimeId)
 
-    socketRef.current = socket
-
-    socket.on('connect', () => {
-      socket.emit('joinshowtime', { showtime_id: Number(showtimeId) })
-    })
-
-    socket.on('disconnect', () => {
+    socketService.on('disconnect', () => {
       console.log('Confitería socket desconectado')
     })
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
-        socketRef.current.disconnect()
-      }
+      socketService.off('disconnect')
+      socketService.leaveShowtime(showtimeId)
     }
   }, [showtimeId])
 
@@ -308,16 +299,13 @@ export default function Confectionery() {
   }
 
   const releaseLocksAndLeave = () => {
-    const socket = socketRef.current
-    if (!socket) return
-
-    (cart.tickets || []).forEach((ticket) => {
+    ;(cart.tickets || []).forEach((ticket) => {
       const seatId = ticket.originalId || ticket.id
-      socket.emit('unlockseat', { seatId })
+      socketService.emit('unlock_seat', { seatId })
     })
 
     if (showtimeId) {
-      socket.emit('leaveshowtime', { showtimeId: Number(showtimeId) })
+      socketService.leaveShowtime(showtimeId)
     }
   }
 

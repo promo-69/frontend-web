@@ -2,6 +2,19 @@ import { io } from 'socket.io-client'
 
 // Mantener la instancia del socket en una variable mutable accesible por todo el servicio
 let socket = null
+let lastJoinedShowtimeId = null
+const SOCKET_DEBUG = true
+
+const timestamp = () => new Date().toISOString()
+const logSocket = (direction, event, payload) => {
+  if (!SOCKET_DEBUG) return
+  console.groupCollapsed(`[Socket ${direction}] ${event} @ ${timestamp()}`)
+  console.log('event:', event)
+  console.log('payload:', payload)
+  console.log('socketId:', socket?.id || 'n/a')
+  console.log('connected:', socket?.connected)
+  console.groupEnd()
+}
 
 // ===============================
 // 1. Conectar e Inicializar
@@ -10,6 +23,7 @@ const connect = () => {
   if (socket) {
     console.log('[Socket] connect() reuse existing socket', {
       connected: socket.connected,
+      socketId: socket.id,
     })
     return socket
   }
@@ -19,24 +33,31 @@ const connect = () => {
     typeof document !== 'undefined' ? document.cookie : '[no document]',
   )
 
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
+  const bearerToken = token ? `Bearer ${token}` : null
+
   socket = io(import.meta.env.VITE_WS_URL, {
     withCredentials: true,
+    auth: {
+      token,
+    },
     transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 2000,
+    extraHeaders: bearerToken ? { Authorization: bearerToken } : undefined,
   })
 
   socket.on('connect', () => {
-    console.log('[Socket] Connected with ID:', socket.id)
+    logSocket('CONNECT', 'connect', { connected: socket.connected })
   })
 
   socket.on('connect_error', (err) => {
-    console.warn('[Socket] Connection error:', err?.message)
+    logSocket('ERROR', 'connect_error', err?.message)
   })
 
   socket.on('disconnect', (reason) => {
-    console.log('[Socket] Disconnected:', reason)
+    logSocket('DISCONNECT', 'disconnect', reason)
     
     if (
       reason === 'io server disconnect' ||
@@ -44,6 +65,10 @@ const connect = () => {
     ) {
       socket = null
     }
+  })
+
+  socket.onAny((event, ...args) => {
+    logSocket('RECV', event, args.length === 1 ? args[0] : args)
   })
 
   return socket
@@ -57,13 +82,15 @@ const disconnect = () => {
   console.log('[Socket] Manual disconnect triggered')
   socket.disconnect()
   socket = null
+  lastJoinedShowtimeId = null
 }
 
 // ===============================
 // 3. Unirse a una función (sala)
 // ===============================
 const joinShowtime = (showtimeId) => {
-  // Si invocan joinShowtime pero no se ha llamado a connect(), lo forzamos automáticamente
+  const numericShowtimeId = Number(showtimeId)
+
   if (!socket) {
     console.warn(
       '[Socket] joinShowtime called before socket exists — calling connect()',
@@ -72,31 +99,29 @@ const joinShowtime = (showtimeId) => {
   }
 
   const emitJoin = () => {
-    console.log('[Socket] emit join_showtime', {
-      showtimeId,
-      connected: socket.connected,
-    })
-    socket.emit('join_showtime', { showtimeId: Number(showtimeId) })
+    logSocket('SEND', 'join_showtime', { showtimeId: numericShowtimeId })
+    socket.emit('join_showtime', { showtimeId: numericShowtimeId })
   }
 
-  // Si ya está conectado el canal físico, emitimos inmediatamente
+  if (lastJoinedShowtimeId === numericShowtimeId && socket?.connected) {
+    return
+  }
+
   if (socket && socket.connected) {
     emitJoin()
-  } else if (socket) {
-    // Si está en proceso de handshake, removemos cualquier listener viejo de 'connect' para este evento
-    // y registramos uno nuevo para evitar que se dupliquen las emisiones al reconectar.
-    socket.off('connect', emitJoin)
-    console.log('[Socket] Waiting for connection to join showtime…')
+  } else {
     socket.once('connect', emitJoin)
   }
+
+  lastJoinedShowtimeId = numericShowtimeId
 }
 
 // ===============================
-// 4. Salir de la función
+// 4. Salir de la función (sala)
 // ===============================
 const leaveShowtime = (showtimeId) => {
   if (!socket) return
-  console.log('[Socket] emit leave_showtime', { showtimeId })
+  logSocket('SEND', 'leave_showtime', { showtimeId: Number(showtimeId) })
   socket.emit('leave_showtime', { showtimeId: Number(showtimeId) })
 }
 
@@ -105,7 +130,10 @@ const leaveShowtime = (showtimeId) => {
 // ===============================
 const on = (event, cb) => {
   if (!socket) return
-  socket.on(event, cb)
+  socket.on(event, (payload) => {
+    logSocket('RECV', event, payload)
+    cb(payload)
+  })
 }
 
 const off = (event, cb) => {
