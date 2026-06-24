@@ -5,7 +5,7 @@ export const getCinemas = async () => {
   const response = await api.get('/cinemas')
   return response.data.data 
 }
-
+ 
 // De un evento, obtengo las sucursales y funciones disponibles - Mary
 export const getMoviesShowtimebyDateCinema = async (cinemaId, date) => {
   const response = await api.get(`/showtimes/billboard/full`, {
@@ -28,3 +28,11 @@ export const getProjectionTypes = async () => {
   const response = await api.get(`/catalogs/projection-types`)
   return response.data.data 
 }
+
+// Obtener las salas por sucursal - Mary
+export const getRoomsByCinema = async (cinemaId) => {
+  const response = await api.get(`/cinemas/${cinemaId}/rooms`);
+  return response.data.data || response.data || [];
+};
+
+//

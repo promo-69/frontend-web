@@ -2,59 +2,21 @@ import React, { useEffect, useState } from 'react'
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTag, FiBookOpen } from 'react-icons/fi'
 import Footer from '../../../components/ui/Footer'
 import SuccessModal from '../../../components/ui/SuccessModal'
-import cinemaPeopleImg from '../../../assets/images/room-rent.webp' // Importar la imagen adjuntada
+import cinemaPeopleImg from '../../../assets/images/room-rent.webp'
+import { getCinemas, getRoomsByCinema } from '../../../services/info.service'
 
-// --- Mock Services for dynamic data (Replace with actual services) ---
-
-// Mock data for cinemas
-const mockCinemas = [
-  { id: 1, name: "Cineflix Sambil" },
-  { id: 2, name: "Cineflix Parque Los Aviadores" },
-  { id: 3, name: "Cineflix Metropolis" },
-  { id: 4, name: "Cineflix Costazul" },
-]
-
-// Mock data for rooms per cinema
-const mockRoomsByCinema = {
-  1: [
-    { id: 101, name: "Sala 1", capacity: 200 },
-    { id: 102, name: "Sala 2", capacity: 150 },
-    { id: 103, name: "Sala 3 VIP", capacity: 80 },
-  ],
-  2: [
-    { id: 201, name: "Sala A", capacity: 250 },
-    { id: 202, name: "Sala B", capacity: 180 },
-  ],
-  3: [
-    { id: 301, name: "Sala Única XL", capacity: 300 },
-  ],
-  4: [
-    { id: 401, name: "Sala Mar", capacity: 210 },
-    { id: 402, name: "Sala Sol", capacity: 170 },
-    { id: 403, name: "Sala Estrella VIP", capacity: 90 },
-  ],
-}
-
-// Mock data for event types
-const mockEventTypes = [
+// Constante local para tipos de eventos (Ya que no posee endpoint en el backend)
+const EVENT_TYPES = [
   { id: 1, name: "Corporativo" },
   { id: 2, name: "Cumpleaños" },
   { id: 3, name: "Evento Privado" },
   { id: 4, name: "Lanzamiento de Producto" },
 ]
 
-// Simulated service calls
-const getCinemasService = () => new Promise(resolve => setTimeout(() => resolve(mockCinemas), 500))
-const getRoomsByCinemaService = (cinemaId) => new Promise(resolve => setTimeout(() => resolve(mockRoomsByCinema[cinemaId] || []), 500))
-const getEventTypesService = () => new Promise(resolve => setTimeout(() => resolve(mockEventTypes), 500))
-
-// --- Main Component ---
-
 export default function RoomRent() {
   const [cinemas, setCinemas] = useState([])
   const [selectedCinemaId, setSelectedCinemaId] = useState('')
   const [rooms, setRooms] = useState([])
-  const [eventTypes, setEventTypes] = useState([])
   
   const [formData, setFormData] = useState({
     room: '',
@@ -69,30 +31,29 @@ export default function RoomRent() {
 
   const [loadingCinemas, setLoadingCinemas] = useState(true)
   const [loadingRooms, setLoadingRooms] = useState(false)
-  const [loadingEventTypes, setLoadingEventTypes] = useState(true)
-  
   const [successModalMessage, setSuccessModalMessage] = useState('')
 
-  // Load initial data on mount
+  // Cargar las sucursales iniciales al montar el componente
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
-    const loadInitialData = async () => {
+    async function loadInitialData() {
       try {
-        const [cinemasData, eventTypesData] = await Promise.all([getCinemasService(), getEventTypesService()])
-        setCinemas(cinemasData)
-        setEventTypes(eventTypesData)
+        const response = await getCinemas()
+        // Manejo flexible de la estructura de respuesta de la API
+        const dataPayload = response?.data || response || []
+        setCinemas(dataPayload)
       } catch (error) {
-        console.error('Error al cargar datos iniciales:', error)
+        console.error('❌ Error al cargar listado de sucursales:', error)
+        setCinemas([])
       } finally {
         setLoadingCinemas(false)
-        setLoadingEventTypes(false)
       }
     }
     loadInitialData()
   }, [])
 
-  // Load rooms when a cinema is selected
+  // Escuchar el cambio de sucursal para traer sus salas correspondientes
   useEffect(() => {
     if (!selectedCinemaId) {
       setRooms([])
@@ -100,13 +61,15 @@ export default function RoomRent() {
       return
     }
 
-    const loadRooms = async () => {
+    async function loadRooms() {
       setLoadingRooms(true)
       try {
-        const roomsData = await getRoomsByCinemaService(selectedCinemaId)
-        setRooms(roomsData)
+        const response = await getRoomsByCinema(selectedCinemaId)
+        const dataPayload = response?.data || response || []
+        setRooms(dataPayload)
       } catch (error) {
-        console.error('Error al cargar salas:', error)
+        console.error(`❌ Error al cargar salas para el cinemaId ${selectedCinemaId}:`, error)
+        setRooms([])
       } finally {
         setLoadingRooms(false)
       }
@@ -114,40 +77,39 @@ export default function RoomRent() {
     loadRooms()
   }, [selectedCinemaId])
 
-  // Handle generic form field changes
+  // Manejadores de cambios en inputs genéricos
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // Handle cinema selection change separately to trigger room fetching
+  // Manejador específico para Sucursales (resetea la sala seleccionada previamente)
   const handleCinemaChange = (e) => {
     const cinemaId = e.target.value
     setSelectedCinemaId(cinemaId)
-    setFormData(prev => ({ ...prev, room: '' })) // Reset room when cinema changes
+    setFormData(prev => ({ ...prev, room: '' }))
   }
 
-  // Handle number conversion for certain fields
+  // Casteo automático a entero para cumplir estrictamente con el payload JSON requerido
   const handleNumberInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value === '' ? '' : parseInt(value, 10) }))
   }
 
-  // Form submission logic
+  // Envío del Formulario
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Construction of requested_start_time and requested_end_time in ISO string format
     const { event_date, requested_start_time, requested_end_time } = formData
     if (!event_date || !requested_start_time || !requested_end_time) {
-        alert("Por favor, complete la fecha y las horas de inicio y fin.")
+        alert("Por favor, complete todos los campos de fecha y hora.")
         return
     }
 
     const startISO = new Date(`${event_date}T${requested_start_time}:00Z`).toISOString()
     const endISO = new Date(`${event_date}T${requested_end_time}:00Z`).toISOString()
 
-    // Construct the final data object matching the expected JSON structure
+    // Payload final unificado listo para enviar al backend
     const submissionData = {
         room: formData.room,
         event_type: formData.event_type,
@@ -159,12 +121,12 @@ export default function RoomRent() {
         attendees: formData.attendees,
     }
 
-    console.log('Datos de alquiler de sala a enviar:', JSON.stringify(submissionData, null, 2))
+    console.log('🚀 Payload de alquiler estructurado:', JSON.stringify(submissionData, null, 2))
     
-    // Simulate API call and show success modal
+    // Aquí puedes invocar tu servicio de guardado / reserva
     setSuccessModalMessage('¡Solicitud de alquiler enviada correctamente! Un ejecutivo se pondrá en contacto con usted pronto.')
     
-    // Reset the form if needed
+    // Reset del estado del formulario
     setFormData({
         room: '',
         event_type: '',
@@ -178,20 +140,24 @@ export default function RoomRent() {
     setSelectedCinemaId('')
   }
 
+  // Estilos reutilizables optimizados para Inputs y Selects
   const commonInputClass = "bg-white/5 w-full text-white outline-none py-3 px-4 text-sm rounded-xl border border-white/10 focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-400/20 transition-all disabled:opacity-50"
   const commonIconClass = "w-5 h-5 text-gray-400 mr-3"
+  
+  // Forzar al dropdown nativo a tener fondo oscuro y letras claras
+  const dropdownOptionClass = "bg-[#231640] text-white"
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
       
-      {/* Fondos ambientales sutiles (igual que en Subscriptions) */}
+      {/* Efectos ambientales de fondo */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
 
       <section className="px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 py-16">
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
-          {/* SECCIÓN CABECERA */}
+          {/* CABECERA */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
             <div className="border-l-4 border-yellow-500 pl-4 text-left">
               <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
@@ -203,27 +169,26 @@ export default function RoomRent() {
             </div>
           </div>
 
-          {/* Form and Image Section - Responsive Grid */}
+          {/* Grid de Formulario e Imagen Adaptativo */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:items-start">
             
-            {/* Image Column - Visible on all screens, stacks on small, on right on large */}
+            {/* Columna de Imagen (Lado derecho en pantallas grandes) */}
             <div className="relative group lg:order-2">
               <div className="aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl transition-all duration-300 transform group-hover:scale-[1.02]">
                 <img 
                     src={cinemaPeopleImg} 
-                    alt="Gente disfrutando en el cine señalando" 
+                    alt="Gente disfrutando en el cine" 
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
-                 {/* Capa de degradado sutil */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 group-hover:from-black/60 transition-colors" />
               </div>
               <div className="absolute inset-0 z-0 bg-white/5 rounded-3xl blur-[60px] opacity-20 scale-105 pointer-events-none" />
             </div>
 
-            {/* Form Column - order-2 for small, order-1 for large */}
-            <form onSubmit={handleSubmit} className="bg-black/10 p-8 rounded-3xl border border-white/10 shadow-xl backdrop-blur-sm lg:order-1 flex flex-col gap-6">
+            {/* Columna de Formulario (Lado izquierdo) */}
+            <form onSubmit={handleSubmit} className="bg-black/10 p-6 md:p-8 rounded-3xl border border-white/10 shadow-xl backdrop-blur-sm lg:order-1 flex flex-col gap-6">
               
-                {/* Branch and Room Selection */}
+                {/* Selector de Sucursal y Sala */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="relative flex items-center">
                         <FiMapPin className={commonIconClass} />
@@ -234,10 +199,11 @@ export default function RoomRent() {
                             disabled={loadingCinemas}
                             className={commonInputClass}
                         >
-                            <option value="">Seleccionar Sucursal</option>
-                            {loadingCinemas ? <option>Cargando sucursales...</option> : null}
+                            <option value="" className={dropdownOptionClass}>Seleccionar Sucursal</option>
                             {cinemas.map(cinema => (
-                                <option key={cinema.id} value={cinema.id}>{cinema.name}</option>
+                                <option key={cinema.id} value={cinema.id} className={dropdownOptionClass}>
+                                  {cinema.name}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -252,16 +218,19 @@ export default function RoomRent() {
                             disabled={!selectedCinemaId || loadingRooms}
                             className={commonInputClass}
                         >
-                            <option value="">Seleccionar Sala</option>
-                            {loadingRooms ? <option>Cargando salas...</option> : null}
+                            <option value="" className={dropdownOptionClass}>
+                              {loadingRooms ? 'Cargando salas...' : 'Seleccionar Sala'}
+                            </option>
                             {rooms.map(room => (
-                                <option key={room.id} value={room.id}>{room.name} (Cap. {room.capacity} p.)</option>
+                                <option key={room.id} value={room.id} className={dropdownOptionClass}>
+                                  {room.name} (Cap. {room.capacity} p.)
+                                </option>
                             ))}
                         </select>
                     </div>
                 </div>
 
-                {/* Event Type and Name */}
+                {/* Tipo de Evento y Nombre */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div className="relative flex items-center col-span-1">
                         <FiTag className={commonIconClass} />
@@ -270,13 +239,13 @@ export default function RoomRent() {
                             value={formData.event_type}
                             onChange={handleNumberInputChange}
                             required
-                            disabled={loadingEventTypes}
                             className={commonInputClass}
                         >
-                            <option value="">Tipo de Evento</option>
-                            {loadingEventTypes ? <option>Cargando tipos...</option> : null}
-                            {eventTypes.map(type => (
-                                <option key={type.id} value={type.id}>{type.name}</option>
+                            <option value="" className={dropdownOptionClass}>Tipo de Evento</option>
+                            {EVENT_TYPES.map(type => (
+                                <option key={type.id} value={type.id} className={dropdownOptionClass}>
+                                  {type.name}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -293,7 +262,7 @@ export default function RoomRent() {
                     </div>
                 </div>
 
-                {/* Description */}
+                {/* Descripción */}
                 <div className="relative flex items-start">
                     <FiTag className={`${commonIconClass} mt-3`} />
                     <textarea 
@@ -306,7 +275,7 @@ export default function RoomRent() {
                     />
                 </div>
 
-                {/* Date and Times */}
+                {/* Fechas y Horas */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="relative flex items-center">
                         <FiCalendar className={commonIconClass} />
@@ -328,10 +297,10 @@ export default function RoomRent() {
                             value={formData.requested_start_time}
                             onChange={handleInputChange}
                             required
-                            step="60" // step in seconds, 60s for minute resolution
+                            step="60"
                             className={`${commonInputClass} ${formData.requested_start_time ? '' : 'text-gray-400'}`}
                         />
-                        <span className="absolute right-12 text-xs text-gray-500 font-bold uppercase tracking-wider">Inicio</span>
+                        <span className="absolute right-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider pointer-events-none">Inicio</span>
                     </div>
 
                     <div className="relative flex items-center">
@@ -345,11 +314,11 @@ export default function RoomRent() {
                             step="60"
                             className={`${commonInputClass} ${formData.requested_end_time ? '' : 'text-gray-400'}`}
                         />
-                        <span className="absolute right-12 text-xs text-gray-500 font-bold uppercase tracking-wider">Fin</span>
+                        <span className="absolute right-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider pointer-events-none">Fin</span>
                     </div>
                 </div>
 
-                {/* Attendees */}
+                {/* Aforo / Asistentes */}
                 <div className="relative flex items-center md:max-w-xs">
                     <FiUsers className={commonIconClass} />
                     <input 
@@ -364,13 +333,13 @@ export default function RoomRent() {
                     />
                 </div>
 
-                {/* Submit Button */}
+                {/* Botón de Envío */}
                 <button 
                   type="submit" 
-                  disabled={loadingCinemas || loadingRooms || loadingEventTypes}
-                  className="w-full mt-6 bg-gradient-to-r from-yellow-400 to-amber-500 text-[#231640] font-black text-sm px-6 py-4 rounded-xl transition-all transform hover:scale-[1.01] active:scale-95 shadow-md shadow-amber-500/10 tracking-wider uppercase disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={loadingCinemas || loadingRooms}
+                  className="w-full mt-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-[#231640] font-black text-sm px-6 py-4 rounded-xl transition-all transform hover:scale-[1.01] active:scale-95 shadow-md shadow-amber-500/10 tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Solicitar Alquiler
+                  {loadingCinemas ? 'Cargando Configuraciones...' : 'Solicitar Alquiler'}
                 </button>
             </form>
           </div>
@@ -380,7 +349,7 @@ export default function RoomRent() {
 
       <Footer />
 
-      {/* MODAL DE ÉXITO */}
+      {/* MODAL DE ÉXITO DECLARATIVO */}
       {!!successModalMessage && (
         <SuccessModal 
           message={successModalMessage}
