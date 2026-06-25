@@ -13,7 +13,6 @@ import {
   getUpcomingMovies,
 } from '../../services/movies.service'
 
-// Importación unificada y corregida desde UI
 import { Movies, NextMovies, Events } from '../../components/ui/IconosProyect' 
 
 export default function Home() {
