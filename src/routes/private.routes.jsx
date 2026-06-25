@@ -12,6 +12,7 @@ import UnifiedPurchase from '../pages/private/buy/UnifiedPurchase'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
 import Subscriptions from '../pages/private/user/subscriptions'
 import MoviesGenres from '../pages/private/user/myGenres'
+import RoomRent from '../pages/private/user/roomRent'
 
 function NavigateToBuy() {
   const { movieId, showtimeId } = useParams()
@@ -53,6 +54,7 @@ export const privateRoutes = (
       <Route path="/myGenres" element={<MoviesGenres />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
+      <Route path="/room-rent" element={<RoomRent />} />
       <Route path="/favorites" element={<Favorites />} />
 
       {/* Flujo de compra unificado */}
