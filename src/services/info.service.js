@@ -42,3 +42,9 @@ export const createRequestRentRoom = async (payload) => {
   });
   return response.data;
 };
+
+// Listado de mis solicitudes de Alquiler - Mary
+export const getMyRentRequest = async (cinemaId) => {
+  const response = await api.get(`/rentals/requests/me`);
+  return response.data.data || response.data || [];
+};
