@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import MovieCard from '../movies/MovieCard'; 
 import { useAuth } from '../../context/AuthContext';
 import { getMoviesGenres, getMoviesByGenres } from '../../services/movies.service';
 import QuestionModal from '../../components/ui/QuestionModal';
 import roomRentImg from '../../assets/images/rent.webp'; 
 import genresImg from '../../assets/images/genres.webp'; 
+import { Movies } from '../ui/IconosProyect';
 
 export default function ForU() {
   const navigate = useNavigate();
@@ -18,6 +20,8 @@ export default function ForU() {
   
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
+
+  const recommendedRowRef = useRef(null);
 
   useEffect(() => {
     const fetchPersonalizedData = async () => {
@@ -69,6 +73,21 @@ export default function ForU() {
     }
   }, [loading, genres, isAuthenticated]);
 
+  const handleLocalScroll = (direction) => {
+    if (!recommendedRowRef.current) return;
+
+    const firstCard = recommendedRowRef.current.querySelector('.movie-carousel-card');
+    if (!firstCard) return;
+
+    const gap = 24;
+    const scrollAmount = firstCard.offsetWidth + gap;
+
+    recommendedRowRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
   const handleGenreBannerClick = () => {
     if (!isAuthenticated) {
       setModalConfig({
@@ -98,7 +117,6 @@ export default function ForU() {
     navigate('/login');
   };
 
-  // 1. Animación de carga (Mantenemos el spinner por si tarda la API, pero el cambio real viene al entrar)
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -107,7 +125,6 @@ export default function ForU() {
     );
   }
 
-  // Estilos CSS inyectados para controlar la animación de subida de forma fluida
   const slideUpStyles = (
     <style>{`
       @keyframes slideUpEntrance {
@@ -126,7 +143,7 @@ export default function ForU() {
     `}</style>
   );
 
-  // VERSION 1: No logueado o sin géneros (Carrusel Publicitario) - Ver imagen_05078c.jpg
+  // VERSION 1: No logueado o sin géneros (Carrusel Publicitario)
   if (!isAuthenticated || genres.length === 0) {
     return (
       <>
@@ -217,26 +234,59 @@ export default function ForU() {
     );
   }
 
-  // VERSION 2: Logueado y con géneros (Sección "Para ti")
+  // VERSION 2: Logueado y con géneros (Sección "Para ti") - NUEVO DISEÑO PREMIUM HOMOLOGADO
   return (
     <>
       {slideUpStyles}
-      <div className="animate-slide-up space-y-4 my-6 font-montserrat">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
-          <h2 className="text-xl font-black text-white uppercase tracking-wide border-l-4 border-amber-500 pl-3">
-            Para ti
-          </h2>
-          <span className="text-xs text-gray-400 italic font-medium">
-            Basado en tus géneros: {genres.map(g => g.description || g.name).join(', ')}
-          </span>
+      <div className="animate-slide-up space-y-6 my-6 font-montserrat w-full">
+        
+        {/* Encabezado estructurado exactamente igual al del Home */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+          <div className="flex flex-col gap-1">
+            {/* Título con degradado de color e icono Movies integrado */}
+                <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+                  <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Para ti
+                </h2>
+            {/* Texto descriptivo de géneros alineado estéticamente debajo del título (pl-8 compensa el icono) */}
+            <span className="text-xs text-gray-400 italic font-medium pl-8 max-w-xl truncate block">
+              Basado en tus géneros: {genres.map(g => g.description || g.name).join(', ')}
+            </span>
+          </div>
+          
+          {/* Controles de navegación laterales y botón dorado "Ver más" */}
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button 
+              onClick={() => handleLocalScroll('left')}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              aria-label="Desplazar izquierda recomendaciones"
+            >
+              <FiChevronLeft size={20} />
+            </button>
+            <button 
+              onClick={() => handleLocalScroll('right')}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+              aria-label="Desplazar derecha recomendaciones"
+            >
+              <FiChevronRight size={20} />
+            </button>
+            <button 
+              onClick={() => navigate('/myGenres')} 
+              className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase whitespace-nowrap"
+            >
+              Ver más
+            </button>
+          </div>
         </div>
 
         {recommendedMovies.length === 0 ? (
-          <p className="text-gray-400 text-sm italic py-4">
+          <p className="text-gray-400 text-sm italic py-4 pl-8">
             No hay películas disponibles que coincidan con tus géneros preferidos en este momento.
           </p>
         ) : (
-          <div className="flex gap-4 sm:gap-6 pb-4 overflow-x-auto hide-scrollbar scroll-smooth w-full">
+          <div 
+            ref={recommendedRowRef}
+            className="flex gap-4 sm:gap-6 pb-4 overflow-x-auto hide-scrollbar scroll-smooth w-full"
+          >
             {recommendedMovies.map((movie, index) => (
               <div
                 key={`foru-movie-${movie.id}-${index}`} 
