@@ -33,23 +33,15 @@ const connect = () => {
   }
 
   console.log(
-    '[Socket] connect() creating new socket — document.cookie:',
-    typeof document !== 'undefined' ? document.cookie : '[no document]',
+    '[Socket] connect() creating new socket',
   )
-
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null
-  const bearerToken = token ? `Bearer ${token}` : null
 
   socket = io(import.meta.env.VITE_WS_URL, {
     withCredentials: true,
-    auth: {
-      token,
-    },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 2000,
-    extraHeaders: bearerToken ? { Authorization: bearerToken } : undefined,
   })
 
   socket.on('connect', () => {
@@ -145,10 +137,10 @@ const sendOrQueueEmit = (event, payload) => {
 // ===============================
 // 3. Unirse a una función (sala)
 // ===============================
-const joinShowtime = (showtimeId) => {
+const joinShowtime = (showtimeId, force = false) => {
   const numericShowtimeId = Number(showtimeId)
 
-  if (lastJoinedShowtimeId === numericShowtimeId) {
+  if (!force && lastJoinedShowtimeId === numericShowtimeId) {
     return
   }
 

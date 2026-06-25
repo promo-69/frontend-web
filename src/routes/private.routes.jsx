@@ -10,6 +10,7 @@ import OrderTicket from '../pages/private/user/orderTicket'
 import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
 import Checkout from '../pages/private/buy/checkout'
+import UnifiedPurchase from '../pages/private/buy/UnifiedPurchase'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
 import Subscriptions from '../pages/private/user/subscriptions'
 import MoviesGenres from '../pages/private/user/myGenres'
@@ -61,7 +62,13 @@ export const privateRoutes = (
       
 
 
-      {/* Flujo de compra completo protegido */}
+      {/* Flujo de compra unificado (sin navegación entre pasos) */}
+      <Route
+        path="/buy/:movieId/:showtimeId"
+        element={<UnifiedPurchase />}
+      />
+
+      {/* Flujo de compra legacy (páginas separadas) */}
       <Route
         path="/selectSeats/:movieId/:showtimeId"
         element={<SelectSeats />}

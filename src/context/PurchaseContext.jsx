@@ -33,8 +33,6 @@ export function PurchaseProvider({ children }) {
       console.log('[PurchaseContext] Intentando crear la cotización primero en el servidor...', { cinema: targetCinemaId })
 
       const payload = { cinema: Number(targetCinemaId) }
-      const user = typeof localStorage !== 'undefined' && localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null
-      if (user?.id) payload.customerId = Number(user.id)
 
       const resp = await initializeOrderQuote(payload)
 

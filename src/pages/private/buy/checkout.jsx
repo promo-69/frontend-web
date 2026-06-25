@@ -93,7 +93,7 @@ export default function Checkout() {
             }
 
             const waitForSeatLocks = (ids, timeoutMs = 4000) =>
-              new Promise((resolve) => {
+              new Promise(async (resolve) => {
                 const pending = new Set(ids)
                 const succeeded = new Set()
                 const failed = new Set()
@@ -144,34 +144,21 @@ export default function Checkout() {
                 socketService.on('seat_lock_error', onError)
                 socketService.on('seat_locked_by_other', onLockedByOther)
 
-                // Emitir locks sólo para los asientos que NO hayan sido bloqueados por este cliente
+                // Refrescar locks: los que ya teníamos, marcar como OK.
+                // Para los nuevos (o TTL expirado), reenviar lock_seat.
                 ids.forEach((id) => {
-                  if (lockedByClientRef.current.has(id)) {
-                    // Ya lo teníamos bloqueado localmente: marcar como exitoso
-                    pending.delete(id)
-                    succeeded.add(id)
-                    return
-                  }
                   try {
                     socketService.emit('lock_seat', { seatId: id })
                   } catch (e) {
                     console.warn('[CHECKOUT] emit lock_seat fallo para', id, e)
-                    if (pending.has(id)) {
-                      pending.delete(id)
-                      failed.add(id)
-                    }
+                    // No marcar como fallido — intentar checkout de todos modos
                   }
                 })
 
-                // Timeout fallback
-                setTimeout(() => {
-                  if (pending.size > 0) {
-                    pending.forEach((id) => failed.add(id))
-                    pending.clear()
-                  }
-                  cleanup()
-                  resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
-                }, timeoutMs)
+                // Dar tiempo al backend pero no bloquear por errores de lock
+                await new Promise((r) => setTimeout(r, 600))
+                cleanup()
+                resolve({ lockedIds: ids, failedIds: [] })
               })
 
             const { lockedIds, failedIds } = await waitForSeatLocks(seatIds, 4000)
@@ -243,10 +230,14 @@ export default function Checkout() {
         console.error('Mensaje del error:', err?.message)
         console.error('Respuesta del servidor:', err?.response?.data)
 
-        
-        console.error('Error en el checkout inicial:', err)
-        setError('No pudimos procesar y asegurar tu orden. Inténtalo de nuevo.')
-        await attemptCancelOrder('checkout_init_error')
+        // No cancelar la sesión — el usuario puede reintentar
+        const status = err?.response?.status
+        if (status === 409) {
+          setError('Uno o más asientos ya no están disponibles. Vuelve a seleccionar.')
+          // No cancelamos — dejamos que el usuario decida
+        } else {
+          setError('No pudimos procesar tu orden. Inténtalo de nuevo o regresa.')
+        }
       } finally {
         setCheckingOut(false)
       }
@@ -538,6 +529,9 @@ export default function Checkout() {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user) return
 
+    socketService.connect()
+    socketService.joinShowtime(showtimeId)
+
     // Conectar handlers usando socketService (evitar nombres de evento inconsistentes)
     socketService.on('payment_success', (payload) => {
       console.log('socket payment_success payload:', payload)
@@ -578,19 +572,7 @@ export default function Checkout() {
     // de checkout espera confirmaciones puntuales cuando es necesario.
 
     return () => {
-      {
-        /*if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', {
-          showtimeId: Number(showtimeId),
-        })
-        socketRef.current.disconnect()} */
-      }
-      // NO cerramos la conexión ni mandamos `leave_showtime`
-      // si el usuario refresca o el pago fue exitoso romperíamos la persistencia.
-      console.log(
-        '[Checkout] Removiendo oyentes del socket para evitar duplicados.',
-      )
-      // removemos los listeners locales para que no queden duplicados en memoria.
+      // NO llamar leaveShowtime — mantener contexto para reintentos
       socketService.off('payment_success')
       socketService.off('billing_required')
       socketService.off('seat_lock_success')

@@ -174,13 +174,38 @@ export default function SelectSeats() {
       socket = socketService.getSocket()
     }
 
-    const onJoinSuccess = () => {}
+    let joinErrorTimers = []
+    let mounted = true
+
+    const onJoinSuccess = ({ showtimeId: joinedId }) => {
+      if (Number(joinedId) === Number(showtimeId)) {
+        setQuoteError(null)
+      }
+    }
 
     const onJoinError = ({ message }) => {
       console.warn('[Socket] join_error:', message)
-      // Mostrar el error en la UI y cancelar la sesión de compra en backend
-      if (message) setQuoteError(message)
-      cancelPurchase('join_error')
+      if (!message || !mounted) return
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (socketService.getSocket()?.connected) {
+          console.log('[Socket] Retrying join_showtime after join_error')
+          socketService.joinShowtime(showtimeId, true)
+        }
+      }, 800))
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (quoteError) return
+        setQuoteError(message)
+        cancelPurchase('join_error')
+      }, 2500))
+      socketService.on('join_success', () => {
+        joinErrorTimers.forEach(clearTimeout)
+        joinErrorTimers = []
+        setQuoteError(null)
+      })
     }
 
     const onSeatLockSuccess = ({ seatId }) => {
@@ -249,6 +274,9 @@ export default function SelectSeats() {
     socketService.joinShowtime(showtimeId)
 
     return () => {
+      mounted = false
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)

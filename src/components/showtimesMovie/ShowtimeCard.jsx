@@ -29,7 +29,7 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
       return
     }
 
-    navigate(`/selectSeats/${movieId}/${showtime.id}`, {
+    navigate(`/buy/${movieId}/${showtime.id}`, {
       state: { cinemaId: resolvedCinemaId },
     })
   }
