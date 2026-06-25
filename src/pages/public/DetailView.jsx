@@ -59,7 +59,6 @@ export default function DetailView() {
     })
   }, [activeSlug])
 
-  // Efecto para obtener las suscripciones con tolerancia a cambios del backend
   useEffect(() => {
     async function fetchSubscriptions() {
       if (!isAuthenticated) {
@@ -68,7 +67,6 @@ export default function DetailView() {
       }
       try {
         const res = await getMovieSubscriptions()
-        // Blindaje completo ante reestructuraciones de David/Alirio en el JSON de respuesta
         const rawData = res?.data || res?.subscriptions || res
 
         setUserSubscriptions(Array.isArray(rawData) ? rawData : [])
@@ -285,12 +283,12 @@ export default function DetailView() {
                   </button>
                 )}
 
-                {/* BOTÓN DE SUSCRIPCIÓN ADAPTADO CON ESCANEO MULTI-LLAVE */}
-                {isUpcoming && (
+                {/* BOTÓN DE SUSCRIPCIÓN*/}
+                {isUpcoming && isMovie && (
                   <SubscribeButton 
                     movieId={item.id}
                     initialIsSubscribed={userSubscriptions.some(sub => {
-                      // Agregamos sub?.movie y sub?._Movies?.id que es como viene en tu JSON real
+                      // Mantiene el blindaje multi-llave para el JSON del backend
                       const subMovieId = sub?.movie || sub?._Movies?.id || sub?.movie_id || sub?.id || sub?.movieId || sub?.Movie?.id;
                       return String(subMovieId) === String(item.id);
                     })}
@@ -304,13 +302,13 @@ export default function DetailView() {
                           return String(subMovieId) !== String(item.id);
                         }))
                       } else {
-                        // Para mantener sincronizado el estado local inmediatamente al hacer click
                         setUserSubscriptions(prev => [...prev, { movie: Number(item.id) }])
                       }
                     }}
                   />
                 )}
               </div>
+
             </div>
           </div>
         </div>
