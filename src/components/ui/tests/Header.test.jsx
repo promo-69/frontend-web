@@ -6,7 +6,7 @@ import { vi } from 'vitest'
 import Header from '../Header'
 import { AuthContext } from '../../../context/AuthContext'
 
-// 🏙️ Mock del servicio de cines
+// Mock del servicio de cines
 vi.mock('../../../services/info.service', () => ({
   getCinemas: vi.fn(() =>
     Promise.resolve([
@@ -16,22 +16,11 @@ vi.mock('../../../services/info.service', () => ({
   ),
 }))
 
-// 🛒 Estructura de objetos con tickets y products
-vi.mock('../../../context/CartContext', () => ({
-  useCart: vi.fn(() => ({
-    cart: {
-      tickets: [{ id: 101, seat: 'A-1' }], 
-      products: [{ id: 201, name: 'Combo Cotufas', quantity: 1 }], 
-    }, 
-    setCinema: vi.fn(),
-  exportCinema: vi.fn(),
-  })),
-}))
-
 const mockAuthContext = {
-  user: { name: 'Mary Sofia', role: 'ADMIN' },
+  user: { firstName: 'Mary Sofia', name: 'Mary Sofia', role: 'ADMIN' },
   isLoggedIn: true,
   logout: vi.fn(),
+  initializing: false,
 }
 
 describe('Componente Header', () => {
@@ -48,7 +37,7 @@ describe('Componente Header', () => {
   }
 
   it('debe mostrar el botón de INGRESAR si no está logueado', () => {
-    renderHeader(<Header isLoggedIn={false} />, {
+    renderHeader(<Header />, {
       ...mockAuthContext,
       isLoggedIn: false,
       user: null,
@@ -59,19 +48,23 @@ describe('Componente Header', () => {
     ).toBeInTheDocument()
   })
 
-  it('debe mostrar el saludo y el carrito si está logueado', () => {
+  it('debe mostrar el saludo al usuario si está logueado', () => {
     const user = 'Mary Sofia'
-    renderHeader(<Header isLoggedIn={true} userName={user} />)
+    renderHeader(<Header />, {
+      ...mockAuthContext,
+      user: { firstName: user },
+    })
 
     expect(
       screen.getByText(new RegExp(`¡Hola ${user}!`, 'i')),
     ).toBeInTheDocument()
-
-    expect(screen.getByText('2')).toBeInTheDocument()
   })
 
   it('debe abrir el menú de usuario al hacer clic en el perfil', async () => {
-    renderHeader(<Header isLoggedIn={true} userName="Mary Sofia" />)
+    renderHeader(<Header />, {
+      ...mockAuthContext,
+      user: { firstName: 'Mary Sofia' },
+    })
 
     const profileButton = screen.getByRole('button', {
       name: /¡Hola Mary Sofia!/i,

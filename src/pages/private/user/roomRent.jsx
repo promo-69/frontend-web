@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTag, FiBookOpen, FiInfo } from 'react-icons/fi'
+import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTag, FiBookOpen, FiInfo, FiList } from 'react-icons/fi'
 import Footer from '../../../components/ui/Footer'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import cinemaPeopleImg from '../../../assets/images/room-rent.webp'
-import { getCinemas, getRoomsByCinema, createRequestRentRoom } from '../../../services/info.service'
+// 1. Añadida la importación del nuevo servicio
+import { getCinemas, getRoomsByCinema, createRequestRentRoom, getMyRentRequest } from '../../../services/info.service'
+import MyRentRequestsModal from '../../../components/ui/MyRentRequest'
 
 const EVENT_TYPES = [
   { id: 1, name: "Corporativo" },
@@ -32,6 +34,9 @@ export default function RoomRent() {
   const [loadingRooms, setLoadingRooms] = useState(false)
   const [submitting, setSubmitting] = useState(false) 
   const [successModalMessage, setSuccessModalMessage] = useState('')
+  
+  // Estado para controlar el nuevo modal de solicitudes
+  const [isRequestsOpen, setIsRequestsOpen] = useState(false)
 
   const getMinEventDate = () => {
     const minDate = new Date()
@@ -50,7 +55,7 @@ export default function RoomRent() {
         console.error('❌ Error al cargar sucursales:', error)
         setCinemas([])
       } finally {
-        setLoadingCinemas(false)
+        loadingCinemas(false)
       }
     }
     loadInitialData()
@@ -151,24 +156,32 @@ export default function RoomRent() {
       <section className="px-4 md:px-8 lg:px-16 w-full flex-grow relative z-10 py-16">
         <div className="max-w-7xl mx-auto">
           
-          <div className="border-l-4 border-yellow-500 pl-4 mb-12">
-            <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight">
-              Alquiler <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">de Sala</span>
-            </h3>
-            <p className="text-sm text-gray-300 mt-2 max-w-xl">
-              Organiza tus eventos privados con la mejor tecnología cinematográfica. Planifica tu evento perfecto en nuestras instalaciones.
-            </p>
+          {/* Cabecera adaptada con Flexbox para posicionar el botón a la derecha en pantallas medianas/grandes */}
+          <div className="border-l-4 border-yellow-500 pl-4 mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight">
+                Alquiler <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">de Sala</span>
+              </h3>
+              <p className="text-sm text-gray-300 mt-2 max-w-xl">
+                Organiza tus eventos privados con la mejor tecnología cinematográfica. Planifica tu evento perfecto en nuestras instalaciones.
+              </p>
+            </div>
+            
+            {/* Botón Consultar Mis Solicitudes */}
+            <button
+              onClick={() => setIsRequestsOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-[#231640] text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-yellow-500/10 active:scale-95"
+            >
+            <FiList className="w-4 h-4" /> Mis Solicitudes
+            </button>
           </div>
 
-          {/* Grid modificado: lg:items-stretch para forzar alturas iguales */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-stretch items-start">
-            
-            {/* Formulario adaptado para aprovechar el espacio exacto sin desbordarse */}
             <form 
               onSubmit={handleSubmit} 
               className="bg-[#231640] p-6 md:p-8 lg:p-8 rounded-[2rem] border border-white/10 shadow-2xl lg:order-1 flex flex-col gap-4 lg:gap-3.5 justify-between lg:h-full"
             >
-                {/* Sucursal y Sala */}
+                {/* Campos de formulario idénticos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Sucursal *</label>
@@ -193,7 +206,6 @@ export default function RoomRent() {
                   </div>
                 </div>
 
-                {/* Tipo y Nombre */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1.5 col-span-1">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Categoría *</label>
@@ -208,28 +220,17 @@ export default function RoomRent() {
                   </div>
                 </div>
 
-                {/* Descripción */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Descripción y Requerimientos *</label>
                   <textarea name="event_description" value={formData.event_description} onChange={handleInputChange} required disabled={submitting} rows="2" placeholder="Detalles obligatorios del evento..." className={`${commonInputClass} resize-none`} />
                 </div>
 
-                {/* Fecha y Horas */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Fecha *</label>
                     <div className="relative flex items-center">
                       <FiCalendar className="absolute left-4 text-gray-400" />
-                      <input 
-                        type="date" 
-                        name="event_date" 
-                        value={formData.event_date} 
-                        onChange={handleInputChange} 
-                        min={getMinEventDate()}
-                        required 
-                        disabled={submitting}
-                        className={`${commonInputClass} pl-11`} 
-                      />
+                      <input type="date" name="event_date" value={formData.event_date} onChange={handleInputChange} min={getMinEventDate()} required disabled={submitting} className={`${commonInputClass} pl-11`} />
                     </div>
                   </div>
 
@@ -250,7 +251,6 @@ export default function RoomRent() {
                   </div>
                 </div>
 
-                {/* Asistentes */}
                 <div className="flex flex-col gap-1.5 md:max-w-[150px]">
                     <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Asistentes *</label>
                     <div className="relative flex items-center">
@@ -259,7 +259,6 @@ export default function RoomRent() {
                     </div>
                 </div>
 
-                {/* BLOQUE DE NOTA DE ANTICIPACIÓN */}
                 <div className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-xl text-xs text-amber-400/90 leading-relaxed">
                   <FiInfo className="w-4 h-4 mt-0.5 shrink-0 text-yellow-500" />
                   <p>
@@ -276,7 +275,6 @@ export default function RoomRent() {
                 </button>
             </form>
 
-            {/* IMAGEN LADO DERECHO - Ahora se expande simétricamente para calzar al 100% con la altura del form */}
             <div className="lg:order-2 lg:h-full flex flex-col">
               <div className="w-full h-full relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl aspect-video lg:aspect-auto lg:grow flex">
                 <img src={cinemaPeopleImg} alt="Gente en el cine" className="w-full h-full object-cover" />
@@ -290,6 +288,13 @@ export default function RoomRent() {
 
       <Footer />
       {!!successModalMessage && <SuccessModal message={successModalMessage} onClose={() => setSuccessModalMessage('')} />}
+      
+      {/* 3. Inyección del Drawer Lateral para Consultar Solicitudes */}
+      <MyRentRequestsModal 
+        isOpen={isRequestsOpen} 
+        onClose={() => setIsRequestsOpen(false)} 
+        fetchService={getMyRentRequest}
+      />
     </div>
   )
 }

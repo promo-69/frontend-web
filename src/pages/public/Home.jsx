@@ -13,7 +13,6 @@ import {
   getUpcomingMovies,
 } from '../../services/movies.service'
 
-// Importación unificada y corregida desde UI
 import { Movies, NextMovies, Events } from '../../components/ui/IconosProyect' 
 
 export default function Home() {
@@ -70,6 +69,7 @@ export default function Home() {
         setUpcoming(Array.isArray(upcomingData) ? upcomingData : [])
         setEvents(processedEvents)
       } catch (err) {
+        console.error("❌ Error cargando los datos del Home:", err)
         setError(true)
       } finally {
         setLoading(false) 
@@ -94,24 +94,6 @@ export default function Home() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#231640] text-white flex justify-center items-center">
-        <p className="animate-pulse tracking-widest uppercase font-bold text-sm">Cargando cartelera...</p>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#231640] text-white flex justify-center items-center">
-        <p className="bg-red-500/10 border border-red-500/20 px-6 py-4 rounded-2xl text-red-400">
-          No se pudieron cargar las películas ni los eventos.
-        </p>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
 
@@ -125,120 +107,142 @@ export default function Home() {
         }
       `}</style>
 
+      {/* El carrusel se encarga de mostrar su propio mensaje "CARGANDO CARTELERA..." arriba */}
       <Carousel />
 
       <main className="px-6 md:px-16 py-12 flex flex-col gap-16">
         
-        {/* SECCIÓN PERSONALIZADA / CARRUSEL PUBLICITARIO */}
-        <ForU />
+        {loading ? (
+          /* Retornamos null para que el espacio inferior quede limpio y no duplique el texto */
+          null
+        ) : error ? (
+          /* Control de errores estético si fallan los servicios */
+          <div className="flex justify-center items-center py-16 w-full">
+            <p className="bg-red-500/10 border border-red-500/20 px-6 py-4 rounded-2xl text-red-400 text-sm font-medium shadow-md">
+              No se pudieron cargar las películas ni los eventos en este momento. Por favor, intenta de nuevo más tarde.
+            </p>
+          </div>
+        ) : (
+          /* Secciones que aparecen fluidamente cuando loading pasa a false */
+          <>
+            {/* SECCIÓN PERSONALIZADA / CARRUSEL PUBLICITARIO */}
+            <ForU />
 
-        {/* CARTELERA EN ESTRENO */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-              <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Cartelera en Estreno
-            </h2>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button 
-                onClick={() => handleScroll(releasesRef, 'left')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+            {/* CARTELERA EN ESTRENO */}
+            <section>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+                <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+                  <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Cartelera en Estreno
+                </h2>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button 
+                    onClick={() => handleScroll(releasesRef, 'left')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar izquierda estrenos"
+                  >
+                    <FiChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleScroll(releasesRef, 'right')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar derecha estrenos"
+                  >
+                    <FiChevronRight size={20} />
+                  </button>
+                  <a 
+                    href="/billboard" 
+                    className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+                  >
+                    Ver más
+                  </a>
+                </div>
+              </div>
+              
+              <div
+                ref={releasesRef}
+                className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
               >
-                <FiChevronLeft size={20} />
-              </button>
-              <button 
-                onClick={() => handleScroll(releasesRef, 'right')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
-              >
-                <FiChevronRight size={20} />
-              </button>
-              <a 
-                href="/billboard" 
-                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
-              >
-                Ver más
-              </a>
-            </div>
-          </div>
-          
-          <div
-            ref={releasesRef}
-            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
-          >
-            <HomeReleases movies={releases} />
-          </div>
-        </section>
+                <HomeReleases movies={releases} />
+              </div>
+            </section>
 
-        {/* PRÓXIMOS ESTRENOS */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-              <NextMovies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Próximos Estrenos
-            </h2>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button 
-                onClick={() => handleScroll(upcomingRef, 'left')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
-              >
-                <FiChevronLeft size={20} />
-              </button>
-              <button 
-                onClick={() => handleScroll(upcomingRef, 'right')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
-              >
-                <FiChevronRight size={20} />
-              </button>
-              <a 
-                href="/upcoming" 
-                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
-              >
-                Ver más
-              </a>
-            </div>
-          </div>
+            {/* PRÓXIMOS ESTRENOS */}
+            <section>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+                <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+                  <NextMovies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Próximos Estrenos
+                </h2>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button 
+                    onClick={() => handleScroll(upcomingRef, 'left')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar izquierda próximos estrenos"
+                  >
+                    <FiChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleScroll(upcomingRef, 'right')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar derecha próximos estrenos"
+                  >
+                    <FiChevronRight size={20} />
+                  </button>
+                  <a 
+                    href="/upcoming" 
+                    className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+                  >
+                    Ver más
+                  </a>
+                </div>
+              </div>
 
-          <div
-            ref={upcomingRef}
-            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
-          >
-            <HomeUpcoming movies={upcoming} />
-          </div>
-        </section>
+              <div
+                ref={upcomingRef}
+                className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
+              >
+                <HomeUpcoming movies={upcoming} />
+              </div>
+            </section>
 
-        {/* SECCIÓN: PRÓXIMOS EVENTOS */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
-            <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-              <Events className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Eventos
-            </h2>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button 
-                onClick={() => handleScroll(eventsRef, 'left')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
-              >
-                <FiChevronLeft size={20} />
-              </button>
-              <button 
-                onClick={() => handleScroll(eventsRef, 'right')}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
-              >
-                <FiChevronRight size={20} />
-              </button>
-              <a 
-                href="/events" 
-                className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
-              >
-                Ver más
-              </a>
-            </div>
-          </div>
+            {/* SECCIÓN: PRÓXIMOS EVENTOS */}
+            <section>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+                <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
+                  <Events className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Eventos
+                </h2>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button 
+                    onClick={() => handleScroll(eventsRef, 'left')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar izquierda eventos"
+                  >
+                    <FiChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleScroll(eventsRef, 'right')}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
+                    aria-label="Desplazar derecha eventos"
+                  >
+                    <FiChevronRight size={20} />
+                  </button>
+                  <a 
+                    href="/events" 
+                    className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
+                  >
+                    Ver más
+                  </a>
+                </div>
+              </div>
 
-          <div
-            ref={eventsRef}
-            className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
-          >
-            <HomeEvents events={events} />          
-          </div>
-        </section>
+              <div
+                ref={eventsRef}
+                className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
+              >
+                <HomeEvents events={events} />          
+              </div>
+            </section>
+          </>
+        )}
 
       </main>
 
