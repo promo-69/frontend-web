@@ -23,7 +23,7 @@ function Profile() {
   const profileData = {
     name: user?.firstName || 'No asignado',
     lastname: user?.lastName || 'No asignado',
-    id: user?.id || 'No asignado',
+    id: user?.documentNumber || 'No asignado',
     birth: '28/05/2006',
     email: user?.email || user?._People?.personal_email || '',
     cellphone: user?.phoneNumber || 'Sin número registrado',
