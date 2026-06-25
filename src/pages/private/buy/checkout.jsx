@@ -37,6 +37,7 @@ export default function Checkout() {
 
   // 🔄 Fase A: Bloquear e inicializar Checkout al cargar la pantalla
   const checkoutStartedRef = useRef(false)
+  const lockedByClientRef = useRef(new Set())
 
   useEffect(() => {
     const initCheckout = async () => {
@@ -49,11 +50,20 @@ export default function Checkout() {
 
         // 🧠 Paylod para la peticion
         const payload = {
-          tickets: (cart.tickets || []).map((t) => ({
-            booking: 1, // id base temporal de reserva
-            seatId: t.originalId || t.id, // ID del asiento de base de datos
-            audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
-          })),
+          tickets: (cart.tickets || []).map((t) => {
+            if (!t.bookingId) {
+              console.warn(
+                '[CHECKOUT INIT] Ticket sin bookingId, revisa si SelectSeats está agregando bookingId correctamente:',
+                t,
+              )
+            }
+
+            return {
+              booking: t.bookingId ?? Number(showtimeId),
+              seatId: t.originalId || t.id, // ID del asiento de base de datos
+              audienceCategoryId: t.audienceCategoryId || 1, // 1 = General por defecto
+            }
+          }),
           concessions: (cart.products || []).map((p) => ({
             line_type: p.type === 'product' ? 1 : 2, // 1 = Producto Simple, 2 = Combo
             ...(p.type === 'product'
@@ -67,6 +77,102 @@ export default function Checkout() {
           '[CHECKOUT INIT] Enviando payload a /orders/checkout:',
           payload,
         )
+        // Asegurar que los locks siguen vigentes: reemitir `lock_seat` y esperar confirmación
+        // Inicializar el set local de locks detectados desde el carrito
+        try {
+          lockedByClientRef.current = new Set((cart.tickets || []).map((t) => t.originalId || t.id))
+        } catch (e) {
+          lockedByClientRef.current = new Set()
+        }
+
+        const seatIds = (payload.tickets || []).map((t) => t.seatId).filter(Boolean)
+        if (seatIds.length > 0) {
+          try {
+            if (!socketService.getSocket()) {
+              socketService.connect()
+            }
+
+            const waitForSeatLocks = (ids, timeoutMs = 4000) =>
+              new Promise(async (resolve) => {
+                const pending = new Set(ids)
+                const succeeded = new Set()
+                const failed = new Set()
+
+                const cleanup = () => {
+                  socketService.off('seat_lock_success', onSuccess)
+                  socketService.off('seat_lock_error', onError)
+                  socketService.off('seat_locked_by_other', onLockedByOther)
+                }
+
+                const onSuccess = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    succeeded.add(seatId)
+                    try {
+                      lockedByClientRef.current.add(seatId)
+                    } catch (e) {}
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                const onError = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    failed.add(seatId)
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                const onLockedByOther = ({ seatId }) => {
+                  if (pending.has(seatId)) {
+                    pending.delete(seatId)
+                    failed.add(seatId)
+                  }
+                  if (pending.size === 0) {
+                    cleanup()
+                    resolve({ lockedIds: Array.from(succeeded), failedIds: Array.from(failed) })
+                  }
+                }
+
+                socketService.on('seat_lock_success', onSuccess)
+                socketService.on('seat_lock_error', onError)
+                socketService.on('seat_locked_by_other', onLockedByOther)
+
+                // Refrescar locks: los que ya teníamos, marcar como OK.
+                // Para los nuevos (o TTL expirado), reenviar lock_seat.
+                ids.forEach((id) => {
+                  try {
+                    socketService.emit('lock_seat', { seatId: id })
+                  } catch (e) {
+                    console.warn('[CHECKOUT] emit lock_seat fallo para', id, e)
+                    // No marcar como fallido — intentar checkout de todos modos
+                  }
+                })
+
+                // Dar tiempo al backend pero no bloquear por errores de lock
+                await new Promise((r) => setTimeout(r, 600))
+                cleanup()
+                resolve({ lockedIds: ids, failedIds: [] })
+              })
+
+            const { lockedIds, failedIds } = await waitForSeatLocks(seatIds, 4000)
+            if (failedIds && failedIds.length > 0) {
+              console.warn('[CHECKOUT] Algunos asientos no pudieron bloquearse:', failedIds)
+              setError('Uno o más asientos ya no están disponibles. Por favor revisa tu selección.')
+              await attemptCancelOrder('locks_failed')
+              setCheckingOut(false)
+              return
+            }
+          } catch (e) {
+            console.warn('[CHECKOUT] error al esperar seat_lock_success:', e)
+          }
+        }
         // Llamada a la API: POST /orders/checkout
         const response = await createOrderCheckout(payload)
 
@@ -124,10 +230,14 @@ export default function Checkout() {
         console.error('Mensaje del error:', err?.message)
         console.error('Respuesta del servidor:', err?.response?.data)
 
-        
-        console.error('Error en el checkout inicial:', err)
-        setError('No pudimos procesar y asegurar tu orden. Inténtalo de nuevo.')
-        await attemptCancelOrder('checkout_init_error')
+        // No cancelar la sesión — el usuario puede reintentar
+        const status = err?.response?.status
+        if (status === 409) {
+          setError('Uno o más asientos ya no están disponibles. Vuelve a seleccionar.')
+          // No cancelamos — dejamos que el usuario decida
+        } else {
+          setError('No pudimos procesar tu orden. Inténtalo de nuevo o regresa.')
+        }
       } finally {
         setCheckingOut(false)
       }
@@ -419,6 +529,9 @@ export default function Checkout() {
     const user = JSON.parse(localStorage.getItem('user'))
     if (!user) return
 
+    socketService.connect()
+    socketService.joinShowtime(showtimeId)
+
     // Conectar handlers usando socketService (evitar nombres de evento inconsistentes)
     socketService.on('payment_success', (payload) => {
       console.log('socket payment_success payload:', payload)
@@ -455,24 +568,11 @@ export default function Checkout() {
       alert('Se requiere facturación para completar la compra.')
       console.log('billing_required', payload)
     })
-    socketService.on('seat_lock_success', ({ seatId }) => {
-      console.log('Seat lock success while in checkout:', seatId)
-    })
+    // NOTE: no registrar aquí `seat_lock_success` para logging; el flujo
+    // de checkout espera confirmaciones puntuales cuando es necesario.
 
     return () => {
-      {
-        /*if (socketRef.current) {
-        socketRef.current.emit('leaveshowtime', {
-          showtimeId: Number(showtimeId),
-        })
-        socketRef.current.disconnect()} */
-      }
-      // NO cerramos la conexión ni mandamos `leave_showtime`
-      // si el usuario refresca o el pago fue exitoso romperíamos la persistencia.
-      console.log(
-        '[Checkout] Removiendo oyentes del socket para evitar duplicados.',
-      )
-      // removemos los listeners locales para que no queden duplicados en memoria.
+      // NO llamar leaveShowtime — mantener contexto para reintentos
       socketService.off('payment_success')
       socketService.off('billing_required')
       socketService.off('seat_lock_success')

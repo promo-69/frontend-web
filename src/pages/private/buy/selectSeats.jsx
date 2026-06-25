@@ -165,21 +165,47 @@ export default function SelectSeats() {
   useEffect(() => {
     if (!quoteReady || !showtimeId) return
 
-    const socket = socketService.getSocket()
+    let socket = socketService.getSocket()
     if (!socket) {
       console.warn(
-        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+        'SelectSeats: No se detectó un socket instanciado, conectando ahora...',
       )
-      return
+      socketService.connect()
+      socket = socketService.getSocket()
     }
 
-    const onJoinSuccess = () => {}
+    let joinErrorTimers = []
+    let mounted = true
+
+    const onJoinSuccess = ({ showtimeId: joinedId }) => {
+      if (Number(joinedId) === Number(showtimeId)) {
+        setQuoteError(null)
+      }
+    }
 
     const onJoinError = ({ message }) => {
       console.warn('[Socket] join_error:', message)
-      // Mostrar el error en la UI y cancelar la sesión de compra en backend
-      if (message) setQuoteError(message)
-      cancelPurchase('join_error')
+      if (!message || !mounted) return
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (socketService.getSocket()?.connected) {
+          console.log('[Socket] Retrying join_showtime after join_error')
+          socketService.joinShowtime(showtimeId, true)
+        }
+      }, 800))
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (quoteError) return
+        setQuoteError(message)
+        cancelPurchase('join_error')
+      }, 2500))
+      socketService.on('join_success', () => {
+        joinErrorTimers.forEach(clearTimeout)
+        joinErrorTimers = []
+        setQuoteError(null)
+      })
     }
 
     const onSeatLockSuccess = ({ seatId }) => {
@@ -248,6 +274,9 @@ export default function SelectSeats() {
     socketService.joinShowtime(showtimeId)
 
     return () => {
+      mounted = false
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)
@@ -284,6 +313,11 @@ export default function SelectSeats() {
       return {
         ...seat,
         seatId: seat.id, // coincida con lo que espera el carrito
+        bookingId:
+          showtime?.booking?.id ||
+          showtime?.booking?.booking_id ||
+          showtime?.booking?.bookingId ||
+          null,
         label: seat.label || `${seat.row}${seat.column}`,
         price: seat.price || 6.0, // Fallback si el mapa no trae costo base
         assignedAudienceId: categoryId,

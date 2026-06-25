@@ -202,47 +202,8 @@ export default function Confectionery() {
     load()
   }, [effectiveCinemaId])
 
-  useEffect(() => {
-    const initQuote = async () => {
-      if (quoteInitializedRef.current || !effectiveCinemaId) return
-      quoteInitializedRef.current = true
-
-      try {
-        // Intentar crear la cotización primero — esto refleja la secuencia recomendada
-        await initializeOrderQuote({
-          cinema: effectiveCinemaId,
-          customerId: JSON.parse(localStorage.getItem('user'))?.id,
-        })
-      } catch (err) {
-        // Si la API responde que ya existe (409) o hay otro problema, intentar reutilizar la sesión existente
-        const status = err?.response?.status
-        if (status === 409) {
-          try {
-            const existingSession = await getOrderSession()
-            if (!existingSession?.data?.session) {
-              throw err
-            }
-          } catch (innerErr) {
-            console.warn('No se pudo reutilizar la sesión tras 409:', innerErr)
-            setCancelError('No se pudo iniciar la sesión de compra. Regresa a la selección de asientos.')
-          }
-        } else {
-          // Para otros errores, intentar recuperar la sesión; si no existe, mostrar error
-          try {
-            const existingSession = await getOrderSession()
-            if (!existingSession?.data?.session) {
-              throw err
-            }
-          } catch (innerErr) {
-            console.warn('Error al crear cotización y al recuperar sesión:', innerErr)
-            setCancelError('No se pudo iniciar la sesión de compra. Regresa a la selección de asientos.')
-          }
-        }
-      }
-    }
-
-    initQuote()
-  }, [effectiveCinemaId])
+  // NO crear quote aquí — la sesión ya existe desde selectSeats.
+  // Mantener el socket conectado para que los locks persistan.
 
   useEffect(() => {
     if (!showtimeId) return
@@ -250,13 +211,27 @@ export default function Confectionery() {
     socketService.connect()
     socketService.joinShowtime(showtimeId)
 
-    socketService.on('disconnect', () => {
-      console.log('Confitería socket desconectado')
-    })
+    // Refrescar TTL de los locks — unlock + re-lock
+    const refreshLocks = () => {
+      ;(cart.tickets || []).forEach((ticket) => {
+        const seatId = ticket.originalId || ticket.seatId || ticket.id
+        if (!seatId) return
+        socketService.emit('unlock_seat', { seatId })
+        setTimeout(() => {
+          socketService.emit('lock_seat', { seatId })
+        }, 200)
+      })
+    }
+
+    // Refrescar al montar y cada 5 minutos
+    refreshLocks()
+    const interval = setInterval(refreshLocks, 5 * 60 * 1000)
 
     return () => {
-      socketService.off('disconnect')
-      socketService.leaveShowtime(showtimeId)
+      clearInterval(interval)
+      // No llamar leaveShowtime aquí — los locks deben persistir
+      // entre pasos (seats → confectionery → checkout).
+      // Solo se liberan al cancelar explícitamente o al completar la compra.
     }
   }, [showtimeId])
 
