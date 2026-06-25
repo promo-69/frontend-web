@@ -16,7 +16,6 @@ export default function ForU() {
   const [loading, setLoading] = useState(true);
   const [currentBanner, setCurrentBanner] = useState(0);
   
-  // Control de visibilidad del modal y su configuración dinámica
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: '', message: '' });
 
@@ -32,8 +31,6 @@ export default function ForU() {
 
       try {
         userGenres = await getMoviesGenres();
-        console.log("🔍 [ForU] Géneros obtenidos del backend:", userGenres);
-        
         if (userGenres && userGenres.length > 0) {
           setGenres(userGenres);
         } else {
@@ -50,11 +47,7 @@ export default function ForU() {
 
       try {
         const genreIds = userGenres.map(g => g.id);
-        console.log("🚀 [ForU] Solicitando películas con IDs:", genreIds);
-        
         const moviesData = await getMoviesByGenres(genreIds); 
-        console.log("🍿 [ForU] Películas recomendadas recibidas:", moviesData);
-        
         setRecommendedMovies(moviesData || []);
       } catch (error) {
         console.error("⚠️ [ForU] El servicio de películas recomendadas falló:", error);
@@ -96,7 +89,6 @@ export default function ForU() {
       });
       setShowLoginModal(true);
     } else {
-      // Si está logueada pero no tiene géneros seleccionados, avanza directo al servicio de salas
       navigate('/room-rent'); 
     }
   };
@@ -106,6 +98,7 @@ export default function ForU() {
     navigate('/login');
   };
 
+  // 1. Animación de carga (Mantenemos el spinner por si tarda la API, pero el cambio real viene al entrar)
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -114,11 +107,31 @@ export default function ForU() {
     );
   }
 
-  // VERSION 1: No logueado o sin géneros (Carrusel Publicitario)
+  // Estilos CSS inyectados para controlar la animación de subida de forma fluida
+  const slideUpStyles = (
+    <style>{`
+      @keyframes slideUpEntrance {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-slide-up {
+        animation: slideUpEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+    `}</style>
+  );
+
+  // VERSION 1: No logueado o sin géneros (Carrusel Publicitario) - Ver imagen_05078c.jpg
   if (!isAuthenticated || genres.length === 0) {
     return (
       <>
-        <div className="w-full relative overflow-hidden rounded-2xl bg-slate-950 h-64 sm:h-72 md:h-80 lg:h-96 shadow-xl font-montserrat my-6 group">
+        {slideUpStyles}
+        <div className="animate-slide-up w-full relative overflow-hidden rounded-2xl bg-slate-950 h-64 sm:h-72 md:h-80 lg:h-96 shadow-xl font-montserrat my-6 group">
           
           {/* Selección de Géneros */}
           <div 
@@ -132,7 +145,6 @@ export default function ForU() {
               alt="Géneros de películas Cineflix" 
               className="absolute inset-0 w-full h-full object-cover object-[75%_center] pointer-events-none opacity-90 transition-transform duration-700 group-hover:scale-[1.01]"
             />
-
             <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/20 via-slate-900/10 to-transparent opacity-40 mix-blend-overlay pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#1c1035] via-[#130b24]/90 sm:via-[#130b24]/60 to-transparent z-0" />
             
@@ -161,7 +173,6 @@ export default function ForU() {
               alt="Alquiler de salas Cineflix" 
               className="absolute inset-0 w-full h-full object-cover object-[85%_0%] pointer-events-none opacity-95 transition-transform duration-700 group-hover:scale-[1.01]"
             />
-            
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 sm:via-slate-950/50 to-transparent z-0" />
             
             <div className="relative z-10 max-w-[80%] sm:max-w-md md:max-w-lg lg:max-w-xl transition-transform duration-500 group-hover:translate-x-1">
@@ -177,7 +188,7 @@ export default function ForU() {
             </div>
           </div>
 
-          {/* Indicadores de posición */}
+          {/* Indicadores */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2.5 z-20">
             <button 
               onClick={(e) => { e.stopPropagation(); setCurrentBanner(0); }} 
@@ -192,7 +203,6 @@ export default function ForU() {
           </div>
         </div>
 
-        {/* Modal Dinámico de Confirmación */}
         {showLoginModal && (
           <QuestionModal
             title={modalConfig.title}
@@ -209,40 +219,43 @@ export default function ForU() {
 
   // VERSION 2: Logueado y con géneros (Sección "Para ti")
   return (
-    <div className="space-y-4 my-6 font-montserrat">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
-        <h2 className="text-xl font-black text-white uppercase tracking-wide border-l-4 border-amber-500 pl-3">
-          Para ti
-        </h2>
-        <span className="text-xs text-gray-400 italic font-medium">
-          Basado en tus géneros: {genres.map(g => g.description || g.name).join(', ')}
-        </span>
-      </div>
-
-      {recommendedMovies.length === 0 ? (
-        <p className="text-gray-400 text-sm italic py-4">
-          No hay películas disponibles que coincidan con tus géneros preferidos en este momento.
-        </p>
-      ) : (
-        <div className="flex gap-4 sm:gap-6 pb-4 overflow-x-auto hide-scrollbar scroll-smooth w-full">
-          {recommendedMovies.map((movie, index) => (
-            <div
-              key={`foru-movie-${movie.id}-${index}`} 
-              className="
-                movie-carousel-card
-                flex-shrink-0
-                w-[calc((100%-16px)/2)]
-                sm:w-[calc((100%-32px)/3)]
-                md:w-[calc((100%-48px)/4)]
-                lg:w-[calc((100%-80px)/5)]
-                min-w-[140px] sm:min-w-[180px]
-              "
-            >
-              <MovieCard movie={movie} />
-            </div>
-          ))}
+    <>
+      {slideUpStyles}
+      <div className="animate-slide-up space-y-4 my-6 font-montserrat">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
+          <h2 className="text-xl font-black text-white uppercase tracking-wide border-l-4 border-amber-500 pl-3">
+            Para ti
+          </h2>
+          <span className="text-xs text-gray-400 italic font-medium">
+            Basado en tus géneros: {genres.map(g => g.description || g.name).join(', ')}
+          </span>
         </div>
-      )}
-    </div>
+
+        {recommendedMovies.length === 0 ? (
+          <p className="text-gray-400 text-sm italic py-4">
+            No hay películas disponibles que coincidan con tus géneros preferidos en este momento.
+          </p>
+        ) : (
+          <div className="flex gap-4 sm:gap-6 pb-4 overflow-x-auto hide-scrollbar scroll-smooth w-full">
+            {recommendedMovies.map((movie, index) => (
+              <div
+                key={`foru-movie-${movie.id}-${index}`} 
+                className="
+                  movie-carousel-card
+                  flex-shrink-0
+                  w-[calc((100%-16px)/2)]
+                  sm:w-[calc((100%-32px)/3)]
+                  md:w-[calc((100%-48px)/4)]
+                  lg:w-[calc((100%-80px)/5)]
+                  min-w-[140px] sm:min-w-[180px]
+                "
+              >
+                <MovieCard movie={movie} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
