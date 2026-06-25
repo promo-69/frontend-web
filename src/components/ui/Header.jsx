@@ -1,9 +1,8 @@
 import React, { useState } from 'react'
-import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi'
+import { FiChevronDown, FiLogOut } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useCart } from '../../context/CartContext'
 
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
@@ -18,12 +17,10 @@ const NAV_LINKS = [
 function Header() {
   const navigate = useNavigate()
   const { user, logout, initializing } = useAuth()
-  const { cart } = useCart()
 
   // MENÚS DESPLEGABLES
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isCartOpen, setIsCartOpen] = useState(false)
 
   const isLoggedIn = !!user
   const displayName = user?.firstName || user?.name || user?.email?.split('@')[0]
@@ -128,28 +125,11 @@ function Header() {
     </motion.div>
   )
 
-  const CartDropdown = () => (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      className="absolute top-full mt-2 right-0 w-64 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10 p-4"
-    >
-      <p className="text-sm text-white font-bold mb-2">Carrito</p>
-      <p className="text-sm text-gray-300">Boletos: {cart.tickets.length}</p>
-      <p className="text-sm text-gray-300">Productos: {cart.products.length}</p>
-      <div className="mt-3 flex gap-2">
-        <button onClick={() => navigate('/cart')} className="flex-1 bg-[#F6AD38] text-[#231640] font-bold py-2 rounded-md">Ver carrito</button>
-        <button onClick={() => navigate('/checkout')} className="flex-1 bg-transparent border border-white/10 text-white font-bold py-2 rounded-md">Pagar</button>
-      </div>
-    </motion.div>
-  )
-
   return (
     <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
       {/* OVERLAY */}
       <AnimatePresence>
-        {(isCarteleraOpen || isUserMenuOpen || isCartOpen) && (
+        {(isCarteleraOpen || isUserMenuOpen) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -233,25 +213,6 @@ function Header() {
             </button>
           ) : (
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0 animate-fadeIn">
-              {/* CARRITO */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsCartOpen(!isCartOpen)}
-                  className="relative hover:text-[#F6AD38]"
-                >
-                  <FiShoppingCart size={22} />
-                  {cart.tickets.length + cart.products.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-[#F6AD38] text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                      {cart.tickets.length + cart.products.length}
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {isCartOpen && <CartDropdown />}
-                </AnimatePresence>
-              </div>
-
               {/* PERFIL */}
               <div className="relative">
                 <button

@@ -20,15 +20,15 @@ import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
 
-const CATEGORIES = ['Todos', 'Popcorn', 'Drinks', 'Combos', 'Candies']
+const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
 const SEAT_BASE_PRICE = 6
 
 function mapCategory(catId) {
   switch (catId) {
-    case 1: return 'Drinks'
-    case 2: return 'Popcorn'
-    case 3: return 'Candies'
-    default: return 'Popcorn'
+    case 1: return 'Bebidas'
+    case 2: return 'Palomitas'
+    case 3: return 'Dulces'
+    default: return 'Palomitas'
   }
 }
 
@@ -203,6 +203,7 @@ export default function UnifiedPurchase() {
         price: Number(p.pricing?.final_price ?? p.price ?? 0),
         category: mapCategory(p.product_category),
         image: p.image_url, type: 'product',
+        available: (p.stock ?? 0) > 0,
       })))
       setCombos(norm(cmbs).map(c => {
         const parts = c._ComboProducts || []
