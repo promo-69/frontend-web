@@ -25,31 +25,18 @@ export default function OrderSummary({
   // 💸 CÁLCULO DE BOLETOS BASADO EN LA MATRIZ DE PRECIOS
   // ========================================================
   const ticketsCalculated = useMemo(() => {
-    console.log('=== [OrderSummary] Ejecutando ticketsCalculated ===')
-    console.log('isPublicMode:', isPublicMode)
-    console.log('selectedSeatsList longitud:', selectedSeatsList?.length)
-    console.log(
-      'pricing_matrix disponible:',
-      !!currentShowtime?.pricing?.pricing_matrix,
-    )
-    console.log('Estructura completa de currentShowtime:', currentShowtime)
-
     if (
       isPublicMode ||
       !selectedSeatsList.length ||
-      //!currentShowtime?.pricing?.pricing_matrix
       !selectedSeatsList.length
     ) {
-      console.warn(
-        '[OrderSummary] Salida prematura: No hay asientos seleccionados o es modo público.',
-      )
       return { list: [], subtotal: 0 }
     }
 
     const matrix = currentShowtime?.pricing?.pricing_matrix || []
     if (matrix.length === 0) {
       console.warn(
-        '[OrderSummary] ¡Alerta! La matriz de precios viene vacía de la API.',
+        '[OrderSummary] La matriz de precios viene vacía de la API.',
       )
     }
 
@@ -65,14 +52,9 @@ export default function OrderSummary({
           p.audience_category?.id === currentAudienceId,
       )
 
-      // Si no hay match en la matriz, usamos el precio base del showtime o el quemado en el asiento
       const finalPrice = priceMatch
         ? priceMatch.final_price
         : seat.price || currentShowtime.pricing.base_price || 6.0;
-
-        console.log(
-          `Asiento ${seat.label || seat.id}: Precio asignado -> $${finalPrice}`,
-        )
 
       return {
         id: seat.id || seat.seatId,
@@ -106,28 +88,6 @@ export default function OrderSummary({
   const globalTotal = globalSubtotal + globalIva
 
   const isSelectionEmpty = !isPublicMode && selectedSeatsList.length === 0
-
-  // 📝 CONSOLE.LOG EXCLUSIVO PARA RECTIFICAR LA ESTRUCTURA QUE SE ENVIARÁ AL CHECKOUT
-  console.log('--- 🛒 INFORMACIÓN PREPARADA PARA EL CHECKOUT ---', {
-    showtimeId: currentShowtime?.id || 'No definido',
-    ticketsPayload: ticketsCalculated.list.map((t) => ({
-      seatId: t.id,
-      label: t.label,
-      priceApplied: t.price,
-      audienceCategoryId: t.audienceCategoryId,
-    })),
-    concessionsPayload: cart.products.map((p) => ({
-      line_type: p.isCombo ? 2 : 1,
-      product: p.id,
-      quantity: p.quantity,
-      price: p.price,
-    })),
-    summary: {
-      subtotal: globalSubtotal.toFixed(2),
-      iva: globalIva.toFixed(2),
-      total: globalTotal.toFixed(2),
-    },
-  })
 
   return (
     <div className="bg-[#2D1748]/50 p-6 rounded-xl text-white space-y-5 shadow-lg border border-purple-900/40 h-fit">
