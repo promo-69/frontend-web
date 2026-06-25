@@ -170,10 +170,9 @@ export default function RoomRent() {
             {/* Botón Consultar Mis Solicitudes */}
             <button
               onClick={() => setIsRequestsOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl font-bold text-xs uppercase tracking-wider transition-all text-yellow-400 shadow-lg active:scale-95 shrink-0 self-start md:self-auto"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-[#231640] text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-yellow-500/10 active:scale-95"
             >
-              <FiList className="w-4 h-4" />
-              Mis Solicitudes
+            <FiList className="w-4 h-4" /> Mis Solicitudes
             </button>
           </div>
 
