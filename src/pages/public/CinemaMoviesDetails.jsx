@@ -280,7 +280,7 @@ export default function CinemaMovieDetails() {
                             key={showtime.id} 
                             showtime={showtime} 
                             movieId={entityData.id} 
-                            cinemaId={item.cinema.id}
+                            cinemaId={cinema.id}
                           />
                         ))}
                       </div>
