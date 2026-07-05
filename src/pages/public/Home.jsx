@@ -14,6 +14,7 @@ import {
 } from '../../services/movies.service'
 
 import { Movies, NextMovies, Events } from '../../components/ui/IconosProyect' 
+import ChatAssistant from '../../components/ChatAssistant/ChatAssistant'
 
 export default function Home() {
   const [releases, setReleases] = useState([])
@@ -96,7 +97,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#231640] text-white overflow-x-hidden">
-
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none !important;
@@ -111,15 +111,13 @@ export default function Home() {
       <Carousel />
 
       <main className="px-6 md:px-16 py-12 flex flex-col gap-16">
-        
-        {loading ? (
-          /* Retornamos null para que el espacio inferior quede limpio y no duplique el texto */
-          null
-        ) : error ? (
+        {loading ? /* Retornamos null para que el espacio inferior quede limpio y no duplique el texto */
+        null : error ? (
           /* Control de errores estético si fallan los servicios */
           <div className="flex justify-center items-center py-16 w-full">
             <p className="bg-red-500/10 border border-red-500/20 px-6 py-4 rounded-2xl text-red-400 text-sm font-medium shadow-md">
-              No se pudieron cargar las películas ni los eventos en este momento. Por favor, intenta de nuevo más tarde.
+              No se pudieron cargar las películas ni los eventos en este
+              momento. Por favor, intenta de nuevo más tarde.
             </p>
           </div>
         ) : (
@@ -132,32 +130,33 @@ export default function Home() {
             <section>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
                 <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-                  <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Cartelera en Estreno
+                  <Movies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" />{' '}
+                  Cartelera en Estreno
                 </h2>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button 
+                  <button
                     onClick={() => handleScroll(releasesRef, 'left')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar izquierda estrenos"
                   >
                     <FiChevronLeft size={20} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleScroll(releasesRef, 'right')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar derecha estrenos"
                   >
                     <FiChevronRight size={20} />
                   </button>
-                  <a 
-                    href="/billboard" 
+                  <a
+                    href="/billboard"
                     className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
                   >
                     Ver más
                   </a>
                 </div>
               </div>
-              
+
               <div
                 ref={releasesRef}
                 className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
@@ -170,25 +169,26 @@ export default function Home() {
             <section>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
                 <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-                  <NextMovies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Próximos Estrenos
+                  <NextMovies className="w-6 h-6 md:w-7 md:h-7 text-amber-500" />{' '}
+                  Próximos Estrenos
                 </h2>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button 
+                  <button
                     onClick={() => handleScroll(upcomingRef, 'left')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar izquierda próximos estrenos"
                   >
                     <FiChevronLeft size={20} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleScroll(upcomingRef, 'right')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar derecha próximos estrenos"
                   >
                     <FiChevronRight size={20} />
                   </button>
-                  <a 
-                    href="/upcoming" 
+                  <a
+                    href="/upcoming"
                     className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
                   >
                     Ver más
@@ -208,25 +208,26 @@ export default function Home() {
             <section>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
                 <h2 className="text-xl md:text-2xl font-black tracking-wide uppercase bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-2">
-                  <Events className="w-6 h-6 md:w-7 md:h-7 text-amber-500" /> Eventos
+                  <Events className="w-6 h-6 md:w-7 md:h-7 text-amber-500" />{' '}
+                  Eventos
                 </h2>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button 
+                  <button
                     onClick={() => handleScroll(eventsRef, 'left')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar izquierda eventos"
                   >
                     <FiChevronLeft size={20} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleScroll(eventsRef, 'right')}
                     className="p-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-gray-300 transition-all"
                     aria-label="Desplazar derecha eventos"
                   >
                     <FiChevronRight size={20} />
                   </button>
-                  <a 
-                    href="/events" 
+                  <a
+                    href="/events"
                     className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase"
                   >
                     Ver más
@@ -238,13 +239,14 @@ export default function Home() {
                 ref={eventsRef}
                 className="overflow-x-auto overflow-y-hidden hide-scrollbar scroll-smooth w-full"
               >
-                <HomeEvents events={events} />          
+                <HomeEvents events={events} />
               </div>
             </section>
           </>
         )}
-
       </main>
+
+      <ChatAssistant />
 
       <Footer />
     </div>
