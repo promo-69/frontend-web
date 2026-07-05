@@ -17,6 +17,7 @@ import ViewDetails from '../pages/public/DetailView';
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
 import Confectionery from '../pages/private/buy/confectionery';
 import Checkout from '../pages/private/buy/checkout';
+import ChatAssistant from '../components/ChatAssistant/ChatAssistant'
 
 const PublicLayout = () => {
   return (
@@ -41,6 +42,7 @@ export const publicRoutes = (
       <Route path="/events" element={<Events />} />
       <Route path="/confectionery" element={<Confectionery />} />
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/chat-assistant" element={<ChatAssistant />} />
       
       {/* Vistas de Detalles Dinámicas */}
       <Route path="/movies/:movieSlug" element={<ViewDetails />} />
