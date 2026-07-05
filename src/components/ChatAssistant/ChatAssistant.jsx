@@ -5,7 +5,7 @@ export default function ChatAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const [showBubble, setShowBubble] = useState(true)
 
-  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos 
+  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos desaparece 
   useEffect(() => {
     const timer = setTimeout(() => setShowBubble(false), 8000)
     return () => clearTimeout(timer)
@@ -15,7 +15,7 @@ export default function ChatAssistant() {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans">
       {/* VENTANA DE CHAT */}
       {isOpen && (
-        <div className="bg-[#2d1b4e] border border-[#ffb800] rounded-2xl w-80 sm:w-96 h-[450px] shadow-2xl flex flex-col overflow-hidden mb-4 animate-fade-in-up">
+        <div className="bg-[#2d1b4e] border border-[#ffb800] rounded-2xl w-80 sm:w-96 h-[360px] shadow-2xl flex flex-col overflow-hidden mb-4 animate-fade-in-up">
           {/* Encabezado del Chat */}
           <div className="bg-[#1e0f35] p-4 flex items-center justify-between border-b border-[#ffb800]/30">
             <div className="flex items-center gap-3">
@@ -64,9 +64,9 @@ export default function ChatAssistant() {
       )}
 
       {/* BOTÓN FLOTANTE  */}
-      <div className="relative group cursor-pointer">
+      <div className="relative group cursor-pointer mt-auto">
         {showBubble && !isOpen && (
-          <div className="absolute right-24 bottom-6 bg-[#ffb800] text-[#1e0f35] font-bold text-xs py-2 px-3 rounded-xl rounded-br-none shadow-lg whitespace-nowrap animate-bounce">
+          <div className="absolute right-36 bottom-14 bg-[#ffb800] text-[#1e0f35] font-bold text-xs py-2 px-3.5 rounded-xl rounded-br-none shadow-lg whitespace-nowrap animate-bounce">
             ¡Hola! ¿Te ayudo con tu compra? ✨
           </div>
         )}
@@ -75,14 +75,15 @@ export default function ChatAssistant() {
         <button
           onClick={() => {
             setIsOpen(!isOpen)
-            setShowBubble(false) 
+            setShowBubble(false)
           }}
-          className="transition-transform duration-300 hover:scale-110 focus:outline-none"
+          className="transition-transform duration-300 hover:scale-105 focus:outline-none flex items-center justify-center"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <img
             src={robotAvatar}
             alt="Abrir Asistente IA"
-            className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-[0_5px_15px_rgba(147,51,234,0.4)]"
+            className="w-40 h-40 sm:w-48 sm:h-48 object-contain drop-shadow-[0_8px_25px_rgba(147,51,234,0.4)]"
           />
         </button>
       </div>
