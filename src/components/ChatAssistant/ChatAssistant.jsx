@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import robotAvatar from '../../assets/images/robotIA.png' 
 import { sendAssistantMessage } from '../../services/assistant.service'
+import { getCinemas } from '../../services/info.service'
 
 export default function ChatAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const [showBubble, setShowBubble] = useState(true)
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Historial de mensajes en pantalla
+  const [dbCinemas, setDbCinemas] = useState([])
+  const [cinemaId, setCinemaId] = useState(null)
+  const [pendingMessage, setPendingMessage] = useState('')
+
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -16,7 +21,6 @@ export default function ChatAssistant() {
       sender: 'bot',
     },
   ])
-  const [isLoading, setIsLoading] = useState(false)
 
   const messagesEndRef = useRef(null)
 
@@ -24,11 +28,72 @@ export default function ChatAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos 
+  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos
   useEffect(() => {
     const timer = setTimeout(() => setShowBubble(false), 8000)
     return () => clearTimeout(timer)
   }, [])
+
+  // ========================================================
+  //  CARGAR CINEMAS DESDE EL BACKEND AL MONTAR EL COMPONENTE
+  // ========================================================
+  useEffect(() => {
+    const fetchCinemas = async () => {
+      try {
+        const response = await getCinemas()
+        if (response.success && Array.isArray(response.data.data)) {
+          setDbCinemas(response.data.data)
+        } else if (Array.isArray(response)) {
+          setDbCinemas(response) 
+        }
+      } catch (error) {
+        console.error(
+          'No se pudieron cargar los cines para el asistente:',
+          error,
+        )
+      }
+    }
+
+    fetchCinemas()
+  }, [])
+
+  // ========================================================
+  // MANEJADOR DE SELECCIÓN DE CINE (DINÁMICO)
+  // ========================================================
+  const handleSelectCinema = async (id, name) => {
+    setCinemaId(id)
+
+    const selectMessage = {
+      id: `select-${Date.now()}`,
+      text: `Estoy en la sede ${name}`,
+      sender: 'user',
+    }
+
+    setMessages((prev) =>
+      prev
+        .map((msg) =>
+          msg.id === 'welcome' || msg.id.startsWith('ask-cinema')
+            ? { ...msg, isCinemaSelector: false }
+            : msg,
+        )
+        .concat(selectMessage),
+    )
+
+    // Si había un mensaje retenido, se procesa de inmediato con el nuevo id
+    if (pendingMessage) {
+      await processBotResponse(pendingMessage, id)
+      setPendingMessage('')
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-confirm-${Date.now()}`,
+          text: `¡Excelente! Sede ${name} seleccionada perfectamente. Ahora sí, ¿en qué te puedo ayudar? Puedes consultarme sobre películas en cartelera, asientos disponibles o combos de snacks. 🍿`,
+          sender: 'bot',
+        },
+      ])
+    }
+  }
 
   // ========================================================
   //  RECONOCIMIENTO DE VOZ NATIVO (WEB SPEECH API)
@@ -76,16 +141,33 @@ export default function ChatAssistant() {
     const newUserMessage = {
       id: Date.now().toString(),
       text: userMessage,
-      sender: 'user'
+      sender: 'user',
     }
     setMessages((prev) => [...prev, newUserMessage])
-    setInput('') 
+    setInput('')
 
+    // Si el usuario escribe y no ha elegido cine
+    if (!cinemaId) {
+      setPendingMessage(userMessage)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ask-cinema-${Date.now()}`,
+          text: 'Para responder a tu consulta correctamente, necesito que primero selecciones una sucursal:',
+          sender: 'bot',
+          isCinemaSelector: true,
+        },
+      ])
+      return
+    }
+
+    await processBotResponse(userMessage, cinemaId)
+  }
+
+  const processBotResponse = async (messageText, currentCinemaId) => {
     setIsLoading(true)
-
     try {
-      
-      const result = await sendAssistantMessage(userMessage, 1)
+      const result = await sendAssistantMessage(messageText, currentCinemaId)
 
       if (result.success && result.data?.message) {
         setMessages((prev) => [
@@ -93,8 +175,8 @@ export default function ChatAssistant() {
           {
             id: `bot-${Date.now()}`,
             text: result.data.message,
-            sender: 'bot'
-          }
+            sender: 'bot',
+          },
         ])
       } else {
         throw new Error('Estructura de respuesta inválida')
@@ -105,9 +187,9 @@ export default function ChatAssistant() {
         ...prev,
         {
           id: `error-${Date.now()}`,
-          text: 'Lo siento, hubo un problema al conectar con mi servidor. Por favor, intenta de nuevo.',
-          sender: 'bot'
-        }
+          text: 'Lo siento, hubo un problema al conectar con el servidor de IA. Por favor, intenta de nuevo.',
+          sender: 'bot',
+        },
       ])
     } finally {
       setIsLoading(false)
@@ -148,14 +230,45 @@ export default function ChatAssistant() {
           {/* Cuerpo (Mensajes Dinámicos) */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#130726] custom-scrollbar">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-3 rounded-lg max-w-[80%] text-sm border ${
-                  msg.sender === 'user'
-                    ? 'bg-[#ffb800] text-[#1e0f35] font-medium rounded-tr-none border-amber-500 shadow-sm'
-                    : 'bg-[#2d1b4e] text-white rounded-tl-none border-purple-900'
-                }`}>
-                  {msg.text}
+              <div key={msg.id} className="space-y-2">
+                {/* Mensaje */}
+                <div
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`p-3 rounded-lg max-w-[80%] text-sm border ${
+                      msg.sender === 'user'
+                        ? 'bg-[#ffb800] text-[#1e0f35] font-medium rounded-tr-none border-amber-500 shadow-sm'
+                        : 'bg-[#2d1b4e] text-white rounded-tl-none border-purple-900'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
                 </div>
+
+                {/* MAPEO DINÁMICO DE LOS CINES */}
+                {msg.isCinemaSelector && dbCinemas.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pl-2 animate-fade-in">
+                    {dbCinemas.map((cinema) => (
+                      <button
+                        key={cinema.id}
+                        onClick={() =>
+                          handleSelectCinema(cinema.id, cinema.name)
+                        }
+                        className="bg-purple-900/40 hover:bg-[#ffb800] text-white hover:text-[#1e0f35] border border-[#ffb800]/40 font-semibold px-3 py-1.5 rounded-full text-xs transition-all"
+                      >
+                        📍 {cinema.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Feedback visual si el backend tarda o está vacío */}
+                {msg.isCinemaSelector && dbCinemas.length === 0 && (
+                  <span className="text-xs text-gray-500 pl-2 block animate-pulse">
+                    Cargando sucursales disponibles...
+                  </span>
+                )}
               </div>
             ))}
 
