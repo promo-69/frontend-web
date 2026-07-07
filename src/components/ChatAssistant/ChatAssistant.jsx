@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import robotAvatar from '../../assets/images/robotIA.png' 
+import { sendAssistantMessage } from '../../services/assistant.service'
 
 export default function ChatAssistant() {
   const [isOpen, setIsOpen] = useState(false)
@@ -7,7 +8,23 @@ export default function ChatAssistant() {
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
 
-  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos desaparece
+  // Historial de mensajes en pantalla
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      text: '¡Hola! 🎬 Soy tu asistente de Cineflix. ¿En que te puedo ayudar hoy?',
+      sender: 'bot',
+    },
+  ])
+  const [isLoading, setIsLoading] = useState(false)
+
+  const messagesEndRef = useRef(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
+
+  // Ocultar la burbuja flotante de "¡Hola!" después de unos segundos 
   useEffect(() => {
     const timer = setTimeout(() => setShowBubble(false), 8000)
     return () => clearTimeout(timer)
@@ -28,7 +45,7 @@ export default function ChatAssistant() {
     }
 
     const recognition = new SpeechRecognition()
-    recognition.lang = 'es-VE' 
+    recognition.lang = 'es-VE'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
 
@@ -52,13 +69,49 @@ export default function ChatAssistant() {
     }
   }
 
-  const handleSend = () => {
-    if (!input.trim()) return
+  const handleSend = async () => {
+    const userMessage = input.trim()
+    if (!userMessage || isLoading) return
 
-    // Lógica/fetch para mandar el mensaje "input" al backend
-    console.log('Mensaje enviado:', input)
+    const newUserMessage = {
+      id: Date.now().toString(),
+      text: userMessage,
+      sender: 'user'
+    }
+    setMessages((prev) => [...prev, newUserMessage])
+    setInput('') 
 
-    setInput('')
+    setIsLoading(true)
+
+    try {
+      
+      const result = await sendAssistantMessage(userMessage, 1)
+
+      if (result.success && result.data?.message) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `bot-${Date.now()}`,
+            text: result.data.message,
+            sender: 'bot'
+          }
+        ])
+      } else {
+        throw new Error('Estructura de respuesta inválida')
+      }
+    } catch (error) {
+      console.error('Error al obtener respuesta de la IA:', error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          text: 'Lo siento, hubo un problema al conectar con mi servidor. Por favor, intenta de nuevo.',
+          sender: 'bot'
+        }
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -76,7 +129,7 @@ export default function ChatAssistant() {
               />
               <div>
                 <h3 className="text-white font-bold text-sm">
-                  Asistente IA Cineflix
+                  Asistente Cineflix
                 </h3>
                 <span className="text-xs text-green-400 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-400 inline-block animate-pulse"></span>{' '}
@@ -92,12 +145,31 @@ export default function ChatAssistant() {
             </button>
           </div>
 
-          {/* Cuerpo del Chat (Mensajes) */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#130726]">
-            <div className="bg-[#2d1b4e] text-white p-3 rounded-lg max-w-[80%] text-sm rounded-tl-none border border-purple-900">
-              ¡Hola! 🎬 Soy tu asistente de Cineflix. ¿Te ayudo a elegir tus
-              asientos o snacks?
-            </div>
+          {/* Cuerpo (Mensajes Dinámicos) */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#130726] custom-scrollbar">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`p-3 rounded-lg max-w-[80%] text-sm border ${
+                  msg.sender === 'user'
+                    ? 'bg-[#ffb800] text-[#1e0f35] font-medium rounded-tr-none border-amber-500 shadow-sm'
+                    : 'bg-[#2d1b4e] text-white rounded-tl-none border-purple-900'
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+
+            {/* Burbuja de "Pensando..." */}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-[#2d1b4e] text-gray-300 p-3 rounded-lg rounded-tl-none border border-purple-900 text-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Área de Entrada Integrada (Texto + Micrófono) */}
@@ -112,12 +184,14 @@ export default function ChatAssistant() {
                   isListening ? 'Escuchando tu voz...' : 'Escribe un mensaje...'
                 }
                 className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-gray-400"
+                disabled={isLoading}
               />
 
               {/* Botón de reconocimiento por voz */}
               <button
                 type="button"
                 onClick={handleVoiceInput}
+                disabled={isLoading}
                 className={`p-1 rounded-md transition-all ${
                   isListening
                     ? 'text-red-500 bg-red-500/10 scale-110 animate-pulse'
@@ -144,9 +218,10 @@ export default function ChatAssistant() {
 
             <button
               onClick={handleSend}
+              disabled={isLoading}
               className="bg-[#ffb800] text-[#1e0f35] font-bold px-4 py-2 rounded-lg text-sm hover:bg-[#e0a200] transition-colors"
             >
-              Enviar
+              {isLoading ? '...' : 'Enviar'}
             </button>
           </div>
         </div>
