@@ -379,7 +379,7 @@ export default function UnifiedPurchase() {
         payload.reference_number = referenceNumber.trim()
         if (selectedBank) payload.bank = selectedBank
       }
-      await registerPayment(payload)
+      const resp = await registerPayment(payload)
       // La respuesta HTTP 200 indica que el pago se encoló.
       // El resultado real llega por WebSocket (payment_completed / payment_failed / payment_success).
       console.log('[Payment] Encolado, esperando WebSocket:', resp)
