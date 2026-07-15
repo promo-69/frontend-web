@@ -455,8 +455,7 @@ export default function UnifiedPurchase() {
 
             {/* Screen */}
             <div className="flex flex-col items-center">
-              <div className="w-3/4 h-2 bg-gradient-to-b from-yellow-400/60 to-transparent rounded-full mb-1" />
-              <p className="text-[10px] text-yellow-400/60 uppercase tracking-widest mb-6 font-bold">Pantalla</p>
+              <div className="mt-5" />
 
               <SeatMap seats={seats} onToggle={toggleSeat} />
               <SeatLegend />
