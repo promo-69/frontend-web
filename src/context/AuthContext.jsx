@@ -4,6 +4,7 @@ import {
   logoutRequest,
   refreshSessionRequest,
   getPermissionsRequest,
+  getMyProfileRequest,
 } from '../services/auth.service'
 import { useLoading } from './LoadingContext'
 import { 
@@ -39,10 +40,20 @@ export function AuthProvider({ children }) {
       showLoader()
       try {
         const resData = await refreshSessionRequest()
-        
+
         if (!isMounted) return
 
-        const userData = resData?.data?.user || resData?.data?.data?.user
+        let userData = resData?.data?.user || resData?.data?.data?.user
+
+        try {
+          const profileRes = await getMyProfileRequest()
+          const profileUser = profileRes?.data?.data || profileRes?.data
+          if (profileUser) {
+            userData = { ...userData, ...profileUser }
+          }
+        } catch (e) {
+          console.warn('Error fetching /users/me during refresh:', e)
+        }
 
         if (userData) {
           try {
@@ -102,6 +113,18 @@ export function AuthProvider({ children }) {
       if (!userData) {
         const resData = await refreshSessionRequest()
         userData = resData?.data?.user || resData?.data?.data?.user
+      }
+
+      if (userData) {
+        try {
+          const profileRes = await getMyProfileRequest()
+          const profileUser = profileRes?.data?.data || profileRes?.data
+          if (profileUser) {
+            userData = { ...userData, ...profileUser }
+          }
+        } catch (e) {
+          console.warn('Error fetching /users/me after login:', e)
+        }
       }
 
       if (!userData) {
@@ -176,8 +199,59 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const updateProfileState = useCallback((newEmail) => {
-    setUser((prev) => (prev ? { ...prev, email: newEmail, personalEmail: newEmail } : null))
+  const updateProfileState = useCallback((updatedFields) => {
+    setUser((prev) => {
+      if (!prev) return null
+
+      const nextUser = {
+        ...prev,
+        ...updatedFields,
+      }
+
+      if (updatedFields.email) {
+        nextUser.personalEmail = updatedFields.email
+        nextUser._People = {
+          ...nextUser._People,
+          personal_email: updatedFields.email,
+        }
+      }
+
+      if (updatedFields.firstName) {
+        nextUser.firstName = updatedFields.firstName
+        nextUser._People = {
+          ...nextUser._People,
+          first_name: updatedFields.firstName,
+        }
+      }
+
+      if (updatedFields.lastName) {
+        nextUser.lastName = updatedFields.lastName
+        nextUser._People = {
+          ...nextUser._People,
+          last_name: updatedFields.lastName,
+        }
+      }
+
+      if (updatedFields.birthDate) {
+        nextUser.birthDate = updatedFields.birthDate
+        nextUser._People = {
+          ...nextUser._People,
+          birth_date: updatedFields.birthDate,
+        }
+      }
+
+      if (updatedFields.cellphone) {
+        nextUser.phoneNumber = updatedFields.cellphone
+      }
+
+      try {
+        localStorage.setItem('user', JSON.stringify(nextUser))
+      } catch (error) {
+        console.warn('No se pudo guardar el usuario actualizado en localStorage:', error)
+      }
+
+      return nextUser
+    })
   }, [])
 
   const contextValue = useMemo(() => ({

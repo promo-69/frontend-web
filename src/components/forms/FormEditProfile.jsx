@@ -4,19 +4,25 @@ import { EditIcon, EyeIcon, EyeOffIcon } from '../ui/IconosProyect';
 
 function FormEditProfile({ userData, step, setStep, onSave, loading }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [firstName, setFirstName] = useState(userData.name);
+  const [lastName, setLastName] = useState(userData.lastname);
+  const [birthDate, setBirthDate] = useState(userData.birth);
   const [email, setEmail] = useState(userData.email);
   const [password, setPassword] = useState('');
-  const [phoneBody, setPhoneBody] = useState(""); 
-  const [prefix, setPrefix] = useState("+58"); 
-  const [errors, setErrors] = useState({ email: '', password: '' });
+  const [phoneBody, setPhoneBody] = useState("");
+  const [prefix, setPrefix] = useState("+58");
+  const [errors, setErrors] = useState({ email: '', password: '', firstName: '', lastName: '', birthDate: '' });
 
   const isEditing = step === 'editing';
 
   useEffect(() => {
+    setFirstName(userData.name || '');
+    setLastName(userData.lastname || '');
+    setBirthDate(userData.birth || '');
     setEmail(userData.email);
     // Al editar se deja en blanco para que defina una nueva contraseña o mantenga consistencia
     setPassword(isEditing ? '' : userData.password);
-    
+
     if (userData.cellphone?.startsWith('+')) {
       setPrefix(userData.cellphone.substring(0, 3));
       setPhoneBody(userData.cellphone.substring(3));
@@ -24,13 +30,23 @@ function FormEditProfile({ userData, step, setStep, onSave, loading }) {
       setPhoneBody(userData.cellphone || "");
     }
     setShowPassword(false);
-    setErrors({ email: '', password: '' });
+    setErrors({ email: '', password: '', firstName: '', lastName: '', birthDate: '' });
   }, [userData, step, isEditing]);
 
   const validate = () => {
-    let newErrors = { email: '', password: '' };
+    let newErrors = { email: '', password: '', firstName: '', lastName: '', birthDate: '' };
     let isValid = true;
     
+    if (!firstName.trim()) {
+      newErrors.firstName = 'Nombre requerido';
+      isValid = false;
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = 'Apellido requerido';
+      isValid = false;
+    }
+
     if (!email.includes('@')) {
       newErrors.email = 'Correo inválido';
       isValid = false;
@@ -45,16 +61,24 @@ function FormEditProfile({ userData, step, setStep, onSave, loading }) {
       }
     }
 
-    // Validación preventiva local: Validar si al menos se modificó el teléfono, el correo o la clave
+    // Validación preventiva local: Validar si al menos se modificó el teléfono, el correo, el nombre, apellido, fecha de nacimiento o la clave
     const originalPhone = userData.cellphone || "";
     const currentPhone = `${prefix}${phoneBody}`;
-    
+
+    const hasFirstNameChanged = firstName.trim() !== userData.name.trim();
+    const hasLastNameChanged = lastName.trim() !== userData.lastname.trim();
+    const hasBirthDateChanged = birthDate !== userData.birth;
     const hasEmailChanged = email.trim().toLowerCase() !== userData.email.trim().toLowerCase();
     const hasPasswordChanged = password.length > 0;
     const hasPhoneChanged = currentPhone.trim() !== originalPhone.trim();
 
-    if (!hasEmailChanged && !hasPasswordChanged && !hasPhoneChanged) {
+    if (!hasFirstNameChanged && !hasLastNameChanged && !hasBirthDateChanged && !hasEmailChanged && !hasPasswordChanged && !hasPhoneChanged) {
       newErrors.email = 'No has realizado ninguna modificación en tus datos.';
+      isValid = false;
+    }
+
+    if (hasBirthDateChanged && !birthDate) {
+      newErrors.birthDate = 'Fecha de nacimiento requerida.';
       isValid = false;
     }
     
@@ -66,10 +90,13 @@ function FormEditProfile({ userData, step, setStep, onSave, loading }) {
     e.preventDefault();
     if (loading) return;
     if (isEditing && validate()) {
-      onSave({ 
-        email, 
+      onSave({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        birthDate: birthDate,
+        email,
         password: password.length > 0 ? password : undefined, // Si no se cambió, no se sobreescribe la existente
-        cellphone: `${prefix}${phoneBody}` 
+        cellphone: `${prefix}${phoneBody}`,
       });
     }
   };
@@ -85,11 +112,33 @@ function FormEditProfile({ userData, step, setStep, onSave, loading }) {
         <div className="grid grid-cols-2 gap-x-5 gap-y-3 opacity-80">
           <div className="border-b border-gray-500 pb-1">
             <label className="text-[9px] font-bold text-gray-400 uppercase">Nombre</label>
-            <p className="text-sm font-medium truncate">{userData.name}</p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="bg-transparent w-full outline-none text-sm py-1 text-white"
+                readOnly={loading}
+              />
+            ) : (
+              <p className="text-sm font-medium truncate">{userData.name}</p>
+            )}
+            {isEditing && errors.firstName && <span className="text-[9px] text-red-400 italic">{errors.firstName}</span>}
           </div>
           <div className="border-b border-gray-500 pb-1">
             <label className="text-[9px] font-bold text-gray-400 uppercase">Apellido</label>
-            <p className="text-sm font-medium truncate">{userData.lastname}</p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="bg-transparent w-full outline-none text-sm py-1 text-white"
+                readOnly={loading}
+              />
+            ) : (
+              <p className="text-sm font-medium truncate">{userData.lastname}</p>
+            )}
+            {isEditing && errors.lastName && <span className="text-[9px] text-red-400 italic">{errors.lastName}</span>}
           </div>
           <div className="border-b border-gray-500 pb-1">
             <label className="text-[9px] font-bold text-gray-400 uppercase">Cédula</label>
@@ -97,7 +146,18 @@ function FormEditProfile({ userData, step, setStep, onSave, loading }) {
           </div>
           <div className="border-b border-gray-500 pb-1">
             <label className="text-[9px] font-bold text-gray-400 uppercase">Nacimiento</label>
-            <p className="text-sm font-medium truncate">{userData.birth}</p>
+            {isEditing ? (
+              <input
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                className="bg-transparent w-full outline-none text-sm py-1 text-white"
+                readOnly={loading}
+              />
+            ) : (
+              <p className="text-sm font-medium truncate">{userData.birth}</p>
+            )}
+            {isEditing && errors.birthDate && <span className="text-[9px] text-red-400 italic">{errors.birthDate}</span>}
           </div>
         </div>
 

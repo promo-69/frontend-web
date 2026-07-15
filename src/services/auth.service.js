@@ -54,6 +54,13 @@ export const refreshSessionRequest = async () => {
   }
 }
 
+export const getMyProfileRequest = async () => {
+  const response = await api.get('/users/me', {
+    withCredentials: true,
+  })
+  return response
+}
+
 // ---------------------------------------------------------
 // LOGOUT 
 // ---------------------------------------------------------

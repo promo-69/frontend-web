@@ -24,8 +24,13 @@ function Profile() {
     name: user?.firstName || 'No asignado',
     lastname: user?.lastName || 'No asignado',
     id: user?.documentNumber || 'No asignado',
-    birth: '28/05/2006',
-    email: user?.email || user?._People?.personal_email || '',
+    birth:
+      user?.birthDate ||
+      user?.birth ||
+      user?._People?.birth_date ||
+      user?._People?.birthDate ||
+      '',
+    email: user?.email || user?._People?.personal_email || user?._People?.personalEmail || '',
     cellphone: user?.phoneNumber || 'Sin número registrado',
     password: '••••••••',
   }
@@ -87,22 +92,54 @@ function Profile() {
       const currentPhone = (user?.phoneNumber || '').trim();
       const targetPhone = updatedData.cellphone.trim();
       const hasPhoneChanged = targetPhone !== currentPhone;
+      const currentFirstName = user?.firstName || '';
+      const currentLastName = user?.lastName || '';
+    const currentBirthDate =
+      user?.birthDate ||
+      user?.birth ||
+      user?._People?.birth_date ||
+      user?._People?.birthDate ||
+      '';
+      const profilePayload = {}
+      const updatedProfileFields = {}
 
-      if (hasEmailChanged || hasPhoneChanged) {
-        const profilePayload = {};
-        if (hasEmailChanged) profilePayload.personal_email = updatedData.email.trim();
-        if (hasPhoneChanged) profilePayload.phoneNumber = updatedData.cellphone.trim();
-
-        await updateProfileRequest(profilePayload).catch((err) => {
-          console.error('Error no crítico al actualizar metadatos del perfil:', err)
-        })
+      if (hasEmailChanged) {
+        profilePayload.personalEmail = updatedData.email.trim()
+        updatedProfileFields.email = updatedData.email.trim()
       }
 
-      updateProfileState(updatedData.email.trim())
+      if (hasPhoneChanged) {
+        profilePayload.phoneNumber = updatedData.cellphone.trim()
+        updatedProfileFields.phoneNumber = updatedData.cellphone.trim()
+      }
+
+      if (hasFirstNameChanged) {
+        profilePayload.firstName = updatedData.firstName.trim()
+        updatedProfileFields.firstName = updatedData.firstName.trim()
+      }
+
+      if (hasLastNameChanged) {
+        profilePayload.lastName = updatedData.lastName.trim()
+        updatedProfileFields.lastName = updatedData.lastName.trim()
+      }
+
+      if (hasBirthDateChanged) {
+        profilePayload.birthDate = updatedData.birthDate
+        updatedProfileFields.birthDate = updatedData.birthDate
+      }
+
+      if (Object.keys(profilePayload).length > 0) {
+        const profileResponse = await updateProfileRequest(profilePayload)
+        if (!profileResponse || profileResponse.status < 200 || profileResponse.status >= 300) {
+          throw new Error('No se pudo actualizar el perfil en el backend.')
+        }
+
+        updateProfileState(updatedProfileFields)
+      }
+
       setSecurityToken(null)
       setStep('view')
       setShowSuccess(true)
-      
     } catch (error) {
       console.error('Error al guardar cambios de seguridad de perfil:', error)
       alert(error.response?.data?.message || 'Error inesperado o token expirado (límite 15 min).')
