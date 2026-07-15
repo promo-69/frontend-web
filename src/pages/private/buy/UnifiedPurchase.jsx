@@ -314,17 +314,24 @@ export default function UnifiedPurchase() {
   const ticketsTotal = selectedSeatsList.length * SEAT_BASE_PRICE
   const grandTotal = ticketsTotal + confectioneryTotal
 
+  const handleSeatsConfirm = () => {
+    if (selectedSeatsList.length !== totalTickets || totalTickets === 0) return
+    setStep(3)
+  }
+
   // ── Checkout ──
   const handleGoToPayment = async () => {
     setStep(4)
     setLoading(true)
     try {
-      // Asignar audienceCategoryId según los contadores de tickets
+      // Refrescar locks antes del checkout
+      selectedSeatsList.forEach(s => socketService.emit('lock_seat', { seatId: s.id }))
+      await new Promise(r => setTimeout(r, 300))
+
       const audienceQueue = []
       Object.entries(ticketCounts).forEach(([catId, count]) => {
         for (let i = 0; i < count; i++) audienceQueue.push(Number(catId))
       })
-
       const payload = {
         tickets: selectedSeatsList.map((s, i) => ({
           booking: showtime?.booking?.id || showtime?.room_booking_id,
@@ -352,18 +359,21 @@ export default function UnifiedPurchase() {
 
   const handlePayment = async (e) => {
     e?.preventDefault()
-    if (!referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
+    if (paymentMethod !== 'loyalty' && !referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
     setPaymentProcessing(true)
     setPaymentResult(null)
     setPaymentError(null)
     try {
-      const resp = await registerPayment({
-        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 2,
+      const payload = {
+        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5,
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
-        reference_number: referenceNumber.trim(),
-        bank: selectedBank || undefined,
-      })
+      }
+      if (paymentMethod !== 'loyalty') {
+        payload.reference_number = referenceNumber.trim()
+        if (selectedBank) payload.bank = selectedBank
+      }
+      await registerPayment(payload)
       // La respuesta HTTP 200 indica que el pago se encoló.
       // El resultado real llega por WebSocket (payment_completed / payment_failed / payment_success).
       console.log('[Payment] Encolado, esperando WebSocket:', resp)
@@ -469,7 +479,7 @@ export default function UnifiedPurchase() {
             <div className="flex justify-between pt-4">
               <button onClick={() => navigate('/')} className="px-6 py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">Cancelar</button>
               <button
-                onClick={() => { if (selectedSeatsList.length === totalTickets && totalTickets > 0) setStep(3) }}
+                onClick={handleSeatsConfirm}
                 disabled={selectedSeatsList.length !== totalTickets || totalTickets === 0}
                 className="px-8 py-3 bg-yellow-500 text-black font-bold rounded-xl text-sm uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
               >
@@ -628,7 +638,7 @@ export default function UnifiedPurchase() {
                       {[
                         { id: 'transfer', name: 'Transferencia', icon: '🏦' },
                         { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
-                        { id: 'card', name: 'Punto de Venta', icon: '💳' },
+                        { id: 'loyalty', name: 'Puntos', icon: '⭐' },
                       ].map(m => (
                         <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
                           className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
@@ -653,13 +663,15 @@ export default function UnifiedPurchase() {
                       </select>
                     </div>
                   )}
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
-                    <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
-                      placeholder="Ej: 0123456789"
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
-                    {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
-                  </div>
+                  {paymentMethod !== 'loyalty' && (
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
+                      <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
+                        placeholder="Ej: 0123456789"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
+                      {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
                     <input type="number" value={amountInput} disabled

@@ -163,19 +163,22 @@ export default function Confectionery() {
 
   const handlePayment = async (e) => {
     e?.preventDefault()
-    if (!referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
+    if (paymentMethod !== 'loyalty' && !referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
     setPaying(true)
     setError(null)
     try {
-      const resp = await registerPayment({
-        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 2,
+      const payload = {
+        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5,
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
-        reference_number: referenceNumber.trim(),
-        bank: selectedBank || undefined,
-      })
+      }
+      if (paymentMethod !== 'loyalty') {
+        payload.reference_number = referenceNumber.trim()
+        if (selectedBank) payload.bank = selectedBank
+      }
+      await registerPayment(payload)
       // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
-      console.log('[Payment] Encolado:', resp)
+      console.log('[Payment] Encolado:', payload)
     } catch (e) {
       setPaying(false)
       setError(e?.response?.data?.message || 'Error al registrar el pago')
@@ -298,7 +301,7 @@ export default function Confectionery() {
                       {[
                         { id: 'transfer', name: 'Transferencia', icon: '🏦' },
                         { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
-                        { id: 'card', name: 'Punto de Venta', icon: '💳' },
+                        { id: 'loyalty', name: 'Puntos', icon: '⭐' },
                       ].map(m => (
                         <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
                           className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
@@ -322,13 +325,15 @@ export default function Confectionery() {
                       </select>
                     </div>
                   )}
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
-                    <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
-                      placeholder="Ej: 0123456789"
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
-                    {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
-                  </div>
+                  {paymentMethod !== 'loyalty' && (
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
+                      <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
+                        placeholder="Ej: 0123456789"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
+                      {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
                     <input type="number" value={amountInput} disabled
