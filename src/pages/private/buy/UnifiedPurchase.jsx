@@ -214,7 +214,13 @@ export default function UnifiedPurchase() {
       const allBanks = []
       options.forEach(opt => {
         (opt._BankAccounts || []).forEach(ba => {
-          allBanks.push({ id: ba.id, bank: ba.bank, payment_method: opt.id, name: ba._Banks?.name || ('Banco ' + ba.bank) })
+          allBanks.push({
+            id: ba.id,
+            bank: ba.bank,
+            payment_method: opt.id,
+            name: ba._Banks?.name || ('Banco ' + ba.bank),
+            payment_details: ba.payment_details
+          })
         })
       })
       setBankAccounts(allBanks)
@@ -654,12 +660,33 @@ export default function UnifiedPurchase() {
                         className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
                         <option value="">Seleccionar banco</option>
                         {bankAccounts.filter(b => {
-                          const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 2
+                          const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5
                           return b.payment_method === mId
                         }).map(ba => (
                           <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
                         ))}
                       </select>
+
+                      {/* Detalles de la cuenta bancaria */}
+                      {(() => {
+                        if (!selectedBank) return null;
+                        const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : null;
+                        const selectedAccount = bankAccounts.find(b => b.bank.toString() === selectedBank.toString() && b.payment_method === mId);
+
+                        if (!selectedAccount) return null;
+
+                        return (
+                          <div className="mt-4 bg-white/5 border border-white/10 p-4 rounded-xl space-y-2">
+                            <p className="text-sm text-yellow-400 font-bold mb-2">Datos para {paymentMethod === 'transfer' ? 'Transferencia' : 'Pago Móvil'}</p>
+                            {selectedAccount.name && <p className="text-xs text-white/80"><span className="font-semibold text-white/50">Banco:</span> {selectedAccount.name}</p>}
+                            {selectedAccount.payment_details && Array.isArray(selectedAccount.payment_details) && selectedAccount.payment_details.map((detail, idx) => (
+                              <p key={idx} className="text-xs text-white/80">
+                                <span className="font-semibold text-white/50">{detail.label || detail.name}:</span> {detail.value}
+                              </p>
+                            ))}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
                   {paymentMethod !== 'loyalty' && (
