@@ -19,6 +19,7 @@ import socketService from '../../../services/socket.service'
 import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
+import api from '../../../api/axios'
 
 const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
 const SEAT_BASE_PRICE = 6
@@ -64,13 +65,16 @@ export default function UnifiedPurchase() {
 
   // ── Payment ──
   const [checkoutData, setCheckoutData] = useState(null)
-  const [paying, setPaying] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('transfer')
   const [referenceNumber, setReferenceNumber] = useState('')
   const [referenceError, setReferenceError] = useState(null)
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(2)
   const [paymentError, setPaymentError] = useState(null)
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
+  const [paymentResult, setPaymentResult] = useState(null)
+  const [selectedBank, setSelectedBank] = useState('')
+  const [bankAccounts, setBankAccounts] = useState([])
 
   // ── Load showtime + seat map + init quote ──
   useEffect(() => {
@@ -97,6 +101,28 @@ export default function UnifiedPurchase() {
         socketService.on('quote_expired', () => {
           setError('Tu tiempo de compra expiró')
           cancelAll('ttl_expired')
+        })
+
+        // Payment WebSocket events
+        socketService.off('payment_success')
+        socketService.on('payment_success', (data) => {
+          setPaymentProcessing(false)
+          setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message })
+        })
+        socketService.off('payment_completed')
+        socketService.on('payment_completed', (data) => {
+          setPaymentProcessing(false)
+          setPaymentResult({ success: true, ...data })
+        })
+        socketService.off('payment_failed')
+        socketService.on('payment_failed', (data) => {
+          setPaymentProcessing(false)
+          setPaymentResult({ success: false, ...data })
+        })
+        socketService.off('billing_required')
+        socketService.on('billing_required', (data) => {
+          setPaymentProcessing(false)
+          setPaymentResult({ success: true, billing: true, ...data })
         })
 
         setQuoteReady(true)
@@ -179,6 +205,21 @@ export default function UnifiedPurchase() {
       socketService.off('seats_unlocked', onSeatsUnlocked)
     }
   }, [quoteReady, showtimeId])
+
+  // ── Load bank accounts for payment ──
+  useEffect(() => {
+    if (!quoteReady) return
+    api.get('/payments/options').then(res => {
+      const options = res?.data?.data || []
+      const allBanks = []
+      options.forEach(opt => {
+        (opt._BankAccounts || []).forEach(ba => {
+          allBanks.push({ id: ba.id, bank: ba.bank, payment_method: opt.id, name: ba._Banks?.name || ('Banco ' + ba.bank) })
+        })
+      })
+      setBankAccounts(allBanks)
+    }).catch(() => {})
+  }, [quoteReady])
 
   // ── Load confectionery ──
   useEffect(() => {
@@ -312,24 +353,23 @@ export default function UnifiedPurchase() {
   const handlePayment = async (e) => {
     e?.preventDefault()
     if (!referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
-    setPaying(true)
+    setPaymentProcessing(true)
+    setPaymentResult(null)
+    setPaymentError(null)
     try {
       const resp = await registerPayment({
         payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 2,
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
         reference_number: referenceNumber.trim(),
-        bypass: true,
+        bank: selectedBank || undefined,
       })
-      const wrapper = resp?.data ?? resp
-      const data = wrapper?.data ?? wrapper
-      const orderId = data?.orderId ?? data?.order_id ?? data?.id
-      const qrCode = data?.qrCode ?? data?.qr_code
-      navigate('/order-success', { state: { orderId, qrCode } })
+      // La respuesta HTTP 200 indica que el pago se encoló.
+      // El resultado real llega por WebSocket (payment_completed / payment_failed / payment_success).
+      console.log('[Payment] Encolado, esperando WebSocket:', resp)
     } catch (e) {
+      setPaymentProcessing(false)
       setPaymentError(e?.response?.data?.message || 'Error al registrar el pago')
-    } finally {
-      setPaying(false)
     }
   }
 
@@ -510,70 +550,130 @@ export default function UnifiedPurchase() {
         {/* Step 4: Payment */}
         {step === 4 && (
           <div className="space-y-6 animate-in fade-in max-w-lg mx-auto">
-            <h2 className="text-xl font-bold text-yellow-400">Pago</h2>
-
-            {paymentError && (
-              <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-4 rounded-xl text-sm">{paymentError}</div>
-            )}
-
-            {/* Summary */}
-            <div className="bg-white/10 rounded-2xl p-6 space-y-3">
-              <h3 className="font-bold text-yellow-400">Resumen</h3>
-              {selectedSeatsList.map(s => (
-                <div key={s.id} className="flex justify-between text-sm text-white/80">
-                  <span>Asiento {s.label}</span>
-                  <span>${SEAT_BASE_PRICE.toFixed(2)}</span>
-                </div>
-              ))}
-              {cartItems.map(i => (
-                <div key={i.id} className="flex justify-between text-sm text-white/80">
-                  <span>{i.name} ×{i.qty}</span>
-                  <span>${(i.price * i.qty).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between text-xl font-bold text-yellow-400 pt-3 border-t border-white/20">
-                <span>Total</span>
-                <span>${grandTotal.toFixed(2)}</span>
+            {paymentProcessing ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-6" />
+                <h2 className="text-xl font-bold text-yellow-400">Procesando Pago</h2>
+                <p className="text-white/60 text-sm mt-2">Esperando confirmación del sistema...</p>
               </div>
-            </div>
+            ) : paymentResult ? (
+              paymentResult.success ? (
+                paymentResult.partial ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-amber-500 flex items-center justify-center mb-6 text-3xl">$</div>
+                    <h2 className="text-xl font-bold text-amber-400">Pago Parcial</h2>
+                    <p className="text-white/60 text-sm mt-2">{paymentResult.message || 'Pago parcial registrado'}</p>
+                    {paymentResult.remainingBalance != null && (
+                      <p className="text-red-400 font-bold mt-2">Saldo pendiente: ${Number(paymentResult.remainingBalance).toFixed(2)}</p>
+                    )}
+                    <button onClick={() => navigate('/')} className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Volver al inicio</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-6 text-3xl">✓</div>
+                    <h2 className="text-xl font-bold text-green-400">¡Compra Exitosa!</h2>
+                    <p className="text-white/60 text-sm mt-2">Tu orden ha sido procesada correctamente.</p>
+                    {paymentResult.billing && (
+                      <p className="text-amber-400 text-sm mt-2">Recuerda completar la facturación.</p>
+                    )}
+                    {paymentResult.orderId && (
+                      <button onClick={() => navigate(`/order-success?order=${paymentResult.orderId}&qr=${encodeURIComponent(paymentResult.qrCode || '')}`)}
+                        className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Ver Comprobante</button>
+                    )}
+                    <button onClick={() => navigate('/')} className="mt-3 px-6 py-3 border border-white/20 text-white rounded-xl font-bold">Volver al inicio</button>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-6 text-3xl">✕</div>
+                  <h2 className="text-xl font-bold text-red-400">Error en el Pago</h2>
+                  <p className="text-white/60 text-sm mt-2">{paymentResult.message || 'El pago no pudo ser procesado.'}</p>
+                  <button onClick={() => { setPaymentResult(null); setStep(3); }} className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Volver a intentar</button>
+                </div>
+              )
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-yellow-400">Pago</h2>
 
-            {/* Payment form */}
-            <form onSubmit={handlePayment} className="bg-white/10 rounded-2xl p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Método de Pago</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'transfer', name: 'Transferencia', icon: '🏦' },
-                    { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
-                    { id: 'card', name: 'Punto de Venta', icon: '💳' },
-                  ].map(m => (
-                    <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
-                      className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
-                        paymentMethod === m.id ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'
-                      }`}
-                    ><span className="text-xl block mb-1">{m.icon}</span>{m.name}</button>
+                {paymentError && (
+                  <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-4 rounded-xl text-sm">{paymentError}</div>
+                )}
+
+                {/* Summary */}
+                <div className="bg-white/10 rounded-2xl p-6 space-y-3">
+                  <h3 className="font-bold text-yellow-400">Resumen</h3>
+                  {selectedSeatsList.map(s => (
+                    <div key={s.id} className="flex justify-between text-sm text-white/80">
+                      <span>Asiento {s.label}</span>
+                      <span>${SEAT_BASE_PRICE.toFixed(2)}</span>
+                    </div>
                   ))}
+                  {cartItems.map(i => (
+                    <div key={i.id} className="flex justify-between text-sm text-white/80">
+                      <span>{i.name} ×{i.qty}</span>
+                      <span>${(i.price * i.qty).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-xl font-bold text-yellow-400 pt-3 border-t border-white/20">
+                    <span>Total</span>
+                    <span>${grandTotal.toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
-                <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
-                  placeholder="Ej: 0123456789"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
-                {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
-                <input type="number" value={amountInput} disabled
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
-              </div>
-              <button type="submit" disabled={paying}
-                className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
-                {paying ? 'Procesando...' : `Pagar $${grandTotal.toFixed(2)}`}
-              </button>
-            </form>
 
-            <button onClick={() => setStep(3)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a confitería</button>
+                {/* Payment form */}
+                <form onSubmit={handlePayment} className="bg-white/10 rounded-2xl p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">Método de Pago</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'transfer', name: 'Transferencia', icon: '🏦' },
+                        { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
+                        { id: 'card', name: 'Punto de Venta', icon: '💳' },
+                      ].map(m => (
+                        <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
+                          className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
+                            paymentMethod === m.id ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'
+                          }`}
+                        ><span className="text-xl block mb-1">{m.icon}</span>{m.name}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {['transfer', 'mobile'].includes(paymentMethod) && (
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">Banco Destino</label>
+                      <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
+                        <option value="">Seleccionar banco</option>
+                        {bankAccounts.filter(b => {
+                          const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 2
+                          return b.payment_method === mId
+                        }).map(ba => (
+                          <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
+                    <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
+                      placeholder="Ej: 0123456789"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
+                    {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
+                    <input type="number" value={amountInput} disabled
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
+                  </div>
+                  <button type="submit" disabled={paymentProcessing}
+                    className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
+                    {paymentProcessing ? 'Procesando...' : `Pagar $${grandTotal.toFixed(2)}`}
+                  </button>
+                </form>
+
+                <button onClick={() => setStep(3)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a confitería</button>
+              </>
+            )}
           </div>
         )}
       </div>

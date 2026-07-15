@@ -11,6 +11,8 @@ import {
   deleteOrderSessionWithRetries,
 } from '../../../services/orders.service'
 import { getCinemas } from '../../../services/info.service'
+import socketService from '../../../services/socket.service'
+import api from '../../../api/axios'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
 
 const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
@@ -45,6 +47,8 @@ export default function Confectionery() {
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(2)
   const [error, setError] = useState(null)
+  const [selectedBank, setSelectedBank] = useState('')
+  const [bankAccounts, setBankAccounts] = useState([])
 
   // Load cinemas
   useEffect(() => {
@@ -106,6 +110,37 @@ export default function Confectionery() {
     try {
       try { await deleteOrderSessionWithRetries() } catch {}
       await initializeOrderQuote({ cinema: effectiveCinemaId })
+
+      // Conectar socket para escuchar eventos de pago
+      socketService.connect()
+      socketService.off('payment_success')
+      socketService.on('payment_success', (data) => {
+        setPaying(false)
+        setError(`Pago parcial. Saldo pendiente: $${Number(data.remaining_balance || 0).toFixed(2)}`)
+      })
+      socketService.off('payment_completed')
+      socketService.on('payment_completed', (data) => {
+        setPaying(false)
+        navigate(`/order-success?order=${data.orderId}&qr=${encodeURIComponent(data.qrCode || '')}`)
+      })
+      socketService.off('payment_failed')
+      socketService.on('payment_failed', (data) => {
+        setPaying(false)
+        setError(data.message || 'El pago no pudo ser procesado.')
+      })
+
+      // Cargar bancos para el selector de pago
+      api.get('/payments/options').then(res => {
+        const options = res?.data?.data || []
+        const allBanks = []
+        options.forEach(opt => {
+          (opt._BankAccounts || []).forEach(ba => {
+            allBanks.push({ id: ba.id, bank: ba.bank, payment_method: opt.id, name: ba._Banks?.name || ('Banco ' + ba.bank) })
+          })
+        })
+        setBankAccounts(allBanks)
+      }).catch(() => {})
+
       const payload = {
         tickets: [],
         concessions: cartItems.map(i => ({
@@ -137,17 +172,13 @@ export default function Confectionery() {
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
         reference_number: referenceNumber.trim(),
-        bypass: true,
+        bank: selectedBank || undefined,
       })
-      const wrapper = resp?.data ?? resp
-      const data = wrapper?.data ?? wrapper
-      const orderId = data?.orderId ?? data?.order_id ?? data?.id
-      const qrCode = data?.qrCode ?? data?.qr_code
-      navigate('/order-success', { state: { orderId, qrCode } })
+      // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
+      console.log('[Payment] Encolado:', resp)
     } catch (e) {
-      setError(e?.response?.data?.message || 'Error al registrar el pago')
-    } finally {
       setPaying(false)
+      setError(e?.response?.data?.message || 'Error al registrar el pago')
     }
   }
 
@@ -237,59 +268,80 @@ export default function Confectionery() {
         ) : (
           /* Step 2: Payment */
           <div className="space-y-6 max-w-lg mx-auto animate-in fade-in">
-            <h2 className="text-xl font-bold text-yellow-400">Pago</h2>
-
-            {error && <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-4 rounded-xl text-sm">{error}</div>}
-
-            <div className="bg-white/10 rounded-2xl p-6 space-y-3">
-              <h3 className="font-bold text-yellow-400">Resumen</h3>
-              {cartItems.map(i => (
-                <div key={i.id} className="flex justify-between text-sm text-white/80">
-                  <span>{i.name} ×{i.qty}</span>
-                  <span>${(i.price * i.qty).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between text-xl font-bold text-yellow-400 pt-3 border-t border-white/20">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+            {paying ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-6" />
+                <h2 className="text-xl font-bold text-yellow-400">Procesando Pago</h2>
+                <p className="text-white/60 text-sm mt-2">Esperando confirmación del sistema...</p>
               </div>
-            </div>
-
-            <form onSubmit={handlePayment} className="bg-white/10 rounded-2xl p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Método de Pago</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'transfer', name: 'Transferencia', icon: '🏦' },
-                    { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
-                    { id: 'card', name: 'Punto de Venta', icon: '💳' },
-                  ].map(m => (
-                    <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
-                      className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
-                        paymentMethod === m.id ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'}`}>
-                      <span className="text-xl block mb-1">{m.icon}</span>{m.name}</button>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-yellow-400">Pago</h2>
+                {error && <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-4 rounded-xl text-sm">{error}</div>}
+                <div className="bg-white/10 rounded-2xl p-6 space-y-3">
+                  <h3 className="font-bold text-yellow-400">Resumen</h3>
+                  {cartItems.map(i => (
+                    <div key={i.id} className="flex justify-between text-sm text-white/80">
+                      <span>{i.name} ×{i.qty}</span>
+                      <span>${(i.price * i.qty).toFixed(2)}</span>
+                    </div>
                   ))}
+                  <div className="flex justify-between text-xl font-bold text-yellow-400 pt-3 border-t border-white/20">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
-                <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
-                  placeholder="Ej: 0123456789"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
-                {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
-                <input type="number" value={amountInput} disabled
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
-              </div>
-              <button type="submit" disabled={paying}
-                className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
-                {paying ? 'Procesando...' : `Pagar $${total.toFixed(2)}`}
-              </button>
-            </form>
-
-            <button onClick={() => setStep(1)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a productos</button>
+                <form onSubmit={handlePayment} className="bg-white/10 rounded-2xl p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">Método de Pago</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { id: 'transfer', name: 'Transferencia', icon: '🏦' },
+                        { id: 'mobile', name: 'Pago Móvil', icon: '📱' },
+                        { id: 'card', name: 'Punto de Venta', icon: '💳' },
+                      ].map(m => (
+                        <button key={m.id} type="button" onClick={() => setPaymentMethod(m.id)}
+                          className={`p-3 rounded-xl border text-center text-xs font-medium transition-all ${
+                            paymentMethod === m.id ? 'bg-yellow-500/20 border-yellow-400 text-yellow-400' : 'bg-white/5 border-white/10 text-white/60 hover:border-white/30'}`}>
+                          <span className="text-xl block mb-1">{m.icon}</span>{m.name}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {['transfer', 'mobile'].includes(paymentMethod) && (
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-2">Banco Destino</label>
+                      <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
+                        <option value="">Seleccionar banco</option>
+                        {bankAccounts.filter(b => {
+                          const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 2
+                          return b.payment_method === mId
+                        }).map(ba => (
+                          <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">N° de Referencia</label>
+                    <input type="text" value={referenceNumber} onChange={e => { setReferenceNumber(e.target.value); setReferenceError(null) }}
+                      placeholder="Ej: 0123456789"
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400" required />
+                    {referenceError && <p className="mt-1 text-xs text-red-400">{referenceError}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
+                    <input type="number" value={amountInput} disabled
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
+                  </div>
+                  <button type="submit" disabled={paying}
+                    className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
+                    {paying ? 'Procesando...' : `Pagar $${total.toFixed(2)}`}
+                  </button>
+                </form>
+                <button onClick={() => setStep(1)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a productos</button>
+              </>
+            )}
           </div>
         )}
       </div>
