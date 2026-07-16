@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateID,
@@ -16,7 +16,14 @@ function RegisterForm2() {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const step1Data = location.state
+  const step1Data = location.state || {}
+  const fromRoute = step1Data.from || sessionStorage.getItem('pending_from') || '/'
+
+  useEffect(() => {
+    if (step1Data.from) {
+      sessionStorage.setItem('pending_from', step1Data.from)
+    }
+  }, [step1Data.from])
 
   console.log('Datos recibidos del paso 1:', step1Data)
   console.log('Género recibido en paso 2:', step1Data?.gender)
@@ -46,12 +53,16 @@ function RegisterForm2() {
 
   const onSubmit = async (values) => {
     setIsLoading(true)
+    const cleanedIdNumber = values.idNumber
+      ? values.idNumber.replace(/\s+/g, '').trim()
+      : ''
+
     const payload = {
       firstName: step1Data?.name,
       lastName: step1Data?.lastname,
       email: step1Data?.email,
       phoneNumber: step1Data?.countryCode + step1Data?.phone,
-      documentNumber: values.idPrefix + values.idNumber,
+      documentNumber: values.idPrefix + cleanedIdNumber,
       birthDate: values.birthdate,
       password: values.password,
       gender: step1Data?.gender,
@@ -72,6 +83,9 @@ function RegisterForm2() {
         setModalType('success')
         setModalMessage('¡Registro exitoso!')
         setShowSuccessModal(true)
+        sessionStorage.setItem('pending_email', step1Data?.email || '')
+        sessionStorage.setItem('pending_password', values.password || '')
+        sessionStorage.setItem('pending_from', fromRoute)
       }
     } catch (error) {
       console.error('Error capturado en la petición de registro:', error)
@@ -88,6 +102,7 @@ function RegisterForm2() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
+      noValidate
       className="flex flex-col items-center justify-center gap-4"
     >
       <div className="flex flex-col gap-6 items-center w-80">
@@ -138,10 +153,16 @@ function RegisterForm2() {
             <input
               type="text"
               id="idNumber"
+              inputMode="numeric"
+              pattern="[0-9]*"
               {...register('idNumber', {
+                setValueAs: (value) =>
+                  typeof value === 'string'
+                    ? value.replace(/\s+/g, '').trim()
+                    : value,
                 validate: (value) => {
                   const prefix = watch('idPrefix') || 'V'
-                  const fullId = prefix + value
+                  const fullId = prefix + (value || '')
                   return validateID(fullId) === true || validateID(fullId)
                 },
               })}
@@ -246,7 +267,7 @@ function RegisterForm2() {
             if (modalType === 'success') {
               localStorage.removeItem('registerFormStep1')
               navigate('/email-check', {
-                state: { email: step1Data?.email },
+                state: { email: step1Data?.email, from: fromRoute },
               })
             }
           }}

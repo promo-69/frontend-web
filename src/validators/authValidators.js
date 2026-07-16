@@ -17,7 +17,7 @@ export const validatePhone = (value) => {
 
 export const validateID = (value) => {
   if (!value) return 'La cédula es requerida'
-  if (!/^[VE]\d{7,9}$/.test(value)) return 'Formato inválido (V/E + 7-9 dígitos)'
+  if (!/^[VE]\d{7,9}$/.test(value)) return 'Formato: V/E + 7-9 dígitos sin espacios en blanco'
   return true
 }
 

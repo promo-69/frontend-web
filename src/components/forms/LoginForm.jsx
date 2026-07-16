@@ -188,6 +188,7 @@ function LoginForm() {
               navigate('/email-check', {
                 state: {
                   email: submittedEmailRef.current,
+                  from: fromRoute,
                 },
               })
               return
