@@ -127,11 +127,41 @@ function generateSeatMap(showtimeId, rows = 9, cols = 14) {
       // Pseudo-random pero determinístico para que no cambie en cada render
       const hash = (showtimeId * 31 + r * 17 + c * 7) % 100
       const sold = hash < 20 // ~20% vendidos
+      let categoryId = 1;
+      let seatConditionId = 1;
+
+      // Mock data to test UI states
+      // Row A: A4 Out of service
+      if (r === 0 && c === 4) seatConditionId = 3;
+      
+      // Row B: B1, B2, B6, B9, B10 Out of service
+      if (r === 1 && [1, 2, 6, 9, 10].includes(c)) seatConditionId = 3;
+      
+      // Row C: All Out of service
+      if (r === 2) seatConditionId = 3;
+
+      // Row D: D4, D7 Out of service
+      if (r === 3 && [4, 7].includes(c)) seatConditionId = 3;
+
+      // Row E: E1, E5, E6, E10 Blue category (Accessibility)
+      if (r === 4 && [1, 5, 6, 10].includes(c)) categoryId = 2;
+      
+      // Row E: E9 Maintenance
+      if (r === 4 && c === 9) seatConditionId = 2;
+
+      // Ensure that out of service / maintenance seats are not marked as sold pseudo-randomly to avoid confusion in tests
+      let status = sold ? 'sold' : 'available';
+      if (seatConditionId === 3 || seatConditionId === 2) {
+        status = 'available';
+      }
+
       seats.push({
         id: seatId,
         row: rowLabels[r],
-        col: c,
-        status: sold ? 'sold' : 'available', // "available" | "sold" | "selected"
+        column: c, // using column for SeatMap
+        status: status, // "available" | "sold" | "selected"
+        category: { id: categoryId },
+        seat_condition: seatConditionId
       })
     }
   }
@@ -292,10 +322,9 @@ export function getShowtimeById(id) {
 
 export function getSeatMap(showtimeId) {
   const stored = JSON.parse(localStorage.getItem(KEYS.SEAT_MAPS) || '{}')
-  if (!stored[showtimeId]) {
-    stored[showtimeId] = generateSeatMap(showtimeId)
-    localStorage.setItem(KEYS.SEAT_MAPS, JSON.stringify(stored))
-  }
+  // Force regeneration so that mock data updates are visible
+  stored[showtimeId] = generateSeatMap(showtimeId)
+  localStorage.setItem(KEYS.SEAT_MAPS, JSON.stringify(stored))
   return stored[showtimeId]
 }
 
