@@ -28,7 +28,9 @@ describe('authValidators', () => {
 
   test('validateID', () => {
     expect(validateID('')).toBe('La cédula es requerida')
-    expect(validateID('X1234567')).toBe('Formato inválido (V/E + 7-9 dígitos)')
+    expect(validateID('X1234567')).toBe(
+      'Formato: V/E + 7-9 dígitos sin espacios en blanco',
+    )
     expect(validateID('V12345678')).toBe(true)
   })
 
