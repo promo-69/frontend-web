@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext'
 import Header from '../components/ui/Header'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
+import ChangePassword from '../pages/private/user/changePassword'
 import Loyalty from '../pages/private/user/loyalty'
 import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
@@ -49,6 +50,7 @@ export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
       <Route path="/profile" element={<Profile />} />
+      <Route path="/profile/change-password" element={<ChangePassword />} />
       <Route path="/fidelity" element={<Loyalty />} />
       <Route path="/subscription" element={<Subscriptions />} />
       <Route path="/myGenres" element={<MoviesGenres />} />
