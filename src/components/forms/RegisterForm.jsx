@@ -7,11 +7,13 @@ import {
 } from '../../validators/authValidators'
 import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import InputText from '../ui/InputText'
 
 function RegisterForm() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRoute = location.state?.from || '/' 
 
   const phoneRef = useRef(null)
 
@@ -36,7 +38,7 @@ function RegisterForm() {
 
   const onSubmit = (values) => {
     navigate('/register2', {
-      state: { ...values, countryCode, gender: values.gender },
+      state: { ...values, countryCode, gender: values.gender, from: fromRoute },
     })
   }
 

@@ -54,6 +54,11 @@ export const refreshSessionRequest = async () => {
   }
 }
 
+export const getCurrentUserRequest = async () => {
+  const response = await api.get('/users/me')
+  return response
+}
+
 // ---------------------------------------------------------
 // LOGOUT 
 // ---------------------------------------------------------

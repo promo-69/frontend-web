@@ -1,36 +1,105 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import profileImage  from '../../../assets/images/profile.png'
 import Edit from '../../../components/ui/Edit'
 import FormEditProfile from '../../../components/forms/FormEditProfile'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import { AuthContext } from '../../../context/AuthContext'
 import { 
+  getCurrentUserRequest,
   updateProfileRequest, 
   verifySecurityIdentityRequest, 
   changeSecurityDataRequest 
 } from '../../../services/auth.service'
 
 function Profile() {
-  const { user, updateProfileState } = useContext(AuthContext)
+  const { user, updateUserState, updateProfileState } = useContext(AuthContext)
   console.log('¿Qué tiene el estado USER en Profile?:', user)
   
   const [step, setStep] = useState('view')
   const [showSuccess, setShowSuccess] = useState(false)
   const [securityToken, setSecurityToken] = useState(null)
   const [loadingAction, setLoadingAction] = useState(false)
+  const [currentUserLoaded, setCurrentUserLoaded] = useState(false)
+
+  useEffect(() => {
+    if (step === 'view') {
+      setSecurityToken(null)
+    }
+  }, [step])
+
+  const formatBirthDisplay = (value) => {
+    if (!value) return 'No asignado'
+    const raw = typeof value === 'string' ? value.split('T')[0] : value
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return 'No asignado'
+    return parsed.toLocaleDateString('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!user || currentUserLoaded) return
+
+      try {
+        const response = await getCurrentUserRequest()
+        const payload = response?.data?.data?.person || response?.data?.person || response?.data?.data || response?.data
+
+        console.log('DEBUG profile /users/me payload:', payload)
+
+        if (!payload) return
+
+        const nextUserPatch = {}
+        const birthDateValue = payload.birth_date || payload?._People?.birth_date || payload?.birthday || payload?.dateOfBirth || payload?.dob
+        const profileEmail = payload.personal_email || payload?._People?.personal_email || payload.email
+        const profilePhone = payload.phone_number || payload?._People?.phone_number
+        const profileFirstName = payload.first_name || payload?._People?.first_name
+        const profileLastName = payload.last_name || payload?._People?.last_name
+
+        if (birthDateValue) nextUserPatch.birth_date = birthDateValue
+        if (profileEmail) nextUserPatch.personal_email = profileEmail
+        if (profilePhone) nextUserPatch.phoneNumber = profilePhone
+        if (profileFirstName) nextUserPatch.firstName = profileFirstName
+        if (profileLastName) nextUserPatch.lastName = profileLastName
+        if (payload._People) nextUserPatch._People = payload._People
+
+        console.log('DEBUG profile /users/me patch:', nextUserPatch)
+
+        if (Object.keys(nextUserPatch).length > 0) {
+          updateUserState(nextUserPatch)
+        }
+      } catch (error) {
+        console.error('Error al obtener /users/me:', error)
+      } finally {
+        setCurrentUserLoaded(true)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [user, currentUserLoaded, updateUserState])
 
   // MAPEO SINCRONIZADO CON EL JSON DEL GET
   const profileData = {
     name: user?.firstName || 'No asignado',
     lastname: user?.lastName || 'No asignado',
     id: user?.documentNumber || 'No asignado',
-    birth: '28/05/2006',
-    email: user?.email || user?._People?.personal_email || '',
+    birth: formatBirthDisplay(
+      user?.birth_date ||
+      user?.birthDate ||
+      user?.birthday ||
+      user?.dateOfBirth ||
+      user?.dob ||
+      user?._People?.birth_date ||
+      user?._People?.birthDate ||
+      null,
+    ),
+    email: user?.email || user?.personal_email || user?._People?.personal_email || '',
     cellphone: user?.phoneNumber || 'Sin número registrado',
     password: '••••••••',
   }
 
-  // VERIFICAR CONTRASEÑA EN BACKEND Y TRAER TOKEN DE SEGURIDAD
   const handleVerifyIdentity = async (passwordInput) => {
     setLoadingAction(true)
     try {
@@ -41,71 +110,81 @@ function Profile() {
         setSecurityToken(token)
         setStep('editing')
       } else {
-        throw new Error();
+        throw new Error('No se recibió el token de seguridad.')
       }
     } catch (error) {
       console.error('Error al verificar identidad:', error)
-      throw error;
+      throw error
     } finally {
       setLoadingAction(false)
     }
   }
 
-  // ENVIAR CAMBIOS JUNTO AL TOKEN DE SEGURIDAD
   const handleUpdate = async (updatedData) => {
     if (!securityToken) {
-      alert('El token de seguridad ha expirado o no es válido. Por favor, vuelve a verificar tu contraseña.')
+      alert('Debes verificar tu contraseña antes de guardar los cambios.')
       setStep('view')
       return
     }
 
-    const currentEmail = (user?.email || user?._People?.personal_email || '').trim().toLowerCase();
-    const targetEmail = updatedData.email.trim().toLowerCase();
-    
-    const hasEmailChanged = targetEmail !== currentEmail;
-    const hasPasswordChanged = !!updatedData.password;
+    const currentEmail = (user?.email || user?.personal_email || user?._People?.personal_email || '').trim().toLowerCase()
+    const targetEmail = updatedData.email.trim().toLowerCase()
+    const currentPhone = (user?.phoneNumber || '').trim()
+    const targetPhone = updatedData.cellphone.trim()
+    const currentName = (user?.firstName || user?.name || '').trim()
+    const targetName = updatedData.name.trim()
+    const currentLastname = (user?.lastName || user?.lastname || '').trim()
+    const targetLastname = updatedData.lastname.trim()
 
-    const payload = {
-      securityChangeToken: securityToken
+    const hasNameChanged = targetName !== currentName
+    const hasLastnameChanged = targetLastname !== currentLastname
+    const hasEmailChanged = targetEmail !== currentEmail
+    const hasPhoneChanged = targetPhone !== currentPhone
+
+    if (!hasNameChanged && !hasLastnameChanged && !hasEmailChanged && !hasPhoneChanged) {
+      alert('No has realizado ningún cambio para guardar.')
+      return
     }
 
-    if (hasEmailChanged) payload.newEmail = updatedData.email.trim();
-    if (hasPasswordChanged) payload.newPassword = updatedData.password;
+    const profilePayload = {}
+    if (hasNameChanged) profilePayload.firstName = targetName
+    if (hasLastnameChanged) profilePayload.lastName = targetLastname
+    if (hasPhoneChanged) profilePayload.phoneNumber = updatedData.cellphone.trim()
 
     setLoadingAction(true)
     try {
-      if (hasEmailChanged || hasPasswordChanged) {
-        const response = await changeSecurityDataRequest(payload)
-        
+      if (hasEmailChanged) {
+        const response = await changeSecurityDataRequest({ securityChangeToken: securityToken, newEmail: updatedData.email.trim() })
         if (!(response?.success || response?.status === 200 || response?.data)) {
-          alert(response?.message || 'No se pudo procesar el cambio de seguridad.')
+          alert(response?.message || 'No se pudo cambiar el correo.')
           setLoadingAction(false)
           return
         }
       }
 
-      const currentPhone = (user?.phoneNumber || '').trim();
-      const targetPhone = updatedData.cellphone.trim();
-      const hasPhoneChanged = targetPhone !== currentPhone;
-
-      if (hasEmailChanged || hasPhoneChanged) {
-        const profilePayload = {};
-        if (hasEmailChanged) profilePayload.personal_email = updatedData.email.trim();
-        if (hasPhoneChanged) profilePayload.phoneNumber = updatedData.cellphone.trim();
-
+      if (Object.keys(profilePayload).length > 0) {
         await updateProfileRequest(profilePayload).catch((err) => {
           console.error('Error no crítico al actualizar metadatos del perfil:', err)
         })
       }
 
-      updateProfileState(updatedData.email.trim())
+      if (hasEmailChanged) updateProfileState(updatedData.email.trim())
+      if (hasNameChanged || hasLastnameChanged || hasPhoneChanged) {
+        updateUserState({
+          firstName: targetName,
+          name: targetName,
+          lastName: targetLastname,
+          lastname: targetLastname,
+          phoneNumber: profilePayload.phoneNumber || currentPhone,
+        })
+      }
+
       setSecurityToken(null)
       setStep('view')
       setShowSuccess(true)
-      
     } catch (error) {
-      console.error('Error al guardar cambios de seguridad de perfil:', error)
-      alert(error.response?.data?.message || 'Error inesperado o token expirado (límite 15 min).')
+      console.error('Error al guardar cambios de perfil:', error)
+      alert(error.response?.data?.message || 'Error inesperado al guardar cambios.')
     } finally {
       setLoadingAction(false)
     }
