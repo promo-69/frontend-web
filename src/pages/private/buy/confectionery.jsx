@@ -46,6 +46,7 @@ export default function Confectionery() {
   const [referenceError, setReferenceError] = useState(null)
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(2)
+  const [checkoutData, setCheckoutData] = useState(null)
   const [error, setError] = useState(null)
   const [selectedBank, setSelectedBank] = useState('')
   const [bankAccounts, setBankAccounts] = useState([])
@@ -91,6 +92,37 @@ export default function Confectionery() {
   const allItems = [...products, ...combos]
   const filtered = selectedCategory === 'Todos' ? allItems : allItems.filter(i => i.category === selectedCategory)
   const total = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
+
+  const getAmountForCurrency = (data, currency) => {
+    const totalBase = parseFloat(
+      data?.total_amount_base_currency ??
+      data?.total_base_currency ??
+      data?.total ??
+      data?.subtotal_base_currency ??
+      0,
+    )
+
+    if (Number.isNaN(totalBase) || !currency) {
+      return totalBase || 0
+    }
+
+    const rateEntry = data?.exchange_rates?.[currency]
+    const rate = rateEntry ? parseFloat(rateEntry.rate ?? rateEntry?.value ?? 0) : currency === data?.system_base_currency ? 1 : 1
+
+    if (Number.isNaN(rate) || rate <= 0) {
+      return totalBase
+    }
+
+    return totalBase / rate
+  }
+
+  useEffect(() => {
+    if (!checkoutData) return
+
+    const targetCurrency = paymentMethod === 'loyalty' ? 3 : checkoutData?.system_base_currency ?? 2
+    setPaymentCurrency(targetCurrency)
+    setAmountInput(getAmountForCurrency(checkoutData, targetCurrency))
+  }, [checkoutData, paymentMethod])
 
   const addToCart = (p) => setCartItems(prev => {
     const ex = prev.find(i => i.id === p.id)
@@ -157,7 +189,8 @@ export default function Confectionery() {
       }
       const resp = await createOrderCheckout(payload)
       const data = resp?.data ?? resp
-      setAmountInput(data?.total_amount_base_currency ?? data?.total ?? total)
+      setCheckoutData(data)
+      setAmountInput(getAmountForCurrency(data, data?.system_base_currency ?? 2))
       setPaymentCurrency(data?.system_base_currency ?? 2)
       setStep(2)
     } catch (e) {

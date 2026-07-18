@@ -7,6 +7,7 @@ import {
   registerPayment,
   getOrderSessionDetails,
   deleteOrderSessionWithRetries,
+  getOrderById,
 } from '../../../services/orders.service'
 import socketService from '../../../services/socket.service'
 
@@ -34,6 +35,36 @@ export default function Checkout() {
   const [referenceError, setReferenceError] = useState(null)
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(null)
+
+  const getAmountForCurrency = (data, currency) => {
+    const totalBase = parseFloat(
+      data?.total_amount_base_currency ??
+      data?.total_base_currency ??
+      data?.total ??
+      data?.subtotal_base_currency ??
+      0,
+    )
+
+    if (Number.isNaN(totalBase) || !currency) {
+      return totalBase || 0
+    }
+
+    const rateEntry = data?.exchange_rates?.[currency]
+    const rate = rateEntry ? parseFloat(rateEntry.rate ?? rateEntry?.value ?? 0) : currency === data?.system_base_currency ? 1 : 1
+    if (Number.isNaN(rate) || rate <= 0) {
+      return totalBase
+    }
+
+    return totalBase / rate
+  }
+
+  useEffect(() => {
+    if (!checkoutData) return
+
+    const targetCurrency = paymentMethod === 'loyalty' ? 3 : checkoutData?.system_base_currency ?? 2
+    setPaymentCurrency(targetCurrency)
+    setAmountInput(getAmountForCurrency(checkoutData, targetCurrency))
+  }, [checkoutData, paymentMethod])
 
   // 🔄 Fase A: Bloquear e inicializar Checkout al cargar la pantalla
   const checkoutStartedRef = useRef(false)
@@ -213,7 +244,7 @@ export default function Checkout() {
         )
 
         if (typeof totalBase !== 'undefined') {
-          setAmountInput(parseFloat(totalBase))
+          setAmountInput(getAmountForCurrency(respData, Number(currencyFromResp ?? 2)))
         } else {
           setAmountInput(getTotals().total)
         }
@@ -264,6 +295,52 @@ export default function Checkout() {
 
   // Fase B: Registrar el Pago definitivo
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  const normalizeOrderResponse = (payload) => payload?.data ?? payload
+
+  const isOrderComplete = (order) => {
+    if (!order) return false
+    const statusValue = order?.order_status ?? order?.status
+    const hasQr = Boolean(order?.qr_code || order?.qrCode || order?.qr)
+
+    // order_status values:
+    // 1 = Pendiente de Pago
+    // 2 = Pagada
+    // 3 = Cancelada
+    // 4 = Completada
+    return Boolean(hasQr || Number(statusValue) === 4)
+  }
+
+  const waitForCompletedOrder = async (
+    orderId,
+    attempts = 6,
+    intervalMs = 1200,
+  ) => {
+    let lastOrder = null
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await getOrderById(orderId)
+        const order = normalizeOrderResponse(response)
+        lastOrder = order
+
+        if (isOrderComplete(order)) {
+          return order
+        }
+      } catch (err) {
+        console.warn(
+          `[CHECKOUT] getOrderById attempt ${attempt} failed for order ${orderId}:`,
+          err?.message ?? err,
+        )
+      }
+
+      if (attempt < attempts) {
+        await sleep(intervalMs)
+      }
+    }
+
+    return lastOrder
+  }
 
   const waitForCancellationConfirmation = async (
     attempts = 3,
@@ -412,22 +489,31 @@ export default function Checkout() {
       })
 
       if (orderId) {
-        console.log('Payment registered, navigating to success:', {
-          orderId,
-          qrCode,
-        })
-        // Persist last order to sessionStorage as a fallback in case location.state is lost
-        try {
-          sessionStorage.setItem(
-            'last_order',
-            JSON.stringify({ orderId, qrCode }),
+        console.log('Payment registered, waiting for completed order:', { orderId, qrCode })
+        setError('Pago registrado. Confirmando estado final de la orden...')
+
+        const completedOrder = await waitForCompletedOrder(orderId)
+        const resolvedQrCode =
+          completedOrder?.qr_code ??
+          completedOrder?.qrCode ??
+          completedOrder?.qr ??
+          qrCode
+
+        if (!completedOrder) {
+          setError(
+            'Pago registrado, pero no pudimos confirmar la orden finalizada. Por favor espera unos segundos e intenta de nuevo.',
           )
+          return
+        }
+
+        const orderState = { orderId, qrCode: resolvedQrCode }
+        try {
+          sessionStorage.setItem('last_order', JSON.stringify(orderState))
         } catch (e) {
           console.warn('Could not write last_order to sessionStorage', e)
         }
-        
-        navigate('/order-success', { state: { orderId, qrCode } })
-      
+
+        navigate('/order-success', { state: orderState })
         setTimeout(() => clearCart(), 300)
         return
       }
@@ -533,9 +619,8 @@ export default function Checkout() {
     socketService.joinShowtime(showtimeId)
 
     // Conectar handlers usando socketService (evitar nombres de evento inconsistentes)
-    socketService.on('payment_success', (payload) => {
+    const handleSocketPaymentSuccess = async (payload) => {
       console.log('socket payment_success payload:', payload)
-      // Normalize payload (some backends wrap under `data` or use `id`)
       const wrapper = payload?.data ?? payload
       const orderId =
         payload?.orderId ??
@@ -551,18 +636,31 @@ export default function Checkout() {
         wrapper?.qrCode ??
         wrapper?.qr_code ??
         wrapper?.qrcode
+
+      if (!orderId) {
+        console.warn('Socket payment_success arrived without orderId', payload)
+        return
+      }
+
+      const completedOrder = await waitForCompletedOrder(orderId)
+      const resolvedQrCode =
+        completedOrder?.qr_code ??
+        completedOrder?.qrCode ??
+        completedOrder?.qr ??
+        qrCode
+
+      const orderState = { orderId, qrCode: resolvedQrCode }
       try {
-        sessionStorage.setItem(
-          'last_order',
-          JSON.stringify({ orderId, qrCode }),
-        )
+        sessionStorage.setItem('last_order', JSON.stringify(orderState))
       } catch (e) {
         console.warn('Could not write last_order to sessionStorage (socket)', e)
       }
-      // Navigate before clearing cart to avoid other mounted components from redirecting
-      navigate('/order-success', { state: { orderId, qrCode } })
+
+      navigate('/order-success', { state: orderState })
       setTimeout(() => clearCart(), 300)
-    })
+    }
+
+    socketService.on('payment_success', handleSocketPaymentSuccess)
 
     socketService.on('billing_required', (payload) => {
       alert('Se requiere facturación para completar la compra.')

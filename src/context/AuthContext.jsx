@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
         
         if (!isMounted) return
 
-        const userData = resData?.data?.user || resData?.data?.data?.user
+        let userData = resData?.data?.user || resData?.data?.data?.user
 
         if (userData) {
           try {

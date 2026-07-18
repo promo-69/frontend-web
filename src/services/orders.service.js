@@ -44,6 +44,12 @@ export const getOrderSessionDetails = async () => {
   return res.data
 }
 
+// Obtener orden finalizada por id
+export const getOrderById = async (orderId) => {
+  const res = await api.get(`/orders/${orderId}`)
+  return res.data
+}
+
 // Eliminar / cancelar la sesión de compra actual
 export const deleteOrderSession = async () => {
   const res = await api.delete('/orders/session')

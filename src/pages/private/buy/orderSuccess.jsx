@@ -134,10 +134,16 @@ export default function OrderSuccess() {
   }
 
   return (
-    <div className="min-h-screen p-6 text-white flex items-center justify-center">
-      <div className="bg-[#1f1533] border border-gray-700 p-8 rounded-2xl text-center max-w-md">
-        <h2 className="text-2xl font-bold text-yellow-400 mb-4">Pago confirmado</h2>
-        <p className="text-gray-300 mb-4">Orden ID: <span className="font-bold">{orderId}</span></p>
+    <div
+      className="min-h-screen p-6 text-white flex items-center justify-center"
+      style={{
+        background:
+          'linear-gradient(to bottom, #231640 0%, #4c115c 50%, #231640 100%)',
+      }}
+    >
+      <div className="bg-[#1f1533]/95 border border-gray-700/60 p-8 rounded-3xl text-center max-w-md shadow-2xl shadow-black/40">
+        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-200 mb-4">Pago confirmado</h2>
+        <p className="text-gray-300 mb-4">Orden ID: <span className="font-bold text-white">{orderId}</span></p>
 
         {isToken ? (
           <div className="mb-4 flex items-center justify-center">
@@ -170,7 +176,7 @@ export default function OrderSuccess() {
 
         <button
           onClick={() => navigate('/')}
-          className="mt-4 bg-yellow-500 text-black px-4 py-2 rounded-xl font-bold"
+          className="mt-6 w-full bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-600 hover:to-amber-300 text-black px-5 py-3 rounded-2xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-[0.98]"
         >
           Ir al inicio
         </button>
