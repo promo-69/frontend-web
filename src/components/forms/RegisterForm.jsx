@@ -8,12 +8,13 @@ import {
 import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { resolveAuthRedirect } from '../../utils/authNavigation'
 import InputText from '../ui/InputText'
 
 function RegisterForm() {
   const navigate = useNavigate()
   const location = useLocation()
-  const fromRoute = location.state?.from || '/' 
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
 
   const phoneRef = useRef(null)
 
@@ -23,14 +24,21 @@ function RegisterForm() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm({ mode: 'onBlur' })
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      gender: '',
+      genderText: '',
+    },
+  })
 
   const nameValue = watch('name')
   const lastnameValue = watch('lastname')
   const emailValue = watch('email')
   const phoneValue = watch('phone')
+  const genderValue = watch('gender')
+  const genderTextValue = watch('genderText')
 
-  const [gender, setGender] = useState('Masculino')
   const [isGenderOpen, setIsGenderOpen] = useState(false)
 
   const [countryCode, setCountryCode] = useState('+58')
@@ -41,8 +49,6 @@ function RegisterForm() {
       state: { ...values, countryCode, gender: values.gender, from: fromRoute },
     })
   }
-
-  console.log('Género seleccionado en paso 1:', watch('gender'))
 
   // 1. EFECTO PARA MANEJAR EL CLICK OUTSIDE (Separado para que sea limpio)
   useEffect(() => {
@@ -81,8 +87,8 @@ function RegisterForm() {
       lastname: lastnameValue,
       email: emailValue,
       phone: phoneValue,
-      gender: watch('gender'),
-      genderText: watch('genderText'),
+      gender: genderValue,
+      genderText: genderTextValue,
       countryCode,
     }
 
@@ -140,9 +146,19 @@ function RegisterForm() {
                 onClick={() => setIsGenderOpen(!isGenderOpen)}
                 className="w-full bg-transparent border-b border-white text-white py-2 text-left flex justify-between items-center focus:outline-none"
               >
-                <span>{watch('genderText') || 'Seleccionar'}</span>
+                <span>{genderTextValue || 'Seleccionar'}</span>
                 <span className="text-[10px] opacity-70">▼</span>
               </button>
+
+              {/* Campos ocultos para react-hook-form */}
+              <input
+                type="hidden"
+                {...register('gender', {
+                  validate: (value) =>
+                    (value !== '' && value !== undefined) || 'Selecciona un género',
+                })}
+              />
+              <input type="hidden" {...register('genderText')} />
 
               {/* Menú Desplegable */}
               {isGenderOpen && (
@@ -150,7 +166,7 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setValue('gender', 1)
+                      setValue('gender', '1')
                       setValue('genderText', 'Masculino')
                       setIsGenderOpen(false)
                     }}
@@ -161,17 +177,33 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setValue('gender', 2)
+                      setValue('gender', '2')
                       setValue('genderText', 'Femenino')
+                      setIsGenderOpen(false)
+                    }}
+                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
+                  >
+                    Femenino
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('gender', '3')
+                      setValue('genderText', 'Prefiero no decirlo')
                       setIsGenderOpen(false)
                     }}
                     className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium"
                   >
-                    Femenino
+                    Prefiero no decirlo
                   </button>
                 </div>
               )}
             </div>
+            {errors.gender && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.gender.message}
+              </p>
+            )}
           </div>
         </div>
 

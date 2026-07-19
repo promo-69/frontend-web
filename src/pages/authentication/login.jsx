@@ -3,12 +3,13 @@ import loginImage from '../../assets/images/LoginHD.webp'
 import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { resolveAuthRedirect } from '../../utils/authNavigation'
 //[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)]
 
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const fromRoute = location.state?.from || '/'
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">

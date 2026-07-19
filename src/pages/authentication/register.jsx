@@ -1,10 +1,13 @@
 import registerImage from '../../assets/images/RegisterHD.webp'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm from '../../components/forms/RegisterForm'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { resolveAuthRedirect } from '../../utils/authNavigation'
 
 function Register() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
@@ -33,9 +36,9 @@ function Register() {
             <RegisterForm />
             <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100">
               ¿Ya tienes cuenta?
-              <a href="/login" className="text-[#D9982F] underline">
+              <Link to="/login" state={{ from: fromRoute }} className="text-[#D9982F] underline">
                 Inicia sesión
-              </a>
+              </Link>
             </p>
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
               2026. Todos los derechos reservados

@@ -11,7 +11,10 @@ export const validateEmail = (value) => {
 }
 
 export const validatePhone = (value) => {
+  if (!value) return 'Teléfono es requerido'
   if (!/^[0-9]+$/.test(value)) return 'Solo números'
+  if (value.length < 7 || value.length > 15)
+    return 'Teléfono debe tener entre 7 y 15 dígitos'
   return true
 }
 

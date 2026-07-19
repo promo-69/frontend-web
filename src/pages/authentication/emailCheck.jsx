@@ -5,11 +5,11 @@ import Button from '../../components/ui/Button'
 import { useContext, useEffect, useState } from 'react'
 import { verifyAccountRequest } from '../../services/auth.service'
 import { AuthContext } from '../../context/AuthContext'
+import { resolveAuthRedirect, clearAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
 
 function EmailCheck() {
   const navigate = useNavigate()
   const location = useLocation()
-  console.log('¿Qué viene exactamente en el state?:', location.state)
 
   const [email] = useState(() => {
     if (location.state?.email) {
@@ -20,13 +20,7 @@ function EmailCheck() {
   })
 
   const { login } = useContext(AuthContext)
-  const [fromRoute] = useState(() => {
-    const from = location.state?.from || sessionStorage.getItem('pending_from') || '/'
-    if (location.state?.from) {
-      sessionStorage.setItem('pending_from', location.state.from)
-    }
-    return from
-  })
+  const [fromRoute] = useState(() => resolveAuthRedirect(location.state?.from, '/'))
   const [pendingPassword] = useState(() => {
     return sessionStorage.getItem('pending_password') || ''
   })
@@ -49,7 +43,6 @@ function EmailCheck() {
     setMessage(null)
 
     try {
-      console.log('DATOS ENVIADOS:', { email, code: code.trim() })
       const res = await verifyAccountRequest({ email, code: code.trim() })
       setMessage('Cuenta verificada correctamente. Redirigiendo...')
 
@@ -60,7 +53,7 @@ function EmailCheck() {
             setTimeout(() => {
               sessionStorage.removeItem('pending_email')
               sessionStorage.removeItem('pending_password')
-              sessionStorage.removeItem('pending_from')
+              clearAuthRedirect()
               navigate(fromRoute, { replace: true })
             }, 1200)
             return
@@ -71,7 +64,7 @@ function EmailCheck() {
       }
 
       setTimeout(() => {
-        sessionStorage.removeItem('pending_from')
+        clearAuthRedirect()
         navigate('/login', { state: { from: fromRoute } })
       }, 2000)
     } catch (err) {
