@@ -55,10 +55,21 @@ describe('RegisterForm', () => {
       target: { value: '1234567' },
     })
 
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Masculino/i }))
+
     fireEvent.click(screen.getByRole('button', { name: /Siguiente/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalled()
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/register2',
+        expect.objectContaining({
+          state: expect.objectContaining({
+            gender: '1',
+            countryCode: '+58',
+          }),
+        }),
+      )
     })
   })
 })
