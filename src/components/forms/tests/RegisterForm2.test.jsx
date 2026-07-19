@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import RegisterForm2 from '../RegisterForm2'
@@ -83,5 +83,31 @@ describe('RegisterForm2', () => {
       password: 'abc123*',
       gender: 1,
     })
+  })
+
+  test('muestra errores cuando hay datos inválidos', async () => {
+    vi.mocked(registerRequest).mockResolvedValue({ success: true })
+
+    renderComponent()
+
+    fireEvent.change(screen.getByLabelText('Cédula'), {
+      target: { value: '123' },
+    })
+    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), {
+      target: { value: '2010-01-01' },
+    })
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+      target: { value: 'abc123*' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+      target: { value: 'different*' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar/i }))
+
+    expect(await screen.findByText(/Formato: V\/E \+ 7-9 dígitos sin espacios en blanco/i)).toBeInTheDocument()
+    expect(await screen.findByText('Debes ser mayor de 18 años')).toBeInTheDocument()
+    expect(await screen.findByText(/No coinciden/i)).toBeInTheDocument()
+    expect(registerRequest).not.toHaveBeenCalled()
   })
 })
