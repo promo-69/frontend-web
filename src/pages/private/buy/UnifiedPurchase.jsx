@@ -13,7 +13,9 @@ import {
   createOrderCheckout,
   registerPayment,
   getOrderSession,
+  getOrderSessionDetails,
   deleteOrderSessionWithRetries,
+  getOrderById,
 } from '../../../services/orders.service'
 import socketService from '../../../services/socket.service'
 import SeatMap from '../../../components/selectSeats/SeatMap'
@@ -71,10 +73,112 @@ export default function UnifiedPurchase() {
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(2)
   const [paymentError, setPaymentError] = useState(null)
+
+  const getAmountForCurrency = (data, currency) => {
+    const totalBase = parseFloat(
+      data?.total_amount_base_currency ??
+      data?.total_base_currency ??
+      data?.total ??
+      data?.subtotal_base_currency ??
+      0,
+    )
+
+    if (Number.isNaN(totalBase) || !currency) {
+      return totalBase || 0
+    }
+
+    const rateEntry = data?.exchange_rates?.[currency]
+    const rate = rateEntry ? parseFloat(rateEntry.rate ?? rateEntry?.value ?? 0) : currency === data?.system_base_currency ? 1 : 1
+
+    if (Number.isNaN(rate) || rate <= 0) {
+      return totalBase
+    }
+
+    return totalBase / rate
+  }
+
+  useEffect(() => {
+    if (!checkoutData) return
+
+    const targetCurrency = paymentMethod === 'loyalty' ? 3 : checkoutData?.system_base_currency ?? 2
+    setPaymentCurrency(targetCurrency)
+    setAmountInput(getAmountForCurrency(checkoutData, targetCurrency))
+  }, [checkoutData, paymentMethod])
   const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [selectedBank, setSelectedBank] = useState('')
   const [bankAccounts, setBankAccounts] = useState([])
+
+  const normalizeOrderResponse = (payload) => payload?.data ?? payload
+
+  const extractOrderId = (payload) => {
+    if (!payload) return null
+    const raw = payload?.data ?? payload
+    return (
+      raw?.orderId ??
+      raw?.order_id ??
+      raw?.id ??
+      raw?.order?.id ??
+      raw?.order?.order_id ??
+      raw?.order?.orderId ??
+      null
+    )
+  }
+
+  const extractQrCode = (payload) => {
+    if (!payload) return null
+    const raw = payload?.data ?? payload
+    return (
+      raw?.qrCode ??
+      raw?.qr_code ??
+      raw?.qrcode ??
+      raw?.qr ??
+      raw?.order?.qr_code ??
+      raw?.order?.qrCode ??
+      raw?.order?.qr ??
+      null
+    )
+  }
+
+  const resolveOrderIdFromSessionDetails = async () => {
+    try {
+      const details = await getOrderSessionDetails()
+      const order = details?.data?.order ?? details?.data
+      return extractOrderId(order)
+    } catch (err) {
+      console.warn('[UnifiedPurchase] getOrderSessionDetails fallback failed:', err?.message ?? err)
+      return null
+    }
+  }
+
+  const isOrderComplete = (order) => {
+    if (!order) return false
+    const statusValue = order?.order_status ?? order?.status
+    return Number(statusValue) === 4 || Boolean(order?.qr_code || order?.qrCode || order?.qr)
+  }
+
+  const waitForCompletedOrder = async (orderId, attempts = 6, intervalMs = 1200) => {
+    let lastOrder = null
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        const response = await getOrderById(orderId)
+        const order = normalizeOrderResponse(response)
+        lastOrder = order
+        if (isOrderComplete(order)) {
+          return order
+        }
+      } catch (err) {
+        console.warn(
+          `[UnifiedPurchase] getOrderById attempt ${attempt} failed for order ${orderId}:`,
+          err?.message ?? err,
+        )
+      }
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      }
+    }
+    return lastOrder
+  }
 
   // ── Load showtime + seat map + init quote ──
   useEffect(() => {
@@ -105,12 +209,39 @@ export default function UnifiedPurchase() {
 
         // Payment WebSocket events
         socketService.off('payment_success')
-        socketService.on('payment_success', (data) => {
+        socketService.on('payment_success', async (data) => {
+          const orderId = extractOrderId(data)
+          const qrCode = extractQrCode(data)
+          const remainingBalance = data?.remaining_balance ?? data?.remainingBalance
+
+          const resolvedOrderId = orderId || (await resolveOrderIdFromSessionDetails())
+          if (resolvedOrderId && remainingBalance == null) {
+            const completedOrder = await waitForCompletedOrder(resolvedOrderId)
+            const resolvedQrCode = extractQrCode(completedOrder) || qrCode
+            if (completedOrder && isOrderComplete(completedOrder)) {
+              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode } })
+              return
+            }
+          }
+
           setPaymentProcessing(false)
-          setPaymentResult({ success: true, partial: true, remainingBalance: data.remaining_balance, message: data.message })
+          setPaymentResult({ success: true, partial: true, remainingBalance, message: data.message })
         })
         socketService.off('payment_completed')
-        socketService.on('payment_completed', (data) => {
+        socketService.on('payment_completed', async (data) => {
+          const orderId = extractOrderId(data)
+          const qrCode = extractQrCode(data)
+
+          const resolvedOrderId = orderId || (await resolveOrderIdFromSessionDetails())
+          if (resolvedOrderId) {
+            const completedOrder = await waitForCompletedOrder(resolvedOrderId)
+            const resolvedQrCode = extractQrCode(completedOrder) || qrCode
+            if (completedOrder && isOrderComplete(completedOrder)) {
+              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode } })
+              return
+            }
+          }
+
           setPaymentProcessing(false)
           setPaymentResult({ success: true, ...data })
         })
@@ -365,7 +496,7 @@ export default function UnifiedPurchase() {
       const resp = await createOrderCheckout(payload)
       const data = resp?.data ?? resp
       setCheckoutData(data)
-      setAmountInput(data?.total_amount_base_currency ?? data?.total ?? grandTotal)
+      setAmountInput(getAmountForCurrency(data, data?.system_base_currency ?? 2))
       setPaymentCurrency(data?.system_base_currency ?? 2)
     } catch (e) {
       setPaymentError(e?.response?.data?.message || 'Error al procesar la orden')
@@ -392,9 +523,32 @@ export default function UnifiedPurchase() {
         if (selectedBank) payload.bank = selectedBank
       }
       const resp = await registerPayment(payload)
-      // La respuesta HTTP 200 indica que el pago se encoló.
-      // El resultado real llega por WebSocket (payment_completed / payment_failed / payment_success).
-      console.log('[Payment] Encolado, esperando WebSocket:', resp)
+      const wrapper = resp?.data ?? resp
+      const data = wrapper?.data ?? wrapper
+      let orderId = extractOrderId(data)
+      const qrCode = extractQrCode(data)
+
+      if (!orderId) {
+        orderId = await resolveOrderIdFromSessionDetails()
+        if (orderId) {
+          console.log('[UnifiedPurchase] payment fallback orderId from session details:', orderId)
+        }
+      }
+
+      console.log('[Payment] Encolado, esperando confirmación de orden:', resp)
+
+      if (orderId) {
+        const completedOrder = await waitForCompletedOrder(orderId)
+        const resolvedQrCode = extractQrCode(completedOrder) || qrCode
+
+        if (completedOrder && isOrderComplete(completedOrder)) {
+          navigate('/order-success', { state: { orderId, qrCode: resolvedQrCode } })
+          return
+        }
+      }
+
+      // Si la orden aún no está completamente procesada, dejamos que el WebSocket maneje el resultado
+      console.log('[Payment] Orden en espera de confirmación definitiva. WebSocket seguirá la actualización.')
     } catch (e) {
       setPaymentProcessing(false)
       setPaymentError(e?.response?.data?.message || 'Error al registrar el pago')
@@ -711,7 +865,9 @@ export default function UnifiedPurchase() {
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-2">Monto (Bs.)</label>
+                    <label className="block text-sm font-medium text-white/70 mb-2">
+                      Monto ({paymentMethod === 'loyalty' ? 'PTS' : 'Bs.'})
+                    </label>
                     <input type="number" value={amountInput} disabled
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
                   </div>

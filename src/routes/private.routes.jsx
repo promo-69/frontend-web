@@ -1,9 +1,11 @@
-import { Route, Navigate, Outlet, useParams } from 'react-router-dom'
+import { Route, Navigate, Outlet, useParams, useLocation } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import Header from '../components/ui/Header'
+import { saveAuthRedirect } from '../utils/authNavigation'
 import Favorites from '../pages/authentication/favorites'
 import Profile from '../pages/private/user/profile'
+import ChangePassword from '../pages/private/user/changePassword'
 import Loyalty from '../pages/private/user/loyalty'
 import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
@@ -21,6 +23,9 @@ function NavigateToBuy() {
 
 const PrivateLayout = () => {
   const { user, initializing } = useContext(AuthContext)
+  const location = useLocation()
+  const redirectFrom = location.pathname + location.search
+
   if (initializing) {
     return (
       <div className="flex flex-col min-h-screen bg-[#231640] text-white items-center justify-center font-['Montserrat']">
@@ -32,7 +37,8 @@ const PrivateLayout = () => {
   }
   
   if (!user) {
-    return <Navigate to="/login" replace />
+    saveAuthRedirect(redirectFrom)
+    return <Navigate to="/login" state={{ from: redirectFrom }} replace />
   }
 
   return (
@@ -49,6 +55,7 @@ export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
       <Route path="/profile" element={<Profile />} />
+      <Route path="/profile/change-password" element={<ChangePassword />} />
       <Route path="/fidelity" element={<Loyalty />} />
       <Route path="/subscription" element={<Subscriptions />} />
       <Route path="/myGenres" element={<MoviesGenres />} />

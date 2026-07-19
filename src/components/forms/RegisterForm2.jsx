@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateID,
@@ -9,6 +9,7 @@ import Button from '../ui/Button'
 import { useNavigate, useLocation } from 'react-router-dom'
 import ModalMessage from '../ui/ModalMessage'
 import InputPassword from '../ui/InputPassword'
+import { resolveAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
 
 import { registerRequest } from '../../services/auth.service'
 
@@ -16,10 +17,14 @@ function RegisterForm2() {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const step1Data = location.state
+  const step1Data = location.state || {}
+  const fromRoute = resolveAuthRedirect(step1Data.from || location.state?.from, '/')
 
-  console.log('Datos recibidos del paso 1:', step1Data)
-  console.log('Género recibido en paso 2:', step1Data?.gender)
+  useEffect(() => {
+    if (fromRoute) {
+      saveAuthRedirect(fromRoute)
+    }
+  }, [fromRoute])
 
   const {
     register,
@@ -46,21 +51,22 @@ function RegisterForm2() {
 
   const onSubmit = async (values) => {
     setIsLoading(true)
+    const cleanedIdNumber = values.idNumber
+      ? values.idNumber.replace(/\s+/g, '').trim()
+      : ''
+
     const payload = {
       firstName: step1Data?.name,
       lastName: step1Data?.lastname,
       email: step1Data?.email,
       phoneNumber: step1Data?.countryCode + step1Data?.phone,
-      documentNumber: values.idPrefix + values.idNumber,
+      documentNumber: values.idPrefix + cleanedIdNumber,
       birthDate: values.birthdate,
       password: values.password,
-      gender: step1Data?.gender,
+      gender: step1Data?.gender ? Number(step1Data.gender) : null,
     }
 
-    console.log('Payload enviado al backend:', payload)
-
     try {
-      console.log('ENVIANDO DATOS AL SERVICIO...')
       const res = await registerRequest(payload)
 
       // Se evalúa la respuesta según la estructura de Axios
@@ -72,6 +78,9 @@ function RegisterForm2() {
         setModalType('success')
         setModalMessage('¡Registro exitoso!')
         setShowSuccessModal(true)
+        sessionStorage.setItem('pending_email', step1Data?.email || '')
+        sessionStorage.setItem('pending_password', values.password || '')
+        sessionStorage.setItem('pending_from', fromRoute)
       }
     } catch (error) {
       console.error('Error capturado en la petición de registro:', error)
@@ -88,6 +97,7 @@ function RegisterForm2() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
+      noValidate
       className="flex flex-col items-center justify-center gap-4"
     >
       <div className="flex flex-col gap-6 items-center w-80">
@@ -135,13 +145,20 @@ function RegisterForm2() {
             </div>
 
             {/* INPUT DE NÚMERO DE CÉDULA */}
+            <input type="hidden" {...register('idPrefix', { setValueAs: (value) => String(value ?? '').trim() })} />
             <input
               type="text"
               id="idNumber"
+              inputMode="numeric"
+              pattern="[0-9]*"
               {...register('idNumber', {
+                setValueAs: (value) =>
+                  typeof value === 'string'
+                    ? value.replace(/\D+/g, '').trim()
+                    : value,
                 validate: (value) => {
                   const prefix = watch('idPrefix') || 'V'
-                  const fullId = prefix + value
+                  const fullId = prefix + (String(value || '').trim())
                   return validateID(fullId) === true || validateID(fullId)
                 },
               })}
@@ -182,6 +199,7 @@ function RegisterForm2() {
             id="birthdate"
             type="date"
             {...register('birthdate', {
+              setValueAs: (value) => String(value ?? '').trim(),
               validate: (value) =>
                 validateBirthdate(value) === true || validateBirthdate(value),
             })}
@@ -197,6 +215,7 @@ function RegisterForm2() {
           id="password"
           label="Contraseña"
           register={register('password', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validatePassword(value) === true || validatePassword(value),
           })}
@@ -208,10 +227,12 @@ function RegisterForm2() {
           id="confirmPassword"
           label="Confirmar contraseña"
           register={register('confirmPassword', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) => {
-              const password = getValues('password')
-              if (!value) return 'Confirmación requerida'
-              if (value !== password) return 'No coinciden'
+              const password = String(getValues('password') ?? '').trim()
+              const confirm = String(value ?? '').trim()
+              if (!confirm) return 'Confirmación requerida'
+              if (confirm !== password) return 'No coinciden'
               return true
             },
           })}
@@ -246,7 +267,7 @@ function RegisterForm2() {
             if (modalType === 'success') {
               localStorage.removeItem('registerFormStep1')
               navigate('/email-check', {
-                state: { email: step1Data?.email },
+                state: { email: step1Data?.email, from: fromRoute },
               })
             }
           }}

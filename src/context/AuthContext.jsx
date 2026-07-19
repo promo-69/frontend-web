@@ -5,6 +5,7 @@ import {
   refreshSessionRequest,
   getPermissionsRequest,
 } from '../services/auth.service'
+import { getCurrentUserRequest } from '../services/auth.service'
 import { useLoading } from './LoadingContext'
 import { 
   sendRecoveryEmailRequest, 
@@ -42,7 +43,7 @@ export function AuthProvider({ children }) {
         
         if (!isMounted) return
 
-        const userData = resData?.data?.user || resData?.data?.data?.user
+        let userData = resData?.data?.user || resData?.data?.data?.user
 
         if (userData) {
           try {
@@ -52,7 +53,31 @@ export function AuthProvider({ children }) {
             console.error('Error fetching permissions on refresh:', e)
             userData.permissions = []
           }
-          
+          // enriquecer el objeto user con los datos completos de /users/me
+          try {
+            const meRes = await getCurrentUserRequest()
+            const payload = meRes?.data?.data?.person || meRes?.data?.person || meRes?.data?.data || meRes?.data
+            if (payload) {
+              const patch = {}
+              const normalize = (v) => (v === undefined || v === null || (typeof v === 'string' && !v.trim()) ? null : v)
+              const birth = normalize(payload.birth_date) || normalize(payload?._People?.birth_date) || normalize(payload?.birthday) || normalize(payload?.dateOfBirth) || normalize(payload?.dob)
+              if (birth) patch.birth_date = birth
+              const personal_email = normalize(payload.personal_email) || normalize(payload?._People?.personal_email) || normalize(payload.email)
+              if (personal_email) patch.personal_email = personal_email
+              const phone = normalize(payload.phone_number) || normalize(payload?._People?.phone_number)
+              if (phone) patch.phoneNumber = phone
+              const first = normalize(payload.first_name) || normalize(payload?._People?.first_name)
+              if (first) patch.firstName = first
+              const last = normalize(payload.last_name) || normalize(payload?._People?.last_name)
+              if (last) patch.lastName = last
+              if (payload._People) patch._People = payload._People
+
+              userData = { ...userData, ...patch }
+            }
+          } catch (e) {
+            console.warn('Could not fetch /users/me to enrich user after refresh:', e)
+          }
+
           setUser(userData)
           localStorage.setItem('user', JSON.stringify(userData))
         } else {
@@ -119,6 +144,32 @@ export function AuthProvider({ children }) {
         userData.permissions = []
       }
 
+      try {
+        const meRes = await getCurrentUserRequest()
+        const payload = meRes?.data?.data?.person || meRes?.data?.person || meRes?.data?.data || meRes?.data
+        console.log('DEBUG login /users/me payload:', payload)
+        if (payload) {
+          const birth = payload.birth_date || payload?._People?.birth_date || payload?.birthday || payload?.dateOfBirth || payload?.dob
+          if (birth) userData.birth_date = birth
+
+          const personal_email = payload.personal_email || payload?._People?.personal_email || payload.email
+          if (personal_email) userData.personal_email = personal_email
+
+          const phone = payload.phone_number || payload?._People?.phone_number
+          if (phone) userData.phoneNumber = phone
+
+          const first = payload.first_name || payload?._People?.first_name
+          if (first) userData.firstName = first
+
+          const last = payload.last_name || payload?._People?.last_name
+          if (last) userData.lastName = last
+
+          if (payload._People) userData._People = payload._People
+        }
+      } catch (e) {
+        console.warn('Could not fetch /users/me to enrich user after login:', e)
+      }
+
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('user_logged', 'true')
@@ -177,7 +228,20 @@ export function AuthProvider({ children }) {
   }, [])
 
   const updateProfileState = useCallback((newEmail) => {
-    setUser((prev) => (prev ? { ...prev, email: newEmail, personalEmail: newEmail } : null))
+    setUser((prev) => {
+      if (!prev) return null
+      const updated = { ...prev, email: newEmail, personalEmail: newEmail }
+      localStorage.setItem('user', JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
+  const updateUserState = useCallback((patch) => {
+    setUser((prev) => {
+      const updated = prev ? { ...prev, ...patch } : { ...patch }
+      localStorage.setItem('user', JSON.stringify(updated))
+      return updated
+    })
   }, [])
 
   const contextValue = useMemo(() => ({
@@ -190,8 +254,9 @@ export function AuthProvider({ children }) {
     sendRecoveryEmail,
     verifyRecoveryCode,
     resetPassword,
-    updateProfileState
-  }), [user, isAuthenticated, initializing, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState])
+    updateProfileState,
+    updateUserState,
+  }), [user, isAuthenticated, initializing, login, logout, sendRecoveryEmail, verifyRecoveryCode, resetPassword, updateProfileState, updateUserState])
 
   return (
     <AuthContext.Provider value={contextValue}>

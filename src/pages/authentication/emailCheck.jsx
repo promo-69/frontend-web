@@ -2,21 +2,27 @@ import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from '../../components/ui/Button'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { verifyAccountRequest } from '../../services/auth.service'
+import { AuthContext } from '../../context/AuthContext'
+import { resolveAuthRedirect, clearAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
 
 function EmailCheck() {
   const navigate = useNavigate()
   const location = useLocation()
-  console.log('¿Qué viene exactamente en el state?:', location.state)
 
-  // Guardar y mantener el email a salvo si se recarga la página
   const [email] = useState(() => {
     if (location.state?.email) {
       sessionStorage.setItem('pending_email', location.state.email)
       return location.state.email
     }
     return sessionStorage.getItem('pending_email') || ''
+  })
+
+  const { login } = useContext(AuthContext)
+  const [fromRoute] = useState(() => resolveAuthRedirect(location.state?.from, '/'))
+  const [pendingPassword] = useState(() => {
+    return sessionStorage.getItem('pending_password') || ''
   })
 
   const [code, setCode] = useState('')
@@ -37,11 +43,30 @@ function EmailCheck() {
     setMessage(null)
 
     try {
-      console.log('DATOS ENVIADOS:', { email, code: code.trim() })
       const res = await verifyAccountRequest({ email, code: code.trim() })
       setMessage('Cuenta verificada correctamente. Redirigiendo...')
 
-      setTimeout(() => navigate('/login'), 2000)
+      if (pendingPassword) {
+        try {
+          const loginResult = await login({ email, password: pendingPassword })
+          if (loginResult?.success) {
+            setTimeout(() => {
+              sessionStorage.removeItem('pending_email')
+              sessionStorage.removeItem('pending_password')
+              clearAuthRedirect()
+              navigate(fromRoute, { replace: true })
+            }, 1200)
+            return
+          }
+        } catch (loginError) {
+          console.error('Error auto-login tras verificación:', loginError)
+        }
+      }
+
+      setTimeout(() => {
+        clearAuthRedirect()
+        navigate('/login', { state: { from: fromRoute } })
+      }, 2000)
     } catch (err) {
       setError('Código incorrecto o expirado.')
     } finally {
@@ -102,7 +127,7 @@ function EmailCheck() {
           {/* BOTÓN IR AL LOGIN */}
           <Button
             text="Volver al inicio"
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login', { state: { from: fromRoute } })}
             className="text-lg font-montserrat font-semibold w-full bg-white/20"
           />
         </div>

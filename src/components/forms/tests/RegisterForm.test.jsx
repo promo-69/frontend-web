@@ -15,6 +15,11 @@ vi.mock('react-router-dom', async () => {
 })
 
 describe('RegisterForm', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear()
+    window.localStorage.clear()
+  })
+
   test('renderiza correctamente el formulario', () => {
     render(
       <BrowserRouter>
@@ -55,10 +60,39 @@ describe('RegisterForm', () => {
       target: { value: '1234567' },
     })
 
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Masculino/i }))
+
     fireEvent.click(screen.getByRole('button', { name: /Siguiente/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalled()
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/register2',
+        expect.objectContaining({
+          state: expect.objectContaining({
+            gender: '1',
+            countryCode: '+58',
+          }),
+        }),
+      )
     })
+  })
+
+  test('muestra errores cuando faltan campos obligatorios', async () => {
+    const { container } = render(
+      <BrowserRouter>
+        <RegisterForm />
+      </BrowserRouter>,
+    )
+
+    const form = container.querySelector('form')
+    fireEvent.submit(form)
+
+    const nameErrors = await screen.findAllByText(/El nombre es requerido/i)
+    expect(nameErrors).toHaveLength(2)
+    expect(await screen.findByText(/El correo es requerido/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Teléfono es requerido/i)).toBeInTheDocument()
+
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 })

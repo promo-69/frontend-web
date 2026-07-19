@@ -1,17 +1,21 @@
-import React, { useContext, useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateName,
   validateEmail,
   validatePhone,
+  validateGender,
 } from '../../validators/authValidators'
 import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { resolveAuthRedirect } from '../../utils/authNavigation'
 import InputText from '../ui/InputText'
 
 function RegisterForm() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
 
   const phoneRef = useRef(null)
 
@@ -21,14 +25,21 @@ function RegisterForm() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm({ mode: 'onBlur' })
+  } = useForm({
+    mode: 'onSubmit',
+    defaultValues: {
+      gender: '',
+      genderText: '',
+    },
+  })
 
   const nameValue = watch('name')
   const lastnameValue = watch('lastname')
   const emailValue = watch('email')
   const phoneValue = watch('phone')
+  const genderValue = watch('gender')
+  const genderTextValue = watch('genderText')
 
-  const [gender, setGender] = useState('Masculino')
   const [isGenderOpen, setIsGenderOpen] = useState(false)
 
   const [countryCode, setCountryCode] = useState('+58')
@@ -36,11 +47,9 @@ function RegisterForm() {
 
   const onSubmit = (values) => {
     navigate('/register2', {
-      state: { ...values, countryCode, gender: values.gender },
+      state: { ...values, countryCode, gender: values.gender, from: fromRoute },
     })
   }
-
-  console.log('Género seleccionado en paso 1:', watch('gender'))
 
   // 1. EFECTO PARA MANEJAR EL CLICK OUTSIDE (Separado para que sea limpio)
   useEffect(() => {
@@ -79,8 +88,8 @@ function RegisterForm() {
       lastname: lastnameValue,
       email: emailValue,
       phone: phoneValue,
-      gender: watch('gender'),
-      genderText: watch('genderText'),
+      gender: genderValue,
+      genderText: genderTextValue,
       countryCode,
     }
 
@@ -91,8 +100,8 @@ function RegisterForm() {
     emailValue,
     phoneValue,
     countryCode,
-    watch('gender'),
-    watch('genderText'),
+    genderValue,
+    genderTextValue,
   ])
 
   return (
@@ -106,6 +115,7 @@ function RegisterForm() {
           id="name"
           label="Nombre"
           register={register('name', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateName(value) === true || validateName(value),
           })}
@@ -118,6 +128,7 @@ function RegisterForm() {
           id="lastname"
           label="Apellido"
           register={register('lastname', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateName(value) === true || validateName(value),
           })}
@@ -138,9 +149,20 @@ function RegisterForm() {
                 onClick={() => setIsGenderOpen(!isGenderOpen)}
                 className="w-full bg-transparent border-b border-white text-white py-2 text-left flex justify-between items-center focus:outline-none"
               >
-                <span>{watch('genderText') || 'Seleccionar'}</span>
+                <span>{genderTextValue || 'Seleccionar'}</span>
                 <span className="text-[10px] opacity-70">▼</span>
               </button>
+
+              {/* Campos ocultos para react-hook-form */}
+              <input
+                type="hidden"
+                {...register('gender', {
+                  setValueAs: (value) => String(value ?? '').trim(),
+                  validate: (value) =>
+                    validateGender(value) === true || validateGender(value),
+                })}
+              />
+              <input type="hidden" {...register('genderText')} />
 
               {/* Menú Desplegable */}
               {isGenderOpen && (
@@ -148,7 +170,7 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setValue('gender', 1)
+                      setValue('gender', '1')
                       setValue('genderText', 'Masculino')
                       setIsGenderOpen(false)
                     }}
@@ -159,17 +181,33 @@ function RegisterForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setValue('gender', 2)
+                      setValue('gender', '2')
                       setValue('genderText', 'Femenino')
+                      setIsGenderOpen(false)
+                    }}
+                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
+                  >
+                    Femenino
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('gender', '3')
+                      setValue('genderText', 'Prefiero no decirlo')
                       setIsGenderOpen(false)
                     }}
                     className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium"
                   >
-                    Femenino
+                    Prefiero no decirlo
                   </button>
                 </div>
               )}
             </div>
+            {errors.gender && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.gender.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -179,6 +217,7 @@ function RegisterForm() {
           label="Correo"
           type="email"
           register={register('email', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateEmail(value) === true || validateEmail(value),
           })}
@@ -230,14 +269,8 @@ function RegisterForm() {
                 type="tel"
                 id="phone"
                 {...register('phone', {
-                  validate: (value) => {
-                    const cleaned = cleanNumber(value)
-                    const phoneValidation = validatePhone(cleaned)
-                    if (phoneValidation !== true) return phoneValidation
-                    if (cleaned.length < 7 || cleaned.length > 15)
-                      return 'Teléfono debe tener entre 7 y 15 dígitos'
-                    return true
-                  },
+                  setValueAs: (value) => cleanNumber(String(value ?? '')),
+                  validate: (value) => validatePhone(String(value ?? '').trim()),
                 })}
                 placeholder=" "
                 className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"
