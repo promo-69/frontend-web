@@ -11,6 +11,7 @@ import InputPassword from '../ui/InputPassword'
 import InputText from '../ui/InputText'
 import ModalMessage from '../ui/ModalMessage'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { resolveAuthRedirect, clearAuthRedirect } from '../../utils/authNavigation'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -23,7 +24,7 @@ function LoginForm() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const fromRoute = location.state?.from || '/'
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
 
   const {
     register,
@@ -56,9 +57,6 @@ function LoginForm() {
         setShowModal(true)
         return
       }
-
-      console.log('DEBUG LOGIN FORM - Respuesta procesada:', res)
-      console.log('LOGIN RESPONSE:', res)
 
       if (!res.success) {
         const lowerMessage = res.message?.toLowerCase() || ''
@@ -195,8 +193,9 @@ function LoginForm() {
             }
 
             if (modalType === 'success') {
-                navigate(fromRoute, { replace: true })
-            } 
+              clearAuthRedirect()
+              navigate(fromRoute, { replace: true })
+            }
           }}
         />
       )}

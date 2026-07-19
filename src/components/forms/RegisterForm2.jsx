@@ -9,6 +9,7 @@ import Button from '../ui/Button'
 import { useNavigate, useLocation } from 'react-router-dom'
 import ModalMessage from '../ui/ModalMessage'
 import InputPassword from '../ui/InputPassword'
+import { resolveAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
 
 import { registerRequest } from '../../services/auth.service'
 
@@ -17,16 +18,13 @@ function RegisterForm2() {
   const navigate = useNavigate()
   const location = useLocation()
   const step1Data = location.state || {}
-  const fromRoute = step1Data.from || sessionStorage.getItem('pending_from') || '/'
+  const fromRoute = resolveAuthRedirect(step1Data.from || location.state?.from, '/')
 
   useEffect(() => {
-    if (step1Data.from) {
-      sessionStorage.setItem('pending_from', step1Data.from)
+    if (fromRoute) {
+      saveAuthRedirect(fromRoute)
     }
-  }, [step1Data.from])
-
-  console.log('Datos recibidos del paso 1:', step1Data)
-  console.log('Género recibido en paso 2:', step1Data?.gender)
+  }, [fromRoute])
 
   const {
     register,
@@ -65,13 +63,10 @@ function RegisterForm2() {
       documentNumber: values.idPrefix + cleanedIdNumber,
       birthDate: values.birthdate,
       password: values.password,
-      gender: step1Data?.gender,
+      gender: step1Data?.gender ? Number(step1Data.gender) : null,
     }
 
-    console.log('Payload enviado al backend:', payload)
-
     try {
-      console.log('ENVIANDO DATOS AL SERVICIO...')
       const res = await registerRequest(payload)
 
       // Se evalúa la respuesta según la estructura de Axios
@@ -150,6 +145,7 @@ function RegisterForm2() {
             </div>
 
             {/* INPUT DE NÚMERO DE CÉDULA */}
+            <input type="hidden" {...register('idPrefix')} />
             <input
               type="text"
               id="idNumber"

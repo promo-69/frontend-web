@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import QuestionModal from '../ui/QuestionModal'
 import { useAuth } from '../../context/AuthContext'
+import { saveAuthRedirect } from '../../utils/authNavigation'
 
 export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
   const navigate = useNavigate()
@@ -123,8 +124,10 @@ export default function ShowtimeCard({ showtime, movieId, cinemaId }) {
           onCancel={() => setShowLoginModal(false)} 
           onConfirm={() => {
             setShowLoginModal(false)
+            const redirectFrom = location.pathname + location.search
+            saveAuthRedirect(redirectFrom)
             navigate('/login', {
-              state: { from: location.pathname },
+              state: { from: redirectFrom },
             })
           }}
         />

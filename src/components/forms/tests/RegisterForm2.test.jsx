@@ -30,7 +30,7 @@ describe('RegisterForm2', () => {
               email: 'test@test.com',
               countryCode: '+58',
               phone: '1234567',
-              gender: 'M',
+              gender: '1',
             },
           },
         ]}
@@ -81,7 +81,7 @@ describe('RegisterForm2', () => {
       documentNumber: 'V12345678',
       birthDate: '2000-01-01',
       password: 'abc123*',
-      gender: 'M',
+      gender: 1,
     })
   })
 })
