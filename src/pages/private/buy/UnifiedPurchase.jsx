@@ -448,7 +448,19 @@ export default function UnifiedPurchase() {
 
   // ── Ticket prices ──
   const selectedSeatsList = seats.filter(s => s.status === 'selected')
-  const ticketsTotal = selectedSeatsList.length * SEAT_BASE_PRICE
+
+  const getSeatPrice = (index) => {
+    const audienceQueue = []
+    Object.entries(ticketCounts).forEach(([catId, count]) => {
+      for (let i = 0; i < count; i++) audienceQueue.push(Number(catId))
+    })
+    const catId = audienceQueue[index] || 1
+    if (catId === 2) return SEAT_BASE_PRICE * 0.8
+    if (catId === 3) return SEAT_BASE_PRICE * 0.9
+    return SEAT_BASE_PRICE
+  }
+
+  const ticketsTotal = selectedSeatsList.reduce((sum, _, index) => sum + getSeatPrice(index), 0)
   const grandTotal = ticketsTotal + confectioneryTotal
 
   const handleSeatsConfirm = () => {
@@ -596,7 +608,7 @@ export default function UnifiedPurchase() {
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { id: 1, label: 'Adulto', price: `$${SEAT_BASE_PRICE.toFixed(2)}` },
-                  { id: 2, label: 'Niño', price: `$${SEAT_BASE_PRICE.toFixed(2)}` },
+                  { id: 2, label: 'Niño', price: `$${(SEAT_BASE_PRICE * 0.8).toFixed(2)}` },
                   { id: 3, label: '3ra Edad', price: `$${(SEAT_BASE_PRICE * 0.9).toFixed(2)}` },
                 ].map(cat => (
                   <div key={cat.id} className="bg-white/5 rounded-xl p-4 text-center space-y-2">
@@ -625,10 +637,10 @@ export default function UnifiedPurchase() {
             {selectedSeatsList.length > 0 && (
               <div className="bg-white/10 rounded-xl p-4 space-y-2">
                 <p className="text-xs font-semibold text-white/70">Asientos seleccionados:</p>
-                {selectedSeatsList.map(s => (
+                {selectedSeatsList.map((s, index) => (
                   <div key={s.id} className="flex items-center gap-3">
                     <span className="bg-yellow-400 text-[#1d1430] px-2.5 py-1 rounded-lg font-bold text-xs">{s.label}</span>
-                    <span className="text-xs text-yellow-400 font-bold">${SEAT_BASE_PRICE.toFixed(2)}</span>
+                    <span className="text-xs text-yellow-400 font-bold">${getSeatPrice(index).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -771,10 +783,10 @@ export default function UnifiedPurchase() {
                 {/* Summary */}
                 <div className="bg-white/10 rounded-2xl p-6 space-y-3">
                   <h3 className="font-bold text-yellow-400">Resumen</h3>
-                  {selectedSeatsList.map(s => (
+                  {selectedSeatsList.map((s, index) => (
                     <div key={s.id} className="flex justify-between text-sm text-white/80">
                       <span>Asiento {s.label}</span>
-                      <span>${SEAT_BASE_PRICE.toFixed(2)}</span>
+                      <span>${getSeatPrice(index).toFixed(2)}</span>
                     </div>
                   ))}
                   {cartItems.map(i => (

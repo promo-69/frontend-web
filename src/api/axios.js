@@ -1,6 +1,14 @@
 import axios from 'axios'
+import { nanoid } from 'nanoid'
+
 // Usar ruta de refresh relativa estándar; el backend ya está corregido.
 const BASE_API = import.meta.env.VITE_API_URL || ''
+
+let deviceId = localStorage.getItem('device_id')
+if (!deviceId) {
+  deviceId = nanoid()
+  localStorage.setItem('device_id', deviceId)
+}
 
 // ⭐ Instancia para endpoints públicos (NO usa cookies, NO usa refresh)
 export const apiPublic = axios.create({
@@ -8,6 +16,7 @@ export const apiPublic = axios.create({
   timeout: 10000,
   headers: {
     'x-client-channel': 'web',
+    'x-device-id': deviceId,
   },
 })
 
@@ -18,6 +27,7 @@ const api = axios.create({
   timeout: 15000,
   headers: {
     'x-client-channel': 'web',
+    'x-device-id': deviceId,
   },
 })
 
