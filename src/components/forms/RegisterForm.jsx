@@ -1,9 +1,10 @@
-import React, { useContext, useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   validateName,
   validateEmail,
   validatePhone,
+  validateGender,
 } from '../../validators/authValidators'
 import { cleanNumber } from '../../utils/helpers'
 import Button from '../ui/Button'
@@ -25,7 +26,7 @@ function RegisterForm() {
     setValue,
     formState: { errors },
   } = useForm({
-    mode: 'onBlur',
+    mode: 'onSubmit',
     defaultValues: {
       gender: '',
       genderText: '',
@@ -99,8 +100,8 @@ function RegisterForm() {
     emailValue,
     phoneValue,
     countryCode,
-    watch('gender'),
-    watch('genderText'),
+    genderValue,
+    genderTextValue,
   ])
 
   return (
@@ -114,6 +115,7 @@ function RegisterForm() {
           id="name"
           label="Nombre"
           register={register('name', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateName(value) === true || validateName(value),
           })}
@@ -126,6 +128,7 @@ function RegisterForm() {
           id="lastname"
           label="Apellido"
           register={register('lastname', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateName(value) === true || validateName(value),
           })}
@@ -154,8 +157,9 @@ function RegisterForm() {
               <input
                 type="hidden"
                 {...register('gender', {
+                  setValueAs: (value) => String(value ?? '').trim(),
                   validate: (value) =>
-                    (value !== '' && value !== undefined) || 'Selecciona un género',
+                    validateGender(value) === true || validateGender(value),
                 })}
               />
               <input type="hidden" {...register('genderText')} />
@@ -213,6 +217,7 @@ function RegisterForm() {
           label="Correo"
           type="email"
           register={register('email', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validateEmail(value) === true || validateEmail(value),
           })}
@@ -264,14 +269,8 @@ function RegisterForm() {
                 type="tel"
                 id="phone"
                 {...register('phone', {
-                  validate: (value) => {
-                    const cleaned = cleanNumber(value)
-                    const phoneValidation = validatePhone(cleaned)
-                    if (phoneValidation !== true) return phoneValidation
-                    if (cleaned.length < 7 || cleaned.length > 15)
-                      return 'Teléfono debe tener entre 7 y 15 dígitos'
-                    return true
-                  },
+                  setValueAs: (value) => cleanNumber(String(value ?? '')),
+                  validate: (value) => validatePhone(String(value ?? '').trim()),
                 })}
                 placeholder=" "
                 className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"

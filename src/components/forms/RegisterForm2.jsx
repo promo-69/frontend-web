@@ -145,7 +145,7 @@ function RegisterForm2() {
             </div>
 
             {/* INPUT DE NÚMERO DE CÉDULA */}
-            <input type="hidden" {...register('idPrefix')} />
+            <input type="hidden" {...register('idPrefix', { setValueAs: (value) => String(value ?? '').trim() })} />
             <input
               type="text"
               id="idNumber"
@@ -154,11 +154,11 @@ function RegisterForm2() {
               {...register('idNumber', {
                 setValueAs: (value) =>
                   typeof value === 'string'
-                    ? value.replace(/\s+/g, '').trim()
+                    ? value.replace(/\D+/g, '').trim()
                     : value,
                 validate: (value) => {
                   const prefix = watch('idPrefix') || 'V'
-                  const fullId = prefix + (value || '')
+                  const fullId = prefix + (String(value || '').trim())
                   return validateID(fullId) === true || validateID(fullId)
                 },
               })}
@@ -199,6 +199,7 @@ function RegisterForm2() {
             id="birthdate"
             type="date"
             {...register('birthdate', {
+              setValueAs: (value) => String(value ?? '').trim(),
               validate: (value) =>
                 validateBirthdate(value) === true || validateBirthdate(value),
             })}
@@ -214,6 +215,7 @@ function RegisterForm2() {
           id="password"
           label="Contraseña"
           register={register('password', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) =>
               validatePassword(value) === true || validatePassword(value),
           })}
@@ -225,10 +227,12 @@ function RegisterForm2() {
           id="confirmPassword"
           label="Confirmar contraseña"
           register={register('confirmPassword', {
+            setValueAs: (value) => String(value ?? '').trim(),
             validate: (value) => {
-              const password = getValues('password')
-              if (!value) return 'Confirmación requerida'
-              if (value !== password) return 'No coinciden'
+              const password = String(getValues('password') ?? '').trim()
+              const confirm = String(value ?? '').trim()
+              if (!confirm) return 'Confirmación requerida'
+              if (confirm !== password) return 'No coinciden'
               return true
             },
           })}
