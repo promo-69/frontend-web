@@ -14,6 +14,7 @@ import { getCinemas } from '../../../services/info.service'
 import socketService from '../../../services/socket.service'
 import api from '../../../api/axios'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
+import InputSelect from '../../../components/ui/InputSelect'
 
 const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
 
@@ -53,7 +54,13 @@ export default function Confectionery() {
 
   // Load cinemas
   useEffect(() => {
-    getCinemas().then(data => setCinemas(data || [])).catch(() => {})
+    getCinemas().then(data => {
+      const loadedCinemas = data || []
+      setCinemas(loadedCinemas)
+      if (loadedCinemas.length > 0) {
+        setEffectiveCinemaId(loadedCinemas[0].id)
+      }
+    }).catch(() => {})
   }, [])
 
   // Load products when cinema changes
@@ -134,6 +141,20 @@ export default function Confectionery() {
     const q = Math.max(1, i.qty + d)
     return { ...i, qty: q }
   }))
+
+  useEffect(() => {
+    const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5
+    const availableBanks = bankAccounts.filter(b => b.payment_method === mId)
+    
+    if (availableBanks.length > 0) {
+      const isCurrentValid = availableBanks.some(b => b.bank === selectedBank)
+      if (!isCurrentValid) {
+        setSelectedBank(availableBanks[0].bank)
+      }
+    } else {
+      setSelectedBank('')
+    }
+  }, [paymentMethod, bankAccounts])
 
   const handleGoPayment = async () => {
     if (cartItems.length === 0) return
@@ -237,13 +258,16 @@ export default function Confectionery() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Cinema selector */}
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-white/60 uppercase font-bold">Sucursal</label>
-          <select value={effectiveCinemaId ?? ''} onChange={e => setEffectiveCinemaId(Number(e.target.value) || null)}
-            className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full focus:outline-none">
-            <option value="">Seleccionar</option>
-            {cinemas.map(c => <option key={c.id} value={c.id} className="text-black">{c.name}</option>)}
-          </select>
+        <div className="w-full max-w-[280px]">
+          <InputSelect
+            id="cinema"
+            label="Sucursal"
+            value={effectiveCinemaId ?? ''}
+            options={cinemas.map(c => ({ label: c.name, value: c.id }))}
+            register={{
+              onChange: (e) => setEffectiveCinemaId(Number(e.target.value) || null)
+            }}
+          />
         </div>
 
         {!effectiveCinemaId ? (
@@ -351,17 +375,17 @@ export default function Confectionery() {
                   </div>
                   {['transfer', 'mobile'].includes(paymentMethod) && (
                     <div>
-                      <label className="block text-sm font-medium text-white/70 mb-2">Banco Destino</label>
-                      <select value={selectedBank} onChange={e => setSelectedBank(e.target.value)}
-                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
-                        <option value="">Seleccionar banco</option>
-                        {bankAccounts.filter(b => {
-                          const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5
-                          return b.payment_method === mId
-                        }).map(ba => (
-                          <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
-                        ))}
-                      </select>
+                      <InputSelect
+                        id="bank"
+                        label="Banco Destino"
+                        value={selectedBank}
+                        options={bankAccounts
+                          .filter(b => b.payment_method === (paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5))
+                          .map(ba => ({ label: ba.name, value: ba.bank }))}
+                        register={{
+                          onChange: (e) => setSelectedBank(e.target.value)
+                        }}
+                      />
 
                       {/* Detalles de la cuenta bancaria */}
                       {(() => {
