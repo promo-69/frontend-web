@@ -5,6 +5,29 @@ import { useState } from 'react'
 export default function InputPassword({ id, label, register, error, value, disabled = false }) {
   const [showPassword, setShowPassword] = useState(false)
   const isDisabled = disabled || (register && register.disabled)
+  const handleBlur = (e) => {
+    const val = e.target.value;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      
+      e.target.value = '';
+      e.target.value = trimmed;
+
+      if (register?.onChange) {
+        register.onChange({
+          ...e,
+          target: {
+            ...e.target,
+            value: trimmed,
+            name: e.target.name || id
+          }
+        });
+      }
+    }
+    if (register?.onBlur) {
+      register.onBlur(e);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
@@ -20,6 +43,7 @@ export default function InputPassword({ id, label, register, error, value, disab
             id={id}
             type={showPassword ? 'text' : 'password'}
             {...register}
+            onBlur={handleBlur}
             disabled={isDisabled}
             placeholder=" "
             className={`bg-white/10 w-full text-white outline-none py-3 px-4 pr-12 text-sm rounded-xl border transition-all placeholder:text-white/30
