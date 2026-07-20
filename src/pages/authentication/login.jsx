@@ -24,7 +24,7 @@ function Login() {
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
               Inicio de sesión
             </h1>
-            <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
+            <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md">
               Accede a tu cuenta para disfrutar de todas las funciones de
               nuestra plataforma
             </p>

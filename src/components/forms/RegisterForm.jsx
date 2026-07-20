@@ -7,6 +7,7 @@ import {
   validateGender,
 } from '../../validators/authValidators'
 import { cleanNumber } from '../../utils/helpers'
+import FormActions from '../ui/FormActions'
 import Button from '../ui/Button'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { resolveAuthRedirect } from '../../utils/authNavigation'
@@ -107,107 +108,164 @@ function RegisterForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col items-center justify-center gap-4"
+      className="flex flex-col items-center justify-center gap-4 w-full"
     >
-      <div className="flex flex-col gap-6 items-center w-80">
-        {/* Nombre */}
-        <InputText
-          id="name"
-          label="Nombre"
-          register={register('name', {
-            setValueAs: (value) => String(value ?? '').trim(),
-            validate: (value) =>
-              validateName(value) === true || validateName(value),
-          })}
-          error={errors.name?.message}
-          value={nameValue}
-        />
+      <div className="flex flex-col gap-5 w-full">
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          {/* Nombre */}
+          <InputText
+            id="name"
+            label="Nombre"
+            filter="letters"
+            register={register('name', {
+              setValueAs: (value) => String(value ?? '').trim(),
+              validate: (value) =>
+                validateName(value) === true || validateName(value),
+            })}
+            error={errors.name?.message}
+            value={nameValue}
+          />
 
-        {/* Apellido */}
-        <InputText
-          id="lastname"
-          label="Apellido"
-          register={register('lastname', {
-            setValueAs: (value) => String(value ?? '').trim(),
-            validate: (value) =>
-              validateName(value) === true || validateName(value),
-          })}
-          error={errors.lastname?.message}
-          value={lastnameValue}
-        />
+          {/* Apellido */}
+          <InputText
+            id="lastname"
+            label="Apellido"
+            filter="letters"
+            register={register('lastname', {
+              setValueAs: (value) => String(value ?? '').trim(),
+              validate: (value) =>
+                validateName(value) === true || validateName(value),
+            })}
+            error={errors.lastname?.message}
+            value={lastnameValue}
+          />
+        </div>
 
-        {/* Género */}
-        <div className="relative w-full">
-          <div className="flex flex-col">
-            <label htmlFor="gender" className="text-white font-montserrat mb-1">
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
+          {/* Teléfono */}
+          <div ref={phoneRef} className="w-full relative">
+            <InputText
+              id="phone"
+              label="Teléfono"
+              type="tel"
+              filter="numbers"
+              register={register('phone', {
+                setValueAs: (value) => cleanNumber(String(value ?? '')),
+                validate: (value) => validatePhone(String(value ?? '').trim()),
+              })}
+              error={errors.phone?.message}
+              value={phoneValue}
+              prefixElement={
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="text-white flex items-center gap-1 focus:outline-none border-r border-white/10 pr-3 mr-1 shrink-0"
+                >
+                  <span>{countryCode === '+58' ? '🇻🇪' : '🇨🇴'}</span>
+                  <span className="text-sm">{countryCode}</span>
+                </button>
+              }
+            />
+            {/* MENU DESPLEGABLE */}
+            {isOpen && (
+              <div className="absolute top-16 left-0 bg-[#231640] border border-[#D9982F] rounded shadow-lg z-50 p-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountryCode('+58')
+                    setIsOpen(false)
+                  }}
+                  className="flex items-center gap-2 text-white hover:text-[#D9982F]"
+                >
+                  <span>🇻🇪</span> +58
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCountryCode('+57')
+                    setIsOpen(false)
+                  }}
+                  className="flex items-center gap-2 text-white hover:text-[#D9982F]"
+                >
+                  <span>🇨🇴</span> +57
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Género */}
+          <div className="flex flex-col gap-1.5 w-full">
+            <label htmlFor="gender" className="text-[10px] uppercase font-bold text-yellow-500 ml-1">
               Género
             </label>
-            <div className="relative">
+            <div className="relative w-full">
               {/*Select personalizado */}
               <button
                 type="button"
                 onClick={() => setIsGenderOpen(!isGenderOpen)}
-                className="w-full bg-transparent border-b border-white text-white py-2 text-left flex justify-between items-center focus:outline-none"
+                className={`bg-white/10 w-full text-white outline-none py-3 px-4 text-sm rounded-xl border transition-all text-left flex justify-between items-center ${
+                  errors.gender ? 'border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400'
+                }`}
               >
                 <span>{genderTextValue || 'Seleccionar'}</span>
                 <span className="text-[10px] opacity-70">▼</span>
               </button>
 
-              {/* Campos ocultos para react-hook-form */}
-              <input
-                type="hidden"
-                {...register('gender', {
-                  setValueAs: (value) => String(value ?? '').trim(),
-                  validate: (value) =>
-                    validateGender(value) === true || validateGender(value),
-                })}
-              />
-              <input type="hidden" {...register('genderText')} />
+                {/* Campos ocultos para react-hook-form */}
+                <input
+                  type="hidden"
+                  {...register('gender', {
+                    setValueAs: (value) => String(value ?? '').trim(),
+                    validate: (value) =>
+                      validateGender(value) === true || validateGender(value),
+                  })}
+                />
+                <input type="hidden" {...register('genderText')} />
 
-              {/* Menú Desplegable */}
-              {isGenderOpen && (
-                <div className="absolute top-full left-0 w-full bg-[#231640] border border-[#D9982F] rounded shadow-2xl z-[100] mt-1 p-1 flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue('gender', '1')
-                      setValue('genderText', 'Masculino')
-                      setIsGenderOpen(false)
-                    }}
-                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
-                  >
-                    Masculino
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue('gender', '2')
-                      setValue('genderText', 'Femenino')
-                      setIsGenderOpen(false)
-                    }}
-                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
-                  >
-                    Femenino
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue('gender', '3')
-                      setValue('genderText', 'Prefiero no decirlo')
-                      setIsGenderOpen(false)
-                    }}
-                    className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium"
-                  >
-                    Prefiero no decirlo
-                  </button>
-                </div>
+                {/* Menú Desplegable */}
+                {isGenderOpen && (
+                  <div className="absolute top-full left-0 w-full bg-[#231640] border border-[#D9982F] rounded shadow-2xl z-[100] mt-1 p-1 flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('gender', '1', { shouldValidate: true })
+                        setValue('genderText', 'Masculino')
+                        setIsGenderOpen(false)
+                      }}
+                      className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
+                    >
+                      Masculino
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('gender', '2', { shouldValidate: true })
+                        setValue('genderText', 'Femenino')
+                        setIsGenderOpen(false)
+                      }}
+                      className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium border-b border-white/10"
+                    >
+                      Femenino
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue('gender', '3', { shouldValidate: true })
+                        setValue('genderText', 'Prefiero no decirlo')
+                        setIsGenderOpen(false)
+                      }}
+                      className="p-3 text-white hover:bg-[#7B1A82] transition-colors text-left font-medium"
+                    >
+                      Prefiero no decirlo
+                    </button>
+                  </div>
+                )}
+              </div>
+              {errors.gender && (
+                <p className="text-red-400 text-xs font-medium ml-1 mt-1">
+                  {errors.gender.message}
+                </p>
               )}
-            </div>
-            {errors.gender && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.gender.message}
-              </p>
-            )}
           </div>
         </div>
 
@@ -224,88 +282,11 @@ function RegisterForm() {
           error={errors.email?.message}
           value={emailValue}
         />
-
-        {/* Teléfono */}
-        <div ref={phoneRef} className="flex flex-col w-full">
-          <div className="relative w-full">
-            <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-              {/* MENU SELECTOR */}
-              <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="text-white flex items-center gap-1 focus:outline-none"
-              >
-                <span>{countryCode === '+58' ? '🇻🇪' : '🇨🇴'}</span>
-                <span className="text-sm">{countryCode}</span>
-              </button>
-
-              {/* MENU DESPLEGABLE */}
-              {isOpen && (
-                <div className="absolute top-12 left-0 bg-[#231640] border border-[#D9982F] rounded shadow-lg z-50 p-2 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCountryCode('+58')
-                      setIsOpen(false)
-                    }}
-                    className="flex items-center gap-2 text-white hover:text-[#D9982F]"
-                  >
-                    <span>🇻🇪</span> +58
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCountryCode('+57')
-                      setIsOpen(false)
-                    }}
-                    className="flex items-center gap-2 text-white hover:text-[#D9982F]"
-                  >
-                    <span>🇨🇴</span> +57
-                  </button>
-                </div>
-              )}
-
-              <input
-                type="tel"
-                id="phone"
-                {...register('phone', {
-                  setValueAs: (value) => cleanNumber(String(value ?? '')),
-                  validate: (value) => validatePhone(String(value ?? '').trim()),
-                })}
-                placeholder=" "
-                className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-3 text-base"
-              />
-              <label
-                htmlFor="phone"
-                className={`absolute left-0 top-1 text-white font-montserrat transition-all duration-300 pointer-events-none
-              peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-              ${phoneValue ? '-top-5 text-sm text-[#D9982F]' : 'top-1 text-base opacity-70'}`}
-              >
-                Teléfono
-              </label>
-              {errors.phone && (
-                <p className="absolute left-0 -bottom-5 text-red-500">
-                  {errors.phone.message}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div className="w-full flex items-center justify-center gap-3 pt-4">
-        <Button
-          text="Cancelar"
-          type="button"
-          className="bg-gray-500 text-white"
-          onClick={() => navigate('/')}
-        />
-        <Button
-          text="Siguiente"
-          type="submit"
-          className="text-lg font-montserrat font-semibold"
-        />
-      </div>
+      <FormActions
+        submitText="Siguiente"
+      />
     </form>
   )
 }

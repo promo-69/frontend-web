@@ -3,7 +3,7 @@ import Header from '../components/ui/Header';
 import Home from '../pages/public/Home';
 import Login from '../pages/authentication/login';
 import Register from '../pages/authentication/register';
-import Profile from '../pages/private/user/profile';
+
 import ForgotPassword from '../pages/authentication/forgotPassword';
 import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';

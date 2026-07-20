@@ -2,6 +2,8 @@ import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from '../../components/ui/Button'
+import InputCode from '../../components/ui/InputCode'
+import FormActions from '../../components/ui/FormActions'
 import { useContext, useEffect, useState } from 'react'
 import { verifyAccountRequest } from '../../services/auth.service'
 import { AuthContext } from '../../context/AuthContext'
@@ -99,36 +101,29 @@ function EmailCheck() {
             ¡Revisa tu bandeja de entrada!
           </h1>
 
-          <p className="text-center text-white text-lg leading-relaxed font-montserrat max-w-md">
+          <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md">
             Te enviamos un código para validar tu cuenta. Ingresa el código que
             recibiste por correo.
           </p>
 
           {/* INPUT DEL CÓDIGO */}
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Ingresa el código"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-lg focus:outline-none focus:border-[#D9982F]"
+          <InputCode
+            id="code"
+            length={4}
+            onChange={(val) => setCode(val)}
           />
 
           {/* MENSAJES */}
           {error && <p className="text-red-400">{error}</p>}
           {message && <p className="text-green-400">{message}</p>}
 
-          {/* BOTÓN VALIDAR */}
-          <Button
-            text={loading ? 'Validando...' : 'Validar cuenta'}
-            onClick={handleVerify}
-            className="text-lg font-montserrat font-semibold w-full"
-          />
-
-          {/* BOTÓN IR AL LOGIN */}
-          <Button
-            text="Volver al inicio"
-            onClick={() => navigate('/login', { state: { from: fromRoute } })}
-            className="text-lg font-montserrat font-semibold w-full bg-white/20"
+          <FormActions
+            onCancel={() => navigate('/login', { state: { from: fromRoute } })}
+            onSubmit={handleVerify}
+            cancelText="Volver al inicio"
+            submitText="Validar cuenta"
+            isLoading={loading}
+            loadingText="Validando..."
           />
         </div>
       </div>
