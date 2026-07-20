@@ -126,7 +126,7 @@ function Header() {
   )
 
   return (
-    <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
+    <header className="sticky top-0 bg-[#2A154B] text-white z-[100] shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
       {/* OVERLAY */}
       <AnimatePresence>
         {(isCarteleraOpen || isUserMenuOpen) && (
