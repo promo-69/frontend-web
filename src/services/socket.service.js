@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client'
+import { globalToast } from '../context/ToastContext'
 
 // Mantener la instancia del socket en una variable mutable accesible por todo el servicio
 let socket = null
@@ -13,10 +14,7 @@ const timestamp = () => new Date().toISOString()
 const logSocket = (direction, event, payload) => {
   if (!SOCKET_DEBUG) return
   console.groupCollapsed(`[Socket ${direction}] ${event} @ ${timestamp()}`)
-  console.log('event:', event)
-  console.log('payload:', payload)
-  console.log('socketId:', socket?.id || 'n/a')
-  console.log('connected:', socket?.connected)
+
   console.groupEnd()
 }
 
@@ -25,16 +23,11 @@ const logSocket = (direction, event, payload) => {
 // ===============================
 const connect = () => {
   if (socket) {
-    console.log('[Socket] connect() reuse existing socket', {
-      connected: socket.connected,
-      socketId: socket.id,
-    })
+
     return socket
   }
 
-  console.log(
-    '[Socket] connect() creating new socket',
-  )
+
 
   socket = io(import.meta.env.VITE_WS_URL, {
     withCredentials: true,
@@ -80,6 +73,31 @@ const connect = () => {
     logSocket('RECV', event, args.length === 1 ? args[0] : args)
   })
 
+  // Global Toast Events
+  socket.on('quote_expired', (data) => {
+    globalToast.error(data?.message || 'Tu sesión de compra ha expirado.')
+  })
+  
+  socket.on('seat_lock_error', (data) => {
+    globalToast.error(data?.message || 'Error al reservar el asiento.')
+  })
+  
+  socket.on('seat_locked_by_other', (data) => {
+    globalToast.error(data?.message || 'Ese asiento fue tomado por otra persona.')
+  })
+
+  socket.on('payment_success', (data) => {
+    globalToast.success(data?.message || 'Pago parcial recibido. Saldo restante actualizado.', 6000)
+  })
+
+  socket.on('payment_failed', (data) => {
+    globalToast.error(data?.message || 'No se pudo procesar tu pago.')
+  })
+
+  socket.on('payment_completed', (data) => {
+    globalToast.success('¡Pago completado exitosamente! Preparando tu orden...')
+  })
+
   return socket
 }
 
@@ -88,7 +106,7 @@ const connect = () => {
 // ===============================
 const disconnect = () => {
   if (!socket) return
-  console.log('[Socket] Manual disconnect triggered')
+
   socket.disconnect()
   socket = null
   lastJoinedShowtimeId = null
@@ -152,7 +170,7 @@ const joinShowtime = (showtimeId, force = false) => {
   }
 
   const emitJoin = () => {
-    console.log('[Socket] join_showtime', { showtimeId: numericShowtimeId })
+
     logSocket('SEND', 'join_showtime', { showtimeId: numericShowtimeId })
     socket.emit('join_showtime', { showtimeId: numericShowtimeId })
   }

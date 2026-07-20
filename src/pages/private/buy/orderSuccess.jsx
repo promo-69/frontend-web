@@ -59,7 +59,7 @@ export default function OrderSuccess() {
   const orderId = state?.orderId ?? localOrder?.orderId
   const qrCode = state?.qrCode ?? localOrder?.qrCode
 
-  console.log('OrderSuccess state:', { state, orderId, qrCode })
+
 
   if (!orderId && !qrCode) {
     return (

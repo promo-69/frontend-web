@@ -77,7 +77,7 @@ export default function Confectionery() {
       prodList.forEach(p => { stockMap[p.id] = p.stock ?? 0 })
 
       setProducts(prodList.map(p => ({
-        id: p.id, name: p.name,
+        id: p.id, name: p.name, uniqueId: `prod-${p.id}`,
         price: Number(p.pricing?.final_price ?? p.price ?? 0),
         category: mapCategory(p.product_category),
         image: p.image_url, type: 'product',
@@ -87,7 +87,7 @@ export default function Confectionery() {
         const parts = c._ComboProducts || []
         const hasStock = parts.length === 0 || parts.every(cp => (stockMap[cp.product] || 0) >= cp.quantity)
         return {
-          id: c.id, name: c.name,
+          id: c.id, name: c.name, uniqueId: `combo-${c.id}`,
           price: Number(c.pricing?.final_price ?? c.price ?? 0),
           category: 'Combos', image: c.image_url, type: 'combo',
           available: hasStock,
@@ -132,12 +132,12 @@ export default function Confectionery() {
   }, [checkoutData, paymentMethod])
 
   const addToCart = (p) => setCartItems(prev => {
-    const ex = prev.find(i => i.id === p.id)
-    return ex ? prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i) : [...prev, { ...p, qty: 1 }]
+    const ex = prev.find(i => i.uniqueId === p.uniqueId)
+    return ex ? prev.map(i => i.uniqueId === p.uniqueId ? { ...i, qty: i.qty + 1 } : i) : [...prev, { ...p, qty: 1 }]
   })
-  const removeFromCart = (id) => setCartItems(prev => prev.filter(i => i.id !== id))
-  const updateQty = (id, d) => setCartItems(prev => prev.map(i => {
-    if (i.id !== id) return i
+  const removeFromCart = (uniqueId) => setCartItems(prev => prev.filter(i => i.uniqueId !== uniqueId))
+  const updateQty = (uniqueId, d) => setCartItems(prev => prev.map(i => {
+    if (i.uniqueId !== uniqueId) return i
     const q = Math.max(1, i.qty + d)
     return { ...i, qty: q }
   }))
@@ -208,7 +208,18 @@ export default function Confectionery() {
           quantity: i.qty,
         })),
       }
-      const resp = await createOrderCheckout(payload)
+      let resp
+      try {
+        resp = await createOrderCheckout(payload)
+      } catch (checkErr) {
+        if (checkErr?.response?.status === 409 && checkErr?.response?.data?.message?.includes('cotización')) {
+          try { await deleteOrderSessionWithRetries() } catch {}
+          await initializeOrderQuote({ cinema: effectiveCinemaId })
+          resp = await createOrderCheckout(payload)
+        } else {
+          throw checkErr
+        }
+      }
       const data = resp?.data ?? resp
       setCheckoutData(data)
       setAmountInput(getAmountForCurrency(data, data?.system_base_currency ?? 2))
@@ -238,7 +249,7 @@ export default function Confectionery() {
       }
       await registerPayment(payload)
       // El resultado llega por WebSocket (payment_completed / payment_failed / payment_success)
-      console.log('[Payment] Encolado:', payload)
+
     } catch (e) {
       setPaying(false)
       setError(e?.response?.data?.message || 'Error al registrar el pago')
@@ -285,9 +296,9 @@ export default function Confectionery() {
             {/* Products */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {filtered.map(p => {
-                const inCart = cartItems.find(i => i.id === p.id)
+                const inCart = cartItems.find(i => i.uniqueId === p.uniqueId)
                 return (
-                  <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
+                  <div key={p.uniqueId} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
                     <div className="h-36 bg-black/30 flex items-center justify-center">
                       <img src={p.image || placeholderImg} alt={p.name} className="w-full h-full object-cover"
                         onError={e => { e.target.onerror = null; e.target.src = placeholderImg }} />
@@ -301,7 +312,7 @@ export default function Confectionery() {
                         <span className="mt-auto w-full bg-red-500/20 text-red-400 py-2 rounded-xl font-semibold text-sm text-center">Sin stock</span>
                       ) : inCart ? (
                         <div className="flex items-center justify-between bg-white/10 rounded-xl p-1 mt-auto">
-                          <button onClick={() => inCart.qty <= 1 ? removeFromCart(p.id) : updateQty(p.id, -1)}
+                          <button onClick={() => inCart.qty <= 1 ? removeFromCart(p.uniqueId) : updateQty(p.uniqueId, -1)}
                             className="px-4 py-1 bg-red-500/30 hover:bg-red-500 text-red-300 rounded-lg font-bold">-</button>
                           <span className="font-bold text-yellow-400">{inCart.qty}</span>
                           <button onClick={() => addToCart(p)}
@@ -347,7 +358,7 @@ export default function Confectionery() {
                 <div className="bg-white/10 rounded-2xl p-6 space-y-3">
                   <h3 className="font-bold text-yellow-400">Resumen</h3>
                   {cartItems.map(i => (
-                    <div key={i.id} className="flex justify-between text-sm text-white/80">
+                    <div key={i.uniqueId} className="flex justify-between text-sm text-white/80">
                       <span>{i.name} ×{i.qty}</span>
                       <span>${(i.price * i.qty).toFixed(2)}</span>
                     </div>
