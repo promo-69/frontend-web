@@ -65,7 +65,7 @@ export default function InputSelect({
           </div>
           
           {isOpen && (
-            <div className="absolute z-50 w-full mt-2 bg-[#231640] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute z-50 w-full mt-2 bg-[#231640] border border-white/10 rounded-xl shadow-2xl overflow-y-auto max-h-[300px] animate-in fade-in zoom-in-95 duration-200">
               {options.map((opt, i) => (
                 <div
                   key={i}
