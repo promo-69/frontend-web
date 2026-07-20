@@ -4,8 +4,7 @@ import { AuthContext } from '../context/AuthContext'
 import Header from '../components/ui/Header'
 import { saveAuthRedirect } from '../utils/authNavigation'
 import Favorites from '../pages/authentication/favorites'
-import Profile from '../pages/private/user/profile'
-import ChangePassword from '../pages/private/user/changePassword'
+import ProfileSecurity from '../pages/private/user/ProfileSecurity'
 import Loyalty from '../pages/private/user/loyalty'
 import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
@@ -15,7 +14,6 @@ import OrderSuccess from '../pages/private/buy/orderSuccess'
 import Subscriptions from '../pages/private/user/subscriptions'
 import MoviesGenres from '../pages/private/user/myGenres'
 import RoomRent from '../pages/private/user/roomRent'
-
 function NavigateToBuy() {
   const { movieId, showtimeId } = useParams()
   return <Navigate to={`/buy/${movieId}/${showtimeId}`} replace />
@@ -54,8 +52,7 @@ const PrivateLayout = () => {
 export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/profile/change-password" element={<ChangePassword />} />
+      <Route path="/profile" element={<ProfileSecurity />} />
       <Route path="/fidelity" element={<Loyalty />} />
       <Route path="/subscription" element={<Subscriptions />} />
       <Route path="/myGenres" element={<MoviesGenres />} />

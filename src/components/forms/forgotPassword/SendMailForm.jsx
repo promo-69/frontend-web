@@ -5,6 +5,7 @@ import { AuthContext } from '../../../context/AuthContext'
 import { validateEmail } from '../../../validators/authValidators'
 import InputText from '../../ui/InputText'
 import ModalMessage from '../../ui/ModalMessage'
+import FormActions from '../../ui/FormActions'
 
 function SendMailForm({ onNext }) {
   const { sendRecoveryEmail } = useContext(AuthContext)
@@ -55,46 +56,33 @@ function SendMailForm({ onNext }) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col items-center justify-center gap-10"
+      className="flex flex-col w-full gap-6"
     >
-      <div className="flex flex-col gap-12 items-center">
+      <div className="flex flex-col gap-8 w-full">
         <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
           ¿Olvidaste tu contraseña?
         </h1>
-        <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
+        <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md mx-auto">
           Ingresa tu correo electrónico para enviarte un código de recuperación.
         </p>
-        <div className="flex flex-col gap-6 items-center w-80">
-          <div className="relative w-full">
-            <InputText
-                      id="email"
-                      label="Correo"
-                      type="email"
-                      register={register('email', {
-                        validate: (value) =>
-                          validateEmail(value) === true || validateEmail(value),
-                      })}
-                      error={errors.email?.message}
-                      value={emailValue}
-                    />
-          </div>
-        </div>
 
-        <div className="w-full flex items-center justify-center gap-8 pt-6">
-          <Button
-            text="Cancelar"
-            type="button"
-            className="bg-gray-500 text-white"
-            onClick={() => window.history.back()}
-          />
-          <Button
-            text={isLoading ? 'Enviando...' : 'Enviar correo'}
-            type="submit"
-            disabled={isLoading}
-            isLoading={isLoading}
-            className="text-lg font-montserrat font-semibold"
-          />
-        </div>
+        <InputText
+          id="email"
+          label="Correo"
+          type="email"
+          register={register('email', {
+            validate: (value) =>
+              validateEmail(value) === true || validateEmail(value),
+          })}
+          error={errors.email?.message}
+          value={emailValue}
+        />
+
+        <FormActions
+          isLoading={isLoading}
+          loadingText="Enviando..."
+          submitText="Enviar correo"
+        />
       </div>
       {showModal && (
         <ModalMessage

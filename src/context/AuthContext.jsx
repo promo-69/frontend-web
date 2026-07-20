@@ -56,7 +56,10 @@ export function AuthProvider({ children }) {
           // enriquecer el objeto user con los datos completos de /users/me
           try {
             const meRes = await getCurrentUserRequest()
-            const payload = meRes?.data?.data?.person || meRes?.data?.person || meRes?.data?.data || meRes?.data
+            let payload = meRes?.data?.data || meRes?.data
+            if (payload?.person && typeof payload.person === 'object') {
+              payload = payload.person
+            }
             if (payload) {
               const patch = {}
               const normalize = (v) => (v === undefined || v === null || (typeof v === 'string' && !v.trim()) ? null : v)
@@ -70,6 +73,11 @@ export function AuthProvider({ children }) {
               if (first) patch.firstName = first
               const last = normalize(payload.last_name) || normalize(payload?._People?.last_name)
               if (last) patch.lastName = last
+              const genderVal = normalize(payload.gender) || normalize(payload.gender_id) || normalize(payload?._People?.gender) || normalize(payload?._People?.gender_id)
+              if (genderVal) {
+                patch.gender = genderVal
+                patch.gender_id = genderVal
+              }
               if (payload._People) patch._People = payload._People
 
               userData = { ...userData, ...patch }
