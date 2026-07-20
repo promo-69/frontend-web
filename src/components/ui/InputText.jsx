@@ -36,6 +36,32 @@ export default function InputText({
       e.target.value = val;
     }
   }
+  const handleBlur = (e) => {
+    const val = e.target.value;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      
+      // Se fuerza la actualización visual del DOM.
+      // En inputs type="email", el navegador elimina los espacios en val nativamente, 
+      // pero los mantiene visualmente. Esto fuerza a que la vista se limpie.
+      e.target.value = '';
+      e.target.value = trimmed;
+
+      if (register?.onChange) {
+        register.onChange({
+          ...e,
+          target: {
+            ...e.target,
+            value: trimmed,
+            name: e.target.name || id
+          }
+        });
+      }
+    }
+    if (register?.onBlur) {
+      register.onBlur(e);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
@@ -59,6 +85,7 @@ export default function InputText({
             id={id}
             type={type}
             {...register}
+            onBlur={handleBlur}
             disabled={isDisabled}
             placeholder=" "
             onInput={handleInput}

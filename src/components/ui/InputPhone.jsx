@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { FiChevronDown } from 'react-icons/fi'
 
 export default function InputPhone({
@@ -13,6 +13,56 @@ export default function InputPhone({
   disabled = false,
 }) {
   const isDisabled = disabled || (registerText && registerText.disabled)
+  
+  const handleBlur = (e) => {
+    const val = e.target.value;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      
+      e.target.value = '';
+      e.target.value = trimmed;
+
+      if (registerText?.onChange) {
+        registerText.onChange({
+          ...e,
+          target: {
+            ...e.target,
+            value: trimmed,
+            name: e.target.name || id
+          }
+        });
+      }
+    }
+    if (registerText?.onBlur) {
+      registerText.onBlur(e);
+    }
+  }
+
+  const [isSelectOpen, setIsSelectOpen] = useState(false)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsSelectOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelectClick = () => {
+    if (!isDisabled) setIsSelectOpen(!isSelectOpen)
+  }
+
+  const handleSelectOption = (value) => {
+    if (onChangeSelect) {
+      onChangeSelect({ target: { value } })
+    }
+    setIsSelectOpen(false)
+  }
+
+  const selectedOption = options.find(o => o.desc === valueSelect)
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
@@ -23,27 +73,35 @@ export default function InputPhone({
         ${error && !isDisabled ? 'border-red-500/80 focus-within:border-red-500 focus-within:ring-red-500' : ''}
       `}>
         
-        {/* Select portion */}
-        <div className="relative flex items-center shrink-0 border-r border-white/10">
+        {/* Custom Select portion */}
+        <div className="relative flex items-center shrink-0 border-r border-white/10" ref={containerRef}>
           {isDisabled ? (
             <div className="py-3 px-3 text-sm text-white/70">
-              {options.find(o => o.desc === valueSelect)?.name || valueSelect}
+              {selectedOption?.name || valueSelect}
             </div>
           ) : (
             <>
-              <select
-                value={valueSelect}
-                onChange={onChangeSelect}
-                disabled={isDisabled}
-                className="bg-transparent border-none text-white outline-none cursor-pointer text-sm font-montserrat focus:ring-0 appearance-none py-3 pl-4 pr-8 relative z-10"
+              <div 
+                onClick={handleSelectClick}
+                className="flex items-center justify-between bg-transparent w-full text-white cursor-pointer select-none py-3 pl-4 pr-3 min-w-[90px]"
               >
-                {options.map((opt, i) => (
-                  <option key={i} value={opt.desc} className="bg-[#231640]">
-                    {opt.name}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown className="absolute right-3 text-white/50 pointer-events-none z-0" />
+                <span className="text-sm font-montserrat">{selectedOption?.desc || valueSelect}</span>
+                <FiChevronDown className={`ml-2 text-white/50 transition-transform duration-300 ${isSelectOpen ? 'rotate-180' : ''}`} />
+              </div>
+              
+              {isSelectOpen && (
+                <div className="absolute top-full left-0 z-50 min-w-[120px] mt-2 bg-[#231640] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  {options.map((opt, i) => (
+                    <div
+                      key={i}
+                      onClick={() => handleSelectOption(opt.desc)}
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors hover:bg-white/10 ${opt.desc === valueSelect ? 'text-yellow-400 font-bold bg-white/5' : 'text-white/80'}`}
+                    >
+                      {opt.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -59,6 +117,7 @@ export default function InputPhone({
               id={id}
               type="text"
               {...registerText}
+              onBlur={handleBlur}
               disabled={isDisabled}
               placeholder=" "
               className="w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none text-sm py-3 px-4 placeholder:text-white/30"
