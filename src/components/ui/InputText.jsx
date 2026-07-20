@@ -10,6 +10,7 @@ export default function InputText({
   disabled = false,
   filter = 'none',
   prefixElement = null,
+  placeholder,
 }) {
   const isDisabled = disabled || (register && register.disabled)
 
@@ -87,7 +88,7 @@ export default function InputText({
             {...register}
             onBlur={handleBlur}
             disabled={isDisabled}
-            placeholder=" "
+            placeholder={placeholder || register?.placeholder || ""}
             onInput={handleInput}
             className={`bg-transparent w-full text-white outline-none py-3 placeholder:text-white/30 ${prefixElement ? 'pr-4' : 'px-4'}`}
           />

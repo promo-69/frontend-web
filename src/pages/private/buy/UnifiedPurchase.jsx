@@ -377,7 +377,7 @@ export default function UnifiedPurchase() {
       productList.forEach(p => { productStockMap[p.id] = p.stock ?? 0 })
 
       setProducts(productList.map(p => ({
-        id: p.id, name: p.name,
+        id: p.id, name: p.name, uniqueId: `prod-${p.id}`,
         price: Number(p.pricing?.final_price ?? p.price ?? 0),
         category: mapCategory(p.product_category),
         image: p.image_url, type: 'product',
@@ -387,7 +387,7 @@ export default function UnifiedPurchase() {
         const parts = c._ComboProducts || []
         const hasStock = parts.length === 0 || parts.every(cp => (productStockMap[cp.product] || 0) >= cp.quantity)
         return {
-          id: c.id, name: c.name,
+          id: c.id, name: c.name, uniqueId: `combo-${c.id}`,
           price: Number(c.pricing?.final_price ?? c.price ?? 0),
           category: 'Combos', image: c.image_url, type: 'combo',
           available: hasStock,
@@ -429,14 +429,14 @@ export default function UnifiedPurchase() {
   // ── Confectionery actions ──
   const addToCart = (item) => {
     setCartItems(prev => {
-      const existing = prev.find(i => i.id === item.id)
-      if (existing) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)
+      const existing = prev.find(i => i.uniqueId === item.uniqueId)
+      if (existing) return prev.map(i => i.uniqueId === item.uniqueId ? { ...i, qty: i.qty + 1 } : i)
       return [...prev, { ...item, qty: 1 }]
     })
   }
-  const removeFromCart = (id) => setCartItems(prev => prev.filter(i => i.id !== id))
-  const updateCartQty = (id, delta) => setCartItems(prev => prev.map(i => {
-    if (i.id !== id) return i
+  const removeFromCart = (uniqueId) => setCartItems(prev => prev.filter(i => i.uniqueId !== uniqueId))
+  const updateCartQty = (uniqueId, delta) => setCartItems(prev => prev.map(i => {
+    if (i.uniqueId !== uniqueId) return i
     const newQty = Math.max(1, i.qty + delta)
     return { ...i, qty: newQty }
   }))
@@ -472,7 +472,13 @@ export default function UnifiedPurchase() {
   const handleGoToPayment = async () => {
     setStep(4)
     setLoading(true)
+    setPaymentError(null)
     try {
+      if (checkoutData) {
+        try { await deleteOrderSessionWithRetries() } catch {}
+        await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+      }
+
       // Refrescar locks antes del checkout
       selectedSeatsList.forEach(s => socketService.emit('lock_seat', { seatId: s.id }))
       await new Promise(r => setTimeout(r, 300))
@@ -493,7 +499,24 @@ export default function UnifiedPurchase() {
           quantity: i.qty,
         })),
       }
-      const resp = await createOrderCheckout(payload)
+      let resp
+      try {
+        resp = await createOrderCheckout(payload)
+      } catch (checkErr) {
+        // Si el servidor indica que la cotización ya no está disponible (ej. por un intento anterior que quedó en PENDING_PAYMENT)
+        if (checkErr?.response?.status === 409 && checkErr?.response?.data?.message?.includes('cotización')) {
+          try { await deleteOrderSessionWithRetries() } catch {}
+          await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+          // Volver a asegurar los locks
+          selectedSeatsList.forEach(s => socketService.emit('lock_seat', { seatId: s.id }))
+          await new Promise(r => setTimeout(r, 300))
+          // Reintentar el checkout con la nueva cotización
+          resp = await createOrderCheckout(payload)
+        } else {
+          throw checkErr
+        }
+      }
+
       const data = resp?.data ?? resp
       setCheckoutData(data)
       setAmountInput(getAmountForCurrency(data, data?.system_base_currency ?? 2))
@@ -531,11 +554,11 @@ export default function UnifiedPurchase() {
       if (!orderId) {
         orderId = await resolveOrderIdFromSessionDetails()
         if (orderId) {
-          console.log('[UnifiedPurchase] payment fallback orderId from session details:', orderId)
+
         }
       }
 
-      console.log('[Payment] Encolado, esperando confirmación de orden:', resp)
+
 
       if (orderId) {
         const completedOrder = await waitForCompletedOrder(orderId)
@@ -548,7 +571,7 @@ export default function UnifiedPurchase() {
       }
 
       // Si la orden aún no está completamente procesada, dejamos que el WebSocket maneje el resultado
-      console.log('[Payment] Orden en espera de confirmación definitiva. WebSocket seguirá la actualización.')
+
     } catch (e) {
       setPaymentProcessing(false)
       setPaymentError(e?.response?.data?.message || 'Error al registrar el pago')
@@ -665,6 +688,12 @@ export default function UnifiedPurchase() {
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-yellow-400">Confitería</h2>
 
+            {paymentError && (
+              <div className="bg-red-500/20 border border-red-500/40 text-red-300 p-4 rounded-xl text-sm">
+                {paymentError}
+              </div>
+            )}
+
             {/* Categories */}
             <div className="flex gap-2 overflow-x-auto pb-2 border-b border-white/10">
               {CATEGORIES.map(cat => (
@@ -679,9 +708,9 @@ export default function UnifiedPurchase() {
             {/* Products */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredItems.map(p => {
-                const inCart = cartItems.find(i => i.id === p.id)
+                const inCart = cartItems.find(i => i.uniqueId === p.uniqueId)
                 return (
-                  <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
+                  <div key={p.uniqueId} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
                     <div className="h-36 bg-black/30 flex items-center justify-center">
                       <img src={p.image || placeholderImg} alt={p.name} className="w-full h-full object-cover" onError={e => { e.target.onerror = null; e.target.src = placeholderImg }} />
                     </div>
@@ -694,7 +723,7 @@ export default function UnifiedPurchase() {
                         <span className="mt-auto w-full bg-red-500/20 text-red-400 py-2 rounded-xl font-semibold text-sm text-center">No disponible</span>
                       ) : inCart ? (
                         <div className="flex items-center justify-between bg-white/10 rounded-xl p-1 mt-auto">
-                          <button onClick={() => inCart.qty <= 1 ? removeFromCart(p.id) : updateCartQty(p.id, -1)}
+                          <button onClick={() => inCart.qty <= 1 ? removeFromCart(p.uniqueId) : updateCartQty(p.uniqueId, -1)}
                             className="px-4 py-1 bg-red-500/30 hover:bg-red-500 text-red-300 rounded-lg font-bold">-</button>
                           <span className="font-bold text-yellow-400">{inCart.qty}</span>
                           <button onClick={() => addToCart(p)}

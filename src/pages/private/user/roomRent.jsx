@@ -6,6 +6,11 @@ import cinemaPeopleImg from '../../../assets/images/room-rent.webp'
 // 1. Añadida la importación del nuevo servicio
 import { getCinemas, getRoomsByCinema, createRequestRentRoom, getMyRentRequest } from '../../../services/info.service'
 import MyRentRequestsModal from '../../../components/ui/MyRentRequest'
+import InputText from '../../../components/ui/InputText'
+import InputSelect from '../../../components/ui/InputSelect'
+import InputTextArea from '../../../components/ui/InputTextArea'
+import Button from '../../../components/ui/Button'
+import InlineNote from '../../../components/ui/InlineNote'
 
 const EVENT_TYPES = [
   { id: 1, name: "Corporativo" },
@@ -55,7 +60,7 @@ export default function RoomRent() {
         console.error('❌ Error al cargar sucursales:', error)
         setCinemas([])
       } finally {
-        loadingCinemas(false)
+        setLoadingCinemas(false)
       }
     }
     loadInitialData()
@@ -183,96 +188,164 @@ export default function RoomRent() {
             >
                 {/* Campos de formulario idénticos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Sucursal *</label>
-                    <div className="relative flex items-center">
-                      <FiMapPin className="absolute left-4 text-gray-400" />
-                      <select value={selectedCinemaId} onChange={handleCinemaChange} required disabled={submitting} className={`${commonInputClass} pl-11`}>
-                        <option value="" className={dropdownOptionClass}>Seleccionar...</option>
-                        {cinemas.map(c => <option key={c.id} value={c.id} className={dropdownOptionClass}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
+                  <InputSelect
+                    id="cinema"
+                    label="Sucursal *"
+                    value={selectedCinemaId}
+                    disabled={submitting}
+                    options={[
+                      { label: 'Seleccionar...', value: '' },
+                      ...cinemas.map(c => ({ label: c.name, value: c.id }))
+                    ]}
+                    register={{
+                      name: "cinema",
+                      value: selectedCinemaId,
+                      onChange: handleCinemaChange,
+                      required: true
+                    }}
+                  />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Sala *</label>
-                    <div className="relative flex items-center">
-                      <FiBookOpen className="absolute left-4 text-gray-400" />
-                      <select name="room" value={formData.room} onChange={handleNumberInputChange} required disabled={!selectedCinemaId || submitting} className={`${commonInputClass} pl-11`}>
-                        <option value="" className={dropdownOptionClass}>{loadingRooms ? 'Cargando...' : 'Seleccionar...'}</option>
-                        {rooms.map(r => <option key={r.id} value={r.id} className={dropdownOptionClass}>{r.name} ({r.current_capacity || r.capacity} pers.)</option>)}
-                      </select>
-                    </div>
-                  </div>
+                  <InputSelect
+                    id="room"
+                    label="Sala *"
+                    value={formData.room}
+                    disabled={!selectedCinemaId || submitting}
+                    options={[
+                      { label: loadingRooms ? 'Cargando...' : 'Seleccionar...', value: '' },
+                      ...rooms.map(r => ({ label: `${r.name} (${r.current_capacity || r.capacity} pers.)`, value: r.id }))
+                    ]}
+                    register={{
+                      name: "room",
+                      value: formData.room,
+                      onChange: handleNumberInputChange,
+                      required: true
+                    }}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-1.5 col-span-1">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Categoría *</label>
-                    <select name="event_type" value={formData.event_type} onChange={handleNumberInputChange} required disabled={submitting} className={commonInputClass}>
-                      <option value="" className={dropdownOptionClass}>Tipo...</option>
-                      {EVENT_TYPES.map(t => <option key={t.id} value={t.id} className={dropdownOptionClass}>{t.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5 col-span-2">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Nombre del Evento *</label>
-                    <input type="text" name="event_name" value={formData.event_name} onChange={handleInputChange} required disabled={submitting} placeholder="Ej: Mi Fiesta VIP" className={commonInputClass} />
-                  </div>
+                <div className="flex flex-col gap-4">
+                  <InputSelect
+                    id="event_type"
+                    label="Categoría *"
+                    value={formData.event_type}
+                    disabled={submitting}
+                    options={[
+                      { label: 'Tipo...', value: '' },
+                      ...EVENT_TYPES.map(t => ({ label: t.name, value: t.id }))
+                    ]}
+                    register={{
+                      name: "event_type",
+                      value: formData.event_type,
+                      onChange: handleNumberInputChange,
+                      required: true
+                    }}
+                  />
+                  <InputText
+                    id="event_name"
+                    label="Nombre del Evento *"
+                    type="text"
+                    value={formData.event_name}
+                    disabled={submitting}
+                    register={{
+                      name: "event_name",
+                      value: formData.event_name,
+                      onChange: handleInputChange,
+                      required: true,
+                      placeholder: "Ej: Mi Fiesta VIP"
+                    }}
+                  />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Descripción y Requerimientos *</label>
-                  <textarea name="event_description" value={formData.event_description} onChange={handleInputChange} required disabled={submitting} rows="2" placeholder="Detalles obligatorios del evento..." className={`${commonInputClass} resize-none`} />
+                <InputTextArea
+                  id="event_description"
+                  label="Descripción y Requerimientos *"
+                  value={formData.event_description}
+                  disabled={submitting}
+                  rows={2}
+                  register={{
+                    name: "event_description",
+                    value: formData.event_description,
+                    onChange: handleInputChange,
+                    required: true,
+                    placeholder: "Detalles obligatorios del evento..."
+                  }}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputText
+                    id="event_date"
+                    label="Fecha *"
+                    type="date"
+                    value={formData.event_date}
+                    disabled={submitting}
+                    register={{
+                      name: "event_date",
+                      value: formData.event_date,
+                      onChange: handleInputChange,
+                      min: getMinEventDate(),
+                      required: true
+                    }}
+                  />
+
+                  <InputText
+                    id="attendees"
+                    label="Asistentes *"
+                    type="number"
+                    value={formData.attendees}
+                    disabled={submitting}
+                    filter="numbers"
+                    register={{
+                      name: "attendees",
+                      value: formData.attendees,
+                      onChange: handleNumberInputChange,
+                      min: "1",
+                      required: true,
+                      placeholder: "0"
+                    }}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Fecha *</label>
-                    <div className="relative flex items-center">
-                      <FiCalendar className="absolute left-4 text-gray-400" />
-                      <input type="date" name="event_date" value={formData.event_date} onChange={handleInputChange} min={getMinEventDate()} required disabled={submitting} className={`${commonInputClass} pl-11`} />
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputText
+                    id="requested_start_time"
+                    label="Hora Inicio *"
+                    type="time"
+                    value={formData.requested_start_time}
+                    disabled={submitting}
+                    register={{
+                      name: "requested_start_time",
+                      value: formData.requested_start_time,
+                      onChange: handleInputChange,
+                      required: true
+                    }}
+                  />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Hora Inicio *</label>
-                    <div className="relative flex items-center">
-                      <FiClock className="absolute left-4 text-gray-400" />
-                      <input type="time" name="requested_start_time" value={formData.requested_start_time} onChange={handleInputChange} required disabled={submitting} className={`${commonInputClass} pl-11`} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Hora Fin *</label>
-                    <div className="relative flex items-center">
-                      <FiClock className="absolute left-4 text-gray-400" />
-                      <input type="time" name="requested_end_time" value={formData.requested_end_time} onChange={handleInputChange} required disabled={submitting} className={`${commonInputClass} pl-11`} />
-                    </div>
-                  </div>
+                  <InputText
+                    id="requested_end_time"
+                    label="Hora Fin *"
+                    type="time"
+                    value={formData.requested_end_time}
+                    disabled={submitting}
+                    register={{
+                      name: "requested_end_time",
+                      value: formData.requested_end_time,
+                      onChange: handleInputChange,
+                      required: true
+                    }}
+                  />
                 </div>
 
-                <div className="flex flex-col gap-1.5 md:max-w-[150px]">
-                    <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">Asistentes *</label>
-                    <div className="relative flex items-center">
-                      <FiUsers className="absolute left-4 text-gray-400" />
-                      <input type="number" name="attendees" value={formData.attendees} onChange={handleNumberInputChange} required min="1" disabled={submitting} placeholder="0" className={`${commonInputClass} pl-11`} />
-                    </div>
-                </div>
+                <InlineNote type="important" title="Nota importante:">
+                  <span>Solicitud con un mínimo de <strong>2 semanas (14 días) de anticipación</strong>.</span>
+                </InlineNote>
 
-                <div className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-xl text-xs text-amber-400/90 leading-relaxed">
-                  <FiInfo className="w-4 h-4 mt-0.5 shrink-0 text-yellow-500" />
-                  <p>
-                    <strong>Nota importante:</strong> Solicitud con un mínimo de <strong>2 semanas (14 días) de anticipación</strong>.
-                  </p>
-                </div>
-
-                <button 
+                <Button 
                   type="submit" 
                   disabled={loadingCinemas || loadingRooms || submitting}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-[#231640] font-black py-3.5 rounded-xl hover:scale-[1.01] active:scale-95 transition-all shadow-xl uppercase tracking-widest disabled:opacity-50 text-xs md:text-sm"
-                >
-                  {submitting ? 'Enviando solicitud...' : (loadingCinemas ? 'Cargando sucursales...' : 'Solicitar Alquiler')}
-                </button>
+                  isLoading={submitting}
+                  text={submitting ? 'Enviando solicitud...' : (loadingCinemas ? 'Cargando sucursales...' : 'Solicitar Alquiler')}
+                  className="w-full !rounded-xl !py-3.5 !text-xs md:!text-sm"
+                />
             </form>
 
             <div className="lg:order-2 lg:h-full flex flex-col">

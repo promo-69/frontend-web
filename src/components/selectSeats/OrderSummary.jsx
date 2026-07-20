@@ -68,7 +68,7 @@ export default function OrderSummary({
     })
 
     const subtotal = list.reduce((sum, ticket) => sum + ticket.price, 0)
-    console.log('Subtotal final de boletos calculado:', subtotal)
+
 
     return { list, subtotal }
   }, [selectedSeatsList, currentShowtime, isPublicMode])

@@ -104,10 +104,7 @@ export default function Checkout() {
           })),
         }
 
-        console.log(
-          '[CHECKOUT INIT] Enviando payload a /orders/checkout:',
-          payload,
-        )
+
         // Asegurar que los locks siguen vigentes: reemitir `lock_seat` y esperar confirmación
         // Inicializar el set local de locks detectados desde el carrito
         try {
@@ -122,7 +119,13 @@ export default function Checkout() {
             if (!socketService.getSocket()) {
               socketService.connect()
             }
+            if (checkoutData) {
+              try { await deleteOrderSessionWithRetries() } catch {}
+              await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+            }
 
+            // Bloquear todos los asientos en paralelo (backend no admite array todavía, usamos Promise.all)
+            // PERO manejando errores silenciosamente para poder identificar cuáles fallaron.
             const waitForSeatLocks = (ids, timeoutMs = 4000) =>
               new Promise(async (resolve) => {
                 const pending = new Set(ids)
@@ -204,10 +207,19 @@ export default function Checkout() {
             console.warn('[CHECKOUT] error al esperar seat_lock_success:', e)
           }
         }
-        // Llamada a la API: POST /orders/checkout
-        const response = await createOrderCheckout(payload)
-
-        console.log('[CHECKOUT INIT] Respuesta completa del backend:', response)
+        let response;
+        try {
+          response = await createOrderCheckout(payload)
+        } catch (checkErr) {
+          if (checkErr?.response?.status === 409 && checkErr?.response?.data?.message?.includes('cotización')) {
+            try { await deleteOrderSessionWithRetries() } catch {}
+            await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+            // Reintentar el checkout con la nueva cotización
+            response = await createOrderCheckout(payload)
+          } else {
+            throw checkErr
+          }
+        }
 
         setCheckoutData(response)
         setRemainingBalance(null)
@@ -224,24 +236,7 @@ export default function Checkout() {
           respData?.currency_id ??
           null
 
-        //logs para pruebas
-        console.log('[CHECKOUT DEBUG DETALLADO] respData es:', respData)
-        console.log(
-          '[CHECKOUT DEBUG DETALLADO] total_amount_base_currency:',
-          respData?.total_amount_base_currency,
-        )
-        console.log(
-          '[CHECKOUT DEBUG DETALLADO] total_base_currency:',
-          respData?.total_base_currency,
-        )
-        console.log(
-          '[CHECKOUT DEBUG DETALLADO] total de respData:',
-          respData?.total,
-        )
-        console.log(
-          '[CHECKOUT DEBUG DETALLADO] Fallback de CartContext total:',
-          getTotals().total,
-        )
+
 
         if (typeof totalBase !== 'undefined') {
           setAmountInput(getAmountForCurrency(respData, Number(currencyFromResp ?? 2)))
@@ -382,11 +377,7 @@ export default function Checkout() {
       const orderStatus = details?.data?.order?.order_status
 
       if (orderId && orderStatus != null) {
-        console.log('Cancelación de orden detectada:', {
-          orderId,
-          orderStatus,
-          reason,
-        })
+
       }
 
       await deleteOrderSessionWithRetries()
@@ -433,13 +424,10 @@ export default function Checkout() {
         reference_number: referenceNumber.trim(),
       }
 
-      console.log(
-        '[PAYMENT HTTP] Registrando pago con payload:',
-        paymentPayload,
-      )
+
 
       const response = await registerPayment(paymentPayload)
-      console.log('registerPayment response:', response)
+
 
       // Normalize response shape: backend returns a wrapper { success, message, data: { ... } }
       const wrapper = response?.data ?? response
@@ -481,15 +469,10 @@ export default function Checkout() {
         wrapper?.qr_code ??
         wrapper?.qrcode
 
-      console.log('Normalized payment response:', {
-        wrapper,
-        respData,
-        orderId,
-        qrCode,
-      })
+
 
       if (orderId) {
-        console.log('Payment registered, waiting for completed order:', { orderId, qrCode })
+
         setError('Pago registrado. Confirmando estado final de la orden...')
 
         const completedOrder = await waitForCompletedOrder(orderId)
@@ -620,7 +603,7 @@ export default function Checkout() {
 
     // Conectar handlers usando socketService (evitar nombres de evento inconsistentes)
     const handleSocketPaymentSuccess = async (payload) => {
-      console.log('socket payment_success payload:', payload)
+
       const wrapper = payload?.data ?? payload
       const orderId =
         payload?.orderId ??
@@ -664,7 +647,7 @@ export default function Checkout() {
 
     socketService.on('billing_required', (payload) => {
       alert('Se requiere facturación para completar la compra.')
-      console.log('billing_required', payload)
+
     })
     // NOTE: no registrar aquí `seat_lock_success` para logging; el flujo
     // de checkout espera confirmaciones puntuales cuando es necesario.

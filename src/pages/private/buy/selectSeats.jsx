@@ -191,7 +191,7 @@ export default function SelectSeats() {
       joinErrorTimers.push(setTimeout(() => {
         if (!mounted) return
         if (socketService.getSocket()?.connected) {
-          console.log('[Socket] Retrying join_showtime after join_error')
+
           socketService.joinShowtime(showtimeId, true)
         }
       }, 800))

@@ -30,7 +30,7 @@ export function PurchaseProvider({ children }) {
     quoteInitializedRef.current = true
 
     try {
-      console.log('[PurchaseContext] Intentando crear la cotización primero en el servidor...', { cinema: targetCinemaId })
+
 
       const payload = { cinema: Number(targetCinemaId) }
 
@@ -56,7 +56,7 @@ export function PurchaseProvider({ children }) {
           }
 
           const activeSession = existingSession.data.session
-          console.log('[PurchaseContext] Sesión concurrente (409) recuperada exitosamente:', activeSession)
+
 
           setCinemaId(activeSession.cinemaId || targetCinemaId)
           setShowtimeId(targetShowtimeId)
@@ -79,7 +79,7 @@ export function PurchaseProvider({ children }) {
           }
 
           const activeSession = existingSession.data.session
-          console.log('[PurchaseContext] Sesión alternativa recuperada exitosamente tras error:', activeSession)
+
 
           setCinemaId(activeSession.cinemaId || targetCinemaId)
           setShowtimeId(targetShowtimeId)

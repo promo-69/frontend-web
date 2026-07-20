@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
 
     async function initSession() {
       if (!localStorage.getItem('user_logged')) {
-        console.log('DEBUG CONTEXTO: Modo invitado activo.')
+
         if (isMounted) {
           setUser(null)
           setInitializing(false)
@@ -155,7 +155,7 @@ export function AuthProvider({ children }) {
       try {
         const meRes = await getCurrentUserRequest()
         const payload = meRes?.data?.data?.person || meRes?.data?.person || meRes?.data?.data || meRes?.data
-        console.log('DEBUG login /users/me payload:', payload)
+
         if (payload) {
           const birth = payload.birth_date || payload?._People?.birth_date || payload?.birthday || payload?.dateOfBirth || payload?.dob
           if (birth) userData.birth_date = birth
