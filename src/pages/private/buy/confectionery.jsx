@@ -264,14 +264,14 @@ export default function Confectionery() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-gradient-to-b from-[#231640] via-[#7B1A82] to-[#231640]">
+      <div className="min-h-screen flex items-center justify-center text-white bg-[#231640]">
         <p className="animate-pulse text-lg">Cargando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen text-white pb-20" style={{ background: 'linear-gradient(to bottom, #231640 0%, #7B1A82 50%, #231640 100%)' }}>
+    <div className="min-h-screen text-white pb-20 bg-[#231640]">
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Cinema selector */}
