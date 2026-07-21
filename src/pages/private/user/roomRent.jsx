@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiTag, FiBookOpen, FiInfo, FiList, FiPlus, FiChevronLeft, FiChevronRight, FiHash } from 'react-icons/fi'
 import Footer from '../../../components/ui/Footer'
+import PageHeader from '../../../components/ui/PageHeader'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import cinemaPeopleImg from '../../../assets/images/room-rent.webp'
 import { getCinemas, getRoomsByCinema, createRequestRentRoom, getMyRentRequest } from '../../../services/info.service'
@@ -238,37 +239,32 @@ export default function RoomRent() {
       
       <section className="px-4 md:px-8 lg:px-16 w-full flex-grow relative z-10 py-16">
         <div className="max-w-7xl mx-auto">
-          
           {/* Cabecera Dinámica */}
-          <div className="border-l-4 border-yellow-500 pl-4 mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight">
-                Alquiler <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">de Sala</span>
-              </h3>
-              <p className="text-sm text-gray-300 mt-2 max-w-xl">
-                {viewMode === 'form' 
-                  ? 'Organiza tus eventos privados con la mejor tecnología cinematográfica. Planifica tu evento perfecto en nuestras instalaciones.'
-                  : 'Consulta el historial y estado de tus reservas de sala.'}
-              </p>
-            </div>
-            
-            {/* Botón Dinámico */}
-            {viewMode === 'list' ? (
-              <button
-                onClick={() => setViewMode('form')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-[#231640] text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-yellow-500/10 active:scale-95"
-              >
-                <FiPlus className="w-4 h-4" /> Elaborar solicitud
-              </button>
-            ) : (
-              <button
-                onClick={() => setViewMode('list')}
-                className="flex items-center gap-2 px-5 py-2.5 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95"
-              >
-                <FiList className="w-4 h-4" /> Volver a mis solicitudes
-              </button>
-            )}
-          </div>
+          <PageHeader
+            className="mb-12"
+            titlePrefix="Alquiler"
+            titleHighlight="de Sala"
+            subtitle={viewMode === 'form' 
+              ? 'Organiza tus eventos privados con la mejor tecnología cinematográfica. Planifica tu evento perfecto en nuestras instalaciones.'
+              : 'Consulta el historial y estado de tus reservas de sala.'}
+            rightContent={
+              viewMode === 'list' ? (
+                <button
+                  onClick={() => setViewMode('form')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-[#231640] text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-yellow-500/10 active:scale-95"
+                >
+                  <FiPlus className="w-4 h-4" /> Elaborar solicitud
+                </button>
+              ) : (
+                <button
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 text-xs font-black uppercase tracking-wider rounded-xl transition-all active:scale-95"
+                >
+                  <FiList className="w-4 h-4" /> Volver a mis solicitudes
+                </button>
+              )
+            }
+          />
 
           {/* VISTAS */}
           {viewMode === 'list' ? (
