@@ -96,8 +96,8 @@ function MyOrders() {
 
   const getStatusStyles = (statusId, statusText) => {
     const s = String(statusText || statusId).toLowerCase()
-    if (s.includes('completado') || statusId === 3) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-    if (s.includes('cancelado') || statusId === 4) return "bg-rose-500/10 text-rose-400 border-rose-500/30"
+    if (s.includes('completado') || statusId === 4) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+    if (s.includes('cancelado') || statusId === 3) return "bg-rose-500/10 text-rose-400 border-rose-500/30"
     if (s.includes('proceso') || statusId === 2) return "bg-blue-500/10 text-blue-400 border-blue-500/30"
     return "bg-amber-500/10 text-amber-400 border-amber-500/30"
   }
@@ -105,8 +105,8 @@ function MyOrders() {
   const statusMap = {
     1: 'Pendiente',
     2: 'En proceso',
-    3: 'Completado',
-    4: 'Cancelado',
+    3: 'Cancelado',
+    4: 'Completado',
   }
 
   if (loading && orders.length === 0) {
@@ -148,7 +148,8 @@ function MyOrders() {
           <>
             <div className={`grid grid-cols-1 ${orders.length > 1 ? 'lg:grid-cols-2' : ''} gap-6 relative transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
               {orders.map((order) => {
-                const badgeClass = getStatusStyles(order.order_status, statusMap[order.order_status] || order.order_status)
+                const statusName = order._OrderStatuses?.name || statusMap[order.order_status] || order.order_status || 'Pendiente'
+                const badgeClass = getStatusStyles(order.order_status, statusName)
                 
                 return (
                   <div key={order.id || order.orderId} className="bg-[#231640] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4 hover:border-yellow-500/30 transition-colors">
@@ -162,7 +163,7 @@ function MyOrders() {
                         <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt || order.date)}</p>
                       </div>
                       <span className={`w-fit shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-md uppercase tracking-wider border ${badgeClass}`}>
-                        {statusMap[order.order_status] || order.order_status || 'Pendiente'}
+                        {statusName}
                       </span>
                     </div>
 
