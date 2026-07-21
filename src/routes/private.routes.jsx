@@ -55,7 +55,7 @@ export const privateRoutes = (
       <Route path="/profile" element={<ProfileSecurity />} />
       <Route path="/fidelity" element={<Loyalty />} />
       <Route path="/subscription" element={<Subscriptions />} />
-      <Route path="/myGenres" element={<MoviesGenres />} />
+      <Route path="/showtime-recommendations" element={<MoviesGenres />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
       <Route path="/room-rent" element={<RoomRent />} />

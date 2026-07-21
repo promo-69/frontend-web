@@ -96,7 +96,7 @@ export default function ForU() {
       });
       setShowLoginModal(true);
     } else {
-      navigate('/myGenres'); 
+      navigate('/showtime-recommendations'); 
     }
   };
 
@@ -270,7 +270,7 @@ export default function ForU() {
               <FiChevronRight size={20} />
             </button>
             <button 
-              onClick={() => navigate('/myGenres')} 
+              onClick={() => navigate('/showtime-recommendations')} 
               className="ml-2 bg-[#f4b400] hover:bg-[#e0a500] text-black font-black text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all transform hover:scale-105 shadow-md shadow-[#f4b400]/10 tracking-wider uppercase whitespace-nowrap"
             >
               Ver más
