@@ -168,8 +168,14 @@ export default function Confectionery() {
       socketService.connect()
       socketService.off('payment_success')
       socketService.on('payment_success', (data) => {
-        setPaying(false)
-        setError(`Pago parcial. Saldo pendiente: $${Number(data.remaining_balance || 0).toFixed(2)}`)
+        const remaining = Number(data.remaining_balance || 0)
+        if (remaining < 0.10) {
+          // Tolerancia de redondeo: completar como éxito
+          navigate(`/order-success?order=${data.orderId}`, { state: { orderId: data.orderId, summary: { total: total, totalBs: total * 600 } } })
+        } else {
+          setPaying(false)
+          setError(`Pago parcial. Saldo pendiente: $${remaining.toFixed(2)}`)
+        }
       })
       socketService.off('payment_completed')
       socketService.on('payment_completed', (data) => {

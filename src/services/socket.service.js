@@ -5,6 +5,7 @@ import { globalToast } from '../context/ToastContext'
 let socket = null
 let lastJoinedShowtimeId = null
 let pendingEmits = []
+let suppressQuoteExpiredToast = false
 const recentEmitTimestamps = new Map()
 // listenerWrappers: event -> { socketHandler: Function, originals: Set<Function> }
 const listenerWrappers = new Map()
@@ -75,6 +76,7 @@ const connect = () => {
 
   // Global Toast Events
   socket.on('quote_expired', (data) => {
+    if (suppressQuoteExpiredToast) return
     globalToast.error(data?.message || 'Tu sesión de compra ha expirado.')
   })
   
@@ -265,6 +267,9 @@ const emit = (event, payload) => {
 // ===============================
 const getSocket = () => socket
 
+const suppressExpiredToast = () => { suppressQuoteExpiredToast = true }
+const unsuppressExpiredToast = () => { suppressQuoteExpiredToast = false }
+
 export default {
   connect,
   disconnect,
@@ -274,4 +279,6 @@ export default {
   off,
   emit,
   getSocket,
+  suppressExpiredToast,
+  unsuppressExpiredToast,
 }

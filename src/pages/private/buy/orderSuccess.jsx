@@ -7,8 +7,7 @@ export default function OrderSuccess() {
   const navigate = useNavigate()
 
   const [localOrder, setLocalOrder] = useState(() => {
-    // initialize from location.state if available
-    if (state?.orderId || state?.qrCode) return { orderId: state?.orderId, qrCode: state?.qrCode }
+    if (state?.orderId || state?.qrCode) return { orderId: state?.orderId, qrCode: state?.qrCode, summary: state?.summary }
     try {
       const raw = sessionStorage.getItem('last_order')
       if (raw) return JSON.parse(raw)
@@ -135,52 +134,86 @@ export default function OrderSuccess() {
 
   return (
     <div
-      className="min-h-screen p-6 text-white flex items-center justify-center"
+      className="min-h-screen p-6 text-white flex flex-col items-center justify-center gap-6"
       style={{
         background:
           'linear-gradient(to bottom, #231640 0%, #4c115c 50%, #231640 100%)',
       }}
     >
-      <div className="bg-[#1f1533]/95 border border-gray-700/60 p-8 rounded-3xl text-center max-w-md shadow-2xl shadow-black/40">
-        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-200 mb-4">Pago confirmado</h2>
-        <p className="text-gray-300 mb-4">Orden ID: <span className="font-bold text-white">{orderId}</span></p>
+      <div className="bg-[#1f1533]/95 border border-gray-700/60 p-8 rounded-3xl text-center max-w-md w-full shadow-2xl shadow-black/40">
+        <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-200 mb-4">¡Pago Confirmado!</h2>
+        <p className="text-gray-300 mb-4">Orden #{orderId}</p>
 
-        {isToken ? (
-          <div className="mb-4 flex items-center justify-center">
-            <div ref={qrRef} className="bg-white p-2 rounded-md inline-block">
-              <QRCode value={String(qrCode)} size={192} />
-            </div>
-            <div className="ml-4">
-              <button onClick={downloadQrImage} className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">Descargar QR</button>
+        {/* Purchase Summary */}
+        {localOrder?.summary && (
+          <div className="bg-white/5 rounded-2xl p-4 mb-5 text-left space-y-2 text-sm">
+            {localOrder.summary.movie && (
+              <div className="pb-2 border-b border-white/10">
+                <p className="font-bold text-yellow-400">{localOrder.summary.movie}</p>
+                <p className="text-white/50 text-xs">{localOrder.summary.showtime}</p>
+                {localOrder.summary.seats && (
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {localOrder.summary.seats.map((s, i) => (
+                      <span key={i} className="bg-yellow-400/20 text-yellow-400 px-1.5 py-0.5 rounded text-[10px] font-bold">{s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {localOrder.summary.concessions && localOrder.summary.concessions.length > 0 && (
+              <div className="pb-2 border-b border-white/10">
+                <p className="text-xs font-semibold text-white/70 mb-1">Confitería</p>
+                {localOrder.summary.concessions.map((c, i) => (
+                  <div key={i} className="flex justify-between text-xs text-white/50">
+                    <span>{c.name} ×{c.qty}</span>
+                    <span>${c.subtotal?.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-1">
+              <span className="font-bold text-white">Total</span>
+              <div className="text-right">
+                <span className="text-yellow-400 font-bold block">
+                  Bs. {localOrder.summary.totalBs?.toFixed(2) || localOrder.summary.total?.toFixed(2) || '—'}
+                </span>
+                <span className="text-white/40 text-xs">≈ ${localOrder.summary.total?.toFixed(2) || '—'}</span>
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Descargar QR arriba */}
+        {(isToken || qrSrc) && (
+          <button onClick={downloadQrImage} className="mb-3 w-full bg-yellow-500 text-black py-2.5 rounded-xl font-semibold text-sm hover:brightness-110 transition-all">
+            Descargar QR
+          </button>
+        )}
+
+        {isToken ? (
+          <div ref={qrRef} className="bg-white p-3 rounded-xl inline-block mx-auto">
+            <QRCode value={String(qrCode)} size={192} />
+          </div>
         ) : qrSrc ? (
-          <div className="mb-4">
-            <div ref={qrRef} className="mx-auto w-48 h-48">
-              <img
-                src={qrSrc}
-                alt="QR Code"
-                className="mx-auto w-48 h-48 object-contain"
-                onError={(e) => {
-                  console.error('OrderSuccess: error cargando QR image', e)
-                }}
-              />
-            </div>
-            <div className="mt-3">
-              <button onClick={downloadQrImage} className="bg-yellow-500 text-black px-4 py-2 rounded-xl font-semibold">Descargar QR</button>
-            </div>
+          <div ref={qrRef} className="mx-auto w-48 h-48 bg-white p-2 rounded-xl">
+            <img
+              src={qrSrc}
+              alt="QR Code"
+              className="w-full h-full object-contain"
+              onError={(e) => console.error('OrderSuccess: error cargando QR image', e)}
+            />
           </div>
         ) : (
           <p className="text-gray-400 mb-4">No se proporcionó código QR.</p>
         )}
-
-        <button
-          onClick={() => navigate('/')}
-          className="mt-6 w-full bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-600 hover:to-amber-300 text-black px-5 py-3 rounded-2xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-[0.98]"
-        >
-          Ir al inicio
-        </button>
       </div>
+
+      <button
+        onClick={() => navigate('/')}
+        className="bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-600 hover:to-amber-300 text-black px-8 py-3 rounded-2xl font-bold shadow-lg shadow-yellow-500/20 transition-transform active:scale-[0.98]"
+      >
+        Ir al inicio
+      </button>
     </div>
   )
 }
