@@ -53,11 +53,18 @@ export default function UnifiedPurchase() {
   const [quoteReady, setQuoteReady] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const quoteTimerRef = useRef(null)
+  const lastSessionReset = useRef(0)
 
   // ── Ticket selection ──
   const [ticketCounts, setTicketCounts] = useState({ 1: 0, 2: 0, 3: 0 })
   const totalTickets = useMemo(() => Object.values(ticketCounts).reduce((a, b) => a + b, 0), [ticketCounts])
   const selectedSeatIds = useRef([])
+  const savedGrandTotalRef = useRef(0)
+  const savedGrandTotalBsRef = useRef(0)
+  const savedSeatsRef = useRef([])
+  const savedCartItemsRef = useRef([])
+  const savedSeatPriceRef = useRef(SEAT_BASE_PRICE)
+  const paymentSnapshotRef = useRef(null)
 
   // ── Confectionery ──
   const [products, setProducts] = useState([])
@@ -72,6 +79,7 @@ export default function UnifiedPurchase() {
   const [referenceError, setReferenceError] = useState(null)
   const [amountInput, setAmountInput] = useState('')
   const [paymentCurrency, setPaymentCurrency] = useState(2)
+  const [exchangeRate, setExchangeRate] = useState(600)
   const [paymentError, setPaymentError] = useState(null)
 
   const getAmountForCurrency = (data, currency) => {
@@ -106,6 +114,7 @@ export default function UnifiedPurchase() {
   }, [checkoutData, paymentMethod])
   const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
+  const [paymentSnapshot, setPaymentSnapshot] = useState(null)
   const [selectedBank, setSelectedBank] = useState('')
   const [bankAccounts, setBankAccounts] = useState([])
 
@@ -197,12 +206,21 @@ export default function UnifiedPurchase() {
 
         const cinemaId = st?.cinema?.id || 2
         // Cancelar sesión previa si existe
+        socketService.suppressExpiredToast()
         try { await deleteOrderSessionWithRetries() } catch {}
         await initializeOrderQuote({ cinema: cinemaId })
+        lastSessionReset.current = Date.now()
+        setTimeout(() => socketService.unsuppressExpiredToast(), 3000)
         if (cancelled) return
+
+        // Obtener tasa de cambio de la sesión
+        const sessionState = await getOrderSession().catch(() => null)
+        const usdRate = sessionState?.data?.exchange_rates?.["1"]?.rate || sessionState?.exchange_rates?.["1"]?.rate
+        if (usdRate) setExchangeRate(Number(usdRate))
 
         socketService.connect()
         socketService.on('quote_expired', () => {
+          if (lastSessionReset.current && Date.now() - lastSessionReset.current < 8000) return
           setError('Tu tiempo de compra expiró')
           cancelAll('ttl_expired')
         })
@@ -215,11 +233,12 @@ export default function UnifiedPurchase() {
           const remainingBalance = data?.remaining_balance ?? data?.remainingBalance
 
           const resolvedOrderId = orderId || (await resolveOrderIdFromSessionDetails())
-          if (resolvedOrderId && remainingBalance == null) {
+          // Tolerancia de redondeo: saldo < 0.10 se considera pago completo
+          if (resolvedOrderId && (remainingBalance == null || Number(remainingBalance) < 0.10)) {
             const completedOrder = await waitForCompletedOrder(resolvedOrderId)
             const resolvedQrCode = extractQrCode(completedOrder) || qrCode
             if (completedOrder && isOrderComplete(completedOrder)) {
-              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode } })
+              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode, summary: getOrderSummary() } })
               return
             }
           }
@@ -237,7 +256,7 @@ export default function UnifiedPurchase() {
             const completedOrder = await waitForCompletedOrder(resolvedOrderId)
             const resolvedQrCode = extractQrCode(completedOrder) || qrCode
             if (completedOrder && isOrderComplete(completedOrder)) {
-              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode } })
+              navigate('/order-success', { state: { orderId: resolvedOrderId, qrCode: resolvedQrCode, summary: getOrderSummary() } })
               return
             }
           }
@@ -396,6 +415,20 @@ export default function UnifiedPurchase() {
     }).catch(() => {})
   }, [step, showtime])
 
+  // Helper para resumen de orden
+  const getOrderSummary = () => {
+    const snap = paymentSnapshotRef.current
+    if (snap) return snap
+    return {
+      movie: showtime?.movie?.title,
+      showtime: showtime?.booking?.start_time ? new Date(showtime.booking.start_time).toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit' }) + ' · Sala ' + showtime?.booking?.room : '',
+      seats: selectedSeatsList.map(s => s.label || s.id),
+      concessions: cartItems.map(c => ({ name: c.name, qty: c.qty, subtotal: c.price * c.qty })),
+      total: grandTotal,
+      totalBs: grandTotalBs,
+    }
+  }
+
   // ── Cancel ──
   const cancelAll = async (reason) => {
     stoppedRef.current = true
@@ -462,6 +495,8 @@ export default function UnifiedPurchase() {
 
   const ticketsTotal = selectedSeatsList.reduce((sum, _, index) => sum + getSeatPrice(index), 0)
   const grandTotal = ticketsTotal + confectioneryTotal
+  const safeExchangeRate = exchangeRate && exchangeRate > 0 ? exchangeRate : 600
+  const grandTotalBs = grandTotal > 0 ? grandTotal * safeExchangeRate : (parseFloat(amountInput) || grandTotal * safeExchangeRate)
 
   const handleSeatsConfirm = () => {
     if (selectedSeatsList.length !== totalTickets || totalTickets === 0) return
@@ -475,8 +510,20 @@ export default function UnifiedPurchase() {
     setPaymentError(null)
     try {
       if (checkoutData) {
-        try { await deleteOrderSessionWithRetries() } catch {}
-        await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+        socketService.off('quote_expired')
+        socketService.suppressExpiredToast()
+        try {
+          try { await deleteOrderSessionWithRetries() } catch {}
+          await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+        } finally {
+          lastSessionReset.current = Date.now()
+          socketService.on('quote_expired', () => {
+            if (Date.now() - lastSessionReset.current < 5000) return
+            setError('Tu tiempo de compra expiró')
+            cancelAll('ttl_expired')
+          })
+          setTimeout(() => socketService.unsuppressExpiredToast(), 3000)
+        }
       }
 
       // Refrescar locks antes del checkout
@@ -504,9 +551,21 @@ export default function UnifiedPurchase() {
         resp = await createOrderCheckout(payload)
       } catch (checkErr) {
         // Si el servidor indica que la cotización ya no está disponible (ej. por un intento anterior que quedó en PENDING_PAYMENT)
-        if (checkErr?.response?.status === 409 && checkErr?.response?.data?.message?.includes('cotización')) {
-          try { await deleteOrderSessionWithRetries() } catch {}
-          await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+        if (checkErr?.response?.status === 409) {
+          socketService.off('quote_expired')
+          socketService.suppressExpiredToast()
+          try {
+            try { await deleteOrderSessionWithRetries() } catch {}
+            await initializeOrderQuote({ cinema: showtime?.cinema?.id || 2 })
+          } finally {
+            lastSessionReset.current = Date.now()
+            socketService.on('quote_expired', () => {
+              if (Date.now() - lastSessionReset.current < 5000) return
+              setError('Tu tiempo de compra expiró')
+              cancelAll('ttl_expired')
+            })
+            setTimeout(() => socketService.unsuppressExpiredToast(), 3000)
+          }
           // Volver a asegurar los locks
           selectedSeatsList.forEach(s => socketService.emit('lock_seat', { seatId: s.id }))
           await new Promise(r => setTimeout(r, 300))
@@ -535,6 +594,33 @@ export default function UnifiedPurchase() {
     setPaymentProcessing(true)
     setPaymentResult(null)
     setPaymentError(null)
+    // Guardar totales al momento del pago
+    savedGrandTotalRef.current = grandTotal
+    savedGrandTotalBsRef.current = grandTotalBs
+    savedSeatsRef.current = selectedSeatsList.map((s, i) => ({ label: s.label || s.id, id: s.id, price: getSeatPrice(i) }))
+    savedCartItemsRef.current = [...cartItems]
+    savedSeatPriceRef.current = SEAT_BASE_PRICE
+    setPaymentSnapshot({
+      movie: showtime?.movie?.title,
+      showtimeInfo: showtime?.booking?.start_time ? new Date(showtime.booking.start_time).toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit' }) + ' · Sala ' + (showtime?.booking?.room || '') : '',
+      seats: selectedSeatsList.map((s, i) => ({ label: s.label || s.id, id: s.id, price: getSeatPrice(i) })),
+      cartItems: [...cartItems],
+      seatPrice: SEAT_BASE_PRICE,
+      grandTotal,
+      grandTotalBs,
+      paymentMethod,
+      referenceNumber,
+      ticketsTotal,
+      confectioneryTotal,
+    })
+    paymentSnapshotRef.current = {
+      movie: showtime?.movie?.title,
+      showtime: showtime?.booking?.start_time ? new Date(showtime.booking.start_time).toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit' }) + ' · Sala ' + (showtime?.booking?.room || '') : '',
+      seats: selectedSeatsList.map(s => s.label || s.id),
+      concessions: cartItems.map(c => ({ name: c.name, qty: c.qty, subtotal: c.price * c.qty })),
+      total: grandTotal,
+      totalBs: grandTotalBs,
+    }
     try {
       const payload = {
         payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5,
@@ -565,7 +651,7 @@ export default function UnifiedPurchase() {
         const resolvedQrCode = extractQrCode(completedOrder) || qrCode
 
         if (completedOrder && isOrderComplete(completedOrder)) {
-          navigate('/order-success', { state: { orderId, qrCode: resolvedQrCode } })
+          navigate('/order-success', { state: { orderId, qrCode: resolvedQrCode, summary: getOrderSummary() } })
           return
         }
       }
@@ -744,7 +830,7 @@ export default function UnifiedPurchase() {
               <div>
                 <p className="text-white/70 text-sm">Tickets: <span className="font-bold">${ticketsTotal.toFixed(2)}</span></p>
                 <p className="text-white/70 text-sm">Confitería: <span className="font-bold">${confectioneryTotal.toFixed(2)}</span></p>
-                <p className="text-yellow-400 text-lg font-bold">Total: ${grandTotal.toFixed(2)}</p>
+                <p className="text-yellow-400 text-lg font-bold">Total: ${(savedGrandTotalRef.current || grandTotal).toFixed(2)}</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setStep(2)} className="px-6 py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Asientos</button>
@@ -779,16 +865,77 @@ export default function UnifiedPurchase() {
                     <button onClick={() => navigate('/')} className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Volver al inicio</button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-6 text-3xl">✓</div>
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-4 text-3xl">✓</div>
                     <h2 className="text-xl font-bold text-green-400">¡Compra Exitosa!</h2>
-                    <p className="text-white/60 text-sm mt-2">Tu orden ha sido procesada correctamente.</p>
+
+                    {/* Saved state for display */}
+                    {paymentSnapshot && (
+                      <div className="mt-5 bg-white/10 rounded-2xl p-5 w-full max-w-sm space-y-3 text-left">
+                        {paymentSnapshot.movie && (
+                          <div className="pb-3 border-b border-white/10">
+                            <p className="font-bold text-yellow-400 text-sm">{paymentSnapshot.movie}</p>
+                            <p className="text-white/50 text-xs">{paymentSnapshot.showtimeInfo}</p>
+                            {paymentSnapshot.seats.length > 0 && (
+                              <div className="flex gap-1 flex-wrap mt-1">
+                                {paymentSnapshot.seats.map(s => (
+                                  <span key={s.id} className="bg-yellow-400/20 text-yellow-400 px-1.5 py-0.5 rounded text-[10px] font-bold">{s.label}</span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex justify-between text-xs text-white/50 mt-1">
+                              <span>{paymentSnapshot.seats.length} × ${paymentSnapshot.seatPrice.toFixed(2)}</span>
+                              <span>${paymentSnapshot.ticketsTotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {paymentSnapshot.cartItems.length > 0 && (
+                          <div className="pb-3 border-b border-white/10">
+                            <p className="text-xs font-semibold text-white/70 mb-1">Confitería</p>
+                            {paymentSnapshot.cartItems.map((item, i) => (
+                              <div key={i} className="flex justify-between text-xs text-white/50">
+                                <span>{item.name} ×{item.qty}</span>
+                                <span className="font-medium">${(item.price * item.qty).toFixed(2)}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between text-xs text-white/50 mt-1 pt-1 border-t border-white/5">
+                              <span>Subtotal confitería</span>
+                              <span>${paymentSnapshot.confectioneryTotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="pb-3 border-b border-white/10">
+                          <p className="text-xs font-semibold text-white/70 mb-1">Método de Pago</p>
+                          <p className="text-xs text-white/50 capitalize">
+                            {paymentSnapshot.paymentMethod === 'transfer' ? 'Transferencia' : paymentSnapshot.paymentMethod === 'mobile' ? 'Pago Móvil' : 'Puntos'}
+                          </p>
+                          {paymentSnapshot.referenceNumber && <p className="text-xs text-white/50">Ref: {paymentSnapshot.referenceNumber}</p>}
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-white text-sm">Total</span>
+                          <div className="text-right">
+                            <span className="text-yellow-400 font-bold text-lg">
+                              Bs. {paymentSnapshot.grandTotalBs.toFixed(2)}
+                            </span>
+                            <span className="text-white/40 text-xs block">≈ ${paymentSnapshot.grandTotal.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {paymentResult.billing && (
                       <p className="text-amber-400 text-sm mt-2">Recuerda completar la facturación.</p>
                     )}
                     {paymentResult.orderId && (
-                      <button onClick={() => navigate(`/order-success?order=${paymentResult.orderId}&qr=${encodeURIComponent(paymentResult.qrCode || '')}`)}
-                        className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Ver Comprobante</button>
+                      <button onClick={() => {
+                        const summary = getOrderSummary()
+                        sessionStorage.setItem('last_order', JSON.stringify({ orderId: paymentResult.orderId, qrCode: paymentResult.qrCode, summary }))
+                        navigate(`/order-success?order=${paymentResult.orderId}&qr=${encodeURIComponent(paymentResult.qrCode || '')}`, { state: { orderId: paymentResult.orderId, qrCode: paymentResult.qrCode, summary } })
+                      }}
+                        className="mt-4 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Ver Comprobante</button>
                     )}
                     <button onClick={() => navigate('/')} className="mt-3 px-6 py-3 border border-white/20 text-white rounded-xl font-bold">Volver al inicio</button>
                   </div>
@@ -826,7 +973,10 @@ export default function UnifiedPurchase() {
                   ))}
                   <div className="flex justify-between text-xl font-bold text-yellow-400 pt-3 border-t border-white/20">
                     <span>Total</span>
-                    <span>${grandTotal.toFixed(2)}</span>
+                    <div className="text-right">
+                      <span className="block">Bs. {(savedGrandTotalBsRef.current || parseFloat(amountInput || grandTotal)).toFixed(2)}</span>
+                      <span className="text-sm text-white/50">${(savedGrandTotalRef.current || grandTotal).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -902,11 +1052,11 @@ export default function UnifiedPurchase() {
                   </div>
                   <button type="submit" disabled={paymentProcessing}
                     className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
-                    {paymentProcessing ? 'Procesando...' : `Pagar $${grandTotal.toFixed(2)}`}
+                    {paymentProcessing ? 'Procesando...' : `Pagar Bs. ${(parseFloat(amountInput) || grandTotalBs).toFixed(2)}`}
                   </button>
                 </form>
 
-                <button onClick={() => setStep(3)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a confitería</button>
+                <button onClick={() => { setStep(3); setPaymentError(null); }} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a confitería</button>
               </>
             )}
           </div>
