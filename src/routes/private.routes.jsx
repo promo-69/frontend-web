@@ -53,12 +53,12 @@ export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
       <Route path="/profile" element={<ProfileSecurity />} />
-      <Route path="/fidelity" element={<Loyalty />} />
-      <Route path="/subscription" element={<Subscriptions />} />
+      <Route path="/my-fidelity" element={<Loyalty />} />
+      <Route path="/showtime-subscriptions" element={<Subscriptions />} />
       <Route path="/showtime-recommendations" element={<MoviesGenres />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
-      <Route path="/room-rent" element={<RoomRent />} />
+      <Route path="/room-rents" element={<RoomRent />} />
       <Route path="/favorites" element={<Favorites />} />
 
       {/* Flujo de compra unificado */}

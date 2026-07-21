@@ -108,7 +108,7 @@ export default function ForU() {
       });
       setShowLoginModal(true);
     } else {
-      navigate('/room-rent'); 
+      navigate('/room-rents'); 
     }
   };
 
