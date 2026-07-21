@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { FiCalendar, FiMapPin } from 'react-icons/fi';
 import Footer from '../../components/ui/Footer';
+import PageHeader from '../../components/ui/PageHeader';
 import MovieCard from '../../components/movies/MovieCard'; 
 import { getEvents } from '../../services/events.service'; 
 
@@ -123,14 +125,12 @@ export default function Events() {
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           {/* Encabezado Unificado de Eventos */}
-          <div className="border-l-4 border-yellow-500 pl-4 text-left pb-6 mb-10">
-            <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-              Próximos <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Eventos</span>
-            </h3>
-            <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
-              Explora las funciones especiales, festivales y eventos exclusivos que están por llegar. ¡Disfruta de experiencias únicas en Cineflix!
-            </p>
-          </div>
+          <PageHeader
+            className="pb-6 mb-10"
+            titlePrefix="Próximos"
+            titleHighlight="Eventos"
+            subtitle="Explora las funciones especiales, festivales y eventos exclusivos que están por llegar. ¡Disfruta de experiencias únicas en Cineflix!"
+          />
 
           {/* Condicional de renderizado */}
           {monthsOrder.length === 0 ? (
@@ -153,7 +153,7 @@ export default function Events() {
                   </div>
 
                   {/* Grid de Eventos Unificado delegando al DOM Virtual */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
                     {groupedEvents[month].map((event, index) => (
                       <MovieCard 
                         key={`event-${event.id || index}-${index}`}

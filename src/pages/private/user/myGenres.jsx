@@ -4,6 +4,7 @@ import Footer from '../../../components/ui/Footer'
 import MovieCard from '../../../components/movies/MovieCard' 
 import { getMoviesByGenres, getMoviesGenres } from '../../../services/movies.service'
 import MyGenresModal from '../../../components/home/MyGenresModal.jsx' 
+import PageHeader from '../../../components/ui/PageHeader'
 
 export default function MyGenres() {
   const [movies, setMovies] = useState([])
@@ -86,26 +87,20 @@ export default function MyGenres() {
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           {/* SECCIÓN CABECERA */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
-            <div className="border-l-4 border-yellow-500 pl-4 text-left">
-              <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-                Recomendaciones <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Por Género</span>
-              </h3>
-              <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
-                Explora el catálogo de películas seleccionadas minuciosamente basándonos en tus preferencias y géneros cinematográficos favoritos.
-              </p>
-            </div>
-
-            {/* CONTROLES: Únicamente el botón principal de la marca */}
-            <div className="flex items-center self-start lg:self-end">
+          <PageHeader
+            className="border-b border-white/5 pb-6 mb-10"
+            titlePrefix="Recomendaciones"
+            titleHighlight="Por Género"
+            subtitle="Explora el catálogo de películas seleccionadas minuciosamente basándonos en tus preferencias y géneros cinematográficos favoritos."
+            rightContent={
               <button
                 onClick={() => setShowGenresModal(true)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-[#231640] text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-yellow-500/10 active:scale-95"
               >
                 <FiSliders className="text-sm stroke-[3]" /> Ajustar mis géneros
               </button>
-            </div>
-          </div>
+            }
+          />
 
           {/* RENDERIZADO DE CARDS EN CUADRÍCULA */}
           {sortedMovies.length === 0 ? (
@@ -115,35 +110,20 @@ export default function MyGenres() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {sortedMovies.map((movie, index) => {
                 const isSpecialEvent = movie.type === 'special_event' || !!movie.event
 
                 return (
-                  <div 
+                  <MovieCard 
                     key={movie.id || `genre-movie-${index}`} 
-                    className="relative flex flex-col group gap-3 text-left"
-                  >
-                    {/* Contenedor visual de la MovieCard */}
-                    <div className="relative rounded-2xl transition-all duration-300 hover:translate-y-[-4px]">
-                      <MovieCard 
-                        movie={{
-                          ...movie,
-                          isEvent: isSpecialEvent,
-                          genres: movie.genres || [] 
-                        }}
-                        upcoming={true}
-                      />
-                    </div>
-
-                    {/* ETIQUETA EXTERNA DE LA FECHA DE ESTRENO */}
-                    <div className="mt-1 pl-1">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-sm">
-                        <FiCalendar className="text-xs" />
-                        Estreno: {formatDate(movie.release_date)}
-                      </span>
-                    </div>
-                  </div>
+                    movie={{
+                      ...movie,
+                      isEvent: isSpecialEvent,
+                      genres: movie.genres || [] 
+                    }}
+                    upcoming={true}
+                  />
                 )
               })}
             </div>

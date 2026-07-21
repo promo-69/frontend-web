@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MovieWait } from '../../components/ui/IconosProyect'; 
+import { FiCalendar } from 'react-icons/fi';
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+};
 
 const convertToSlug = (title) => {
   if (!title) return '';
@@ -26,7 +33,7 @@ export default function MovieCard({ movie, upcoming = false, isEventsPage = fals
   return (
     <Link
       to={movieUrl}
-      className="flex flex-col group cursor-pointer text-left block movie-carousel-card"
+      className="flex flex-col group cursor-pointer text-left block movie-carousel-card bg-[#231640] border border-white/10 rounded-2xl p-4 shadow-xl hover:border-yellow-500/30 hover:-translate-y-1 transition-all duration-300"
     >
       {/* Contenedor del Póster */}
       <div className="aspect-[2/3] w-full bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden relative transition-all duration-500 backdrop-blur-sm group-hover:border-amber-500/50">
@@ -86,6 +93,16 @@ export default function MovieCard({ movie, upcoming = false, isEventsPage = fals
             </span>
           )}
         </div>
+
+        {/* ETIQUETA EXTERNA DE LA FECHA DE ESTRENO */}
+        {upcoming && movie.release_date && (
+          <div className="mt-3 pl-1 border-t border-white/5 pt-3">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-sm w-fit">
+              <FiCalendar className="text-xs" />
+              Estreno: {formatDate(movie.release_date)}
+            </span>
+          </div>
+        )}
       </div>
     </Link>
   );

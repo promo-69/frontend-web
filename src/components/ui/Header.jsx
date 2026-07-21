@@ -68,65 +68,65 @@ function Header() {
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      className="absolute top-full mt-2 right-0 w-52 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
+      className="absolute top-full mt-2 right-0 w-64 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
     >
-      <div className="px-4 py-3 border-b border-[#F6AD38]/50 mb-1">
-        <p className="font-bold uppercase text-[10px] text-[#F6AD38]/80 leading-none">Menú</p>
+      <div className="px-4 py-3 border-b border-[#F6AD38]/50">
+        <p className="font-bold uppercase text-[10px] text-[#F6AD38]/80 leading-none">Menú del Usuario</p>
       </div>
 
       <Link
         to="/profile"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Perfil y Seguridad
+        Mi cuenta
       </Link>
       <Link
-        to="/fidelity"
+        to="/my-fidelity"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Fidelidad
+        Mi fidelidad
       </Link>
       <Link
-        to="/subscription"
+        to="/showtime-subscriptions"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Subscripciones de Peliculas
+        Mis subscripciones
       </Link>
       <Link
-        to="/myGenres"
+        to="/showtime-recommendations"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Peliculas favoritas
+        Mis funciones recomendadas
       </Link>
       <Link
         to="/my-orders"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Historial de Compra
+        Mis compras
       </Link>
       <Link
-        to="/room-rent"
+        to="/room-rents"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight whitespace-nowrap"
       >
         Alquiler de Salas
       </Link>
       <button
         onClick={handleLogout}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-[#8F2925] hover:bg-red-500/10 transition-colors mt-2 border-t border-[#F6AD38]/50 font-bold tracking-tight"
+        className="w-full flex items-center justify-start gap-3 px-4 h-12 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-[#F6AD38]/50 font-bold tracking-tight whitespace-nowrap"
       >
-        <span>Cerrar Sesión</span> <FiLogOut />
+        <FiLogOut className="text-lg" /> <span>Cerrar Sesión</span>
       </button>
     </motion.div>
   )
 
   return (
-    <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
+    <header className="sticky top-0 bg-[#2A154B] text-white z-[100] shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
       {/* OVERLAY */}
       <AnimatePresence>
         {(isCarteleraOpen || isUserMenuOpen) && (

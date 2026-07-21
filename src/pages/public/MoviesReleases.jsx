@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Footer from '../../components/ui/Footer';
 import MovieCard from '../../components/movies/MovieCard';
+import PageHeader from '../../components/ui/PageHeader';
 import { getMoviesBillboard } from '../../services/movies.service';
 import { getProjectionTypes, getLanguages } from '../../services/info.service';
 
@@ -99,44 +100,41 @@ export default function MoviesReleases() {
       <section className={`px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 ${filteredMovies.length === 0 ? 'py-12' : 'py-16'}`}>
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
-            <div className="border-l-4 border-yellow-500 pl-4 text-left">
-              <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-                Películas en <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Cartelera</span>
-              </h3>
-              <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
-                Filtra por formato de pantalla de tu preferencia para personalizar la experiencia perfecta en nuestras salas de Cineflix.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-              <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
-                <button
-                  onClick={() => setActiveProjection('Todos')}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border ${
-                    activeProjection === 'Todos'
-                      ? 'bg-purple-600 text-white border-purple-500 shadow-[0_4px_12px_rgba(168,85,247,0.4)]'
-                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  Todos los Formatos
-                </button>
-                {projectionTypes.map((type) => (
+          <PageHeader
+            className="border-b border-white/5 pb-6 mb-10"
+            titlePrefix="Películas en"
+            titleHighlight="Cartelera"
+            subtitle="Filtra por formato de pantalla de tu preferencia para personalizar la experiencia perfecta en nuestras salas de Cineflix."
+            rightContent={
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
                   <button
-                    key={type.id}
-                    onClick={() => setActiveProjection(type.description)}
+                    onClick={() => setActiveProjection('Todos')}
                     className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border ${
-                      activeProjection.toLowerCase() === type.description?.toLowerCase()
+                      activeProjection === 'Todos'
                         ? 'bg-purple-600 text-white border-purple-500 shadow-[0_4px_12px_rgba(168,85,247,0.4)]'
                         : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    {type.description}
+                    Todos los Formatos
                   </button>
-                ))}
+                  {projectionTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setActiveProjection(type.description)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 border ${
+                        activeProjection.toLowerCase() === type.description?.toLowerCase()
+                          ? 'bg-purple-600 text-white border-purple-500 shadow-[0_4px_12px_rgba(168,85,247,0.4)]'
+                          : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {type.description}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
+            }
+          />
 
           {/* Renderizado Condicional delegando a MovieCard */}
           {filteredMovies.length === 0 ? (
@@ -146,7 +144,7 @@ export default function MoviesReleases() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {filteredMovies.map((movie, index) => (
                 <MovieCard 
                   key={`${movie.type}-${movie.id || index}-${index}`}
