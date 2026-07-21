@@ -51,6 +51,37 @@ export default function OrderTicketModal({ isOpen, onClose, order, ticketType })
     }
   }
 
+  // Lógica de Validación (Usado o Expirado)
+  const now = new Date()
+  let ticketStatus = 'VALID' // 'VALID', 'USED', 'EXPIRED'
+  let statusMessage = 'VÁLIDO'
+  
+  if (showMovie) {
+    if (order.tickets_validated_at) {
+      ticketStatus = 'USED'
+      statusMessage = 'USADO'
+    } else if (hasTickets) {
+      const firstTicket = order._Tickets[0]
+      const booking = firstTicket?._RoomBookings
+      if (booking?.end_time && now > new Date(booking.end_time)) {
+        ticketStatus = 'EXPIRED'
+        statusMessage = 'EXPIRADO'
+      }
+    }
+  } else if (showConfectionery) {
+    if (order.concessions_validated_at) {
+      ticketStatus = 'USED'
+      statusMessage = 'USADO'
+    } else {
+      const orderDate = new Date(order.createdAt || order.date)
+      const expirationDate = new Date(orderDate.getTime() + 24 * 60 * 60 * 1000) // 24 horas después
+      if (now > expirationDate) {
+        ticketStatus = 'EXPIRED'
+        statusMessage = 'EXPIRADO'
+      }
+    }
+  }
+
   // Calcular subtotal específico para el ticket mostrado
   let specificTotal = 0
   if (showMovie) {
@@ -59,7 +90,6 @@ export default function OrderTicketModal({ isOpen, onClose, order, ticketType })
     specificTotal = (order._OrderLines || []).reduce((sum, line) => sum + (parseFloat(line.unit_price ?? line.original_unit_price ?? 0) * (line.quantity ?? 1)), 0)
   }
   
-  // Fallback al total general si el cálculo específico da 0 (ej. error en los datos de precio)
   if (specificTotal === 0) {
     specificTotal = Number(order.total ?? order.total_amount_base_currency ?? order.subtotal_base_currency ?? 0)
   }
@@ -76,7 +106,14 @@ export default function OrderTicketModal({ isOpen, onClose, order, ticketType })
             <h2 className="text-xl font-bold text-white tracking-wide uppercase">
               Ticket de {showMovie ? 'Función' : 'Confitería'}
             </h2>
-            <p className="text-xs text-yellow-400 font-mono mt-1">ORDEN #{order.id || order.orderId}</p>
+            <div className="flex gap-3 items-center mt-1">
+              <p className="text-xs text-yellow-400 font-mono">ORDEN #{order.id || order.orderId}</p>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                ticketStatus === 'VALID' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
+                ticketStatus === 'USED' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 
+                'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}>{statusMessage}</span>
+            </div>
           </div>
           <button 
             onClick={onClose}
@@ -183,9 +220,19 @@ export default function OrderTicketModal({ isOpen, onClose, order, ticketType })
             </div>
           )}
 
-          {/* QR Code Real */}
-          <div className="flex flex-col items-center justify-center pt-6 border-t border-white/10 border-dashed space-y-4">
-            <div className="bg-white p-3 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+          {/* QR Code Real con Overlay de Validación */}
+          <div className="relative flex flex-col items-center justify-center pt-6 border-t border-white/10 border-dashed space-y-4">
+            
+            {ticketStatus !== 'VALID' && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center pt-6">
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] rounded-xl mt-6"></div>
+                <div className={`relative border-[5px] ${ticketStatus === 'USED' ? 'border-blue-500 text-blue-500' : 'border-red-500 text-red-500'} font-black text-3xl uppercase tracking-widest px-6 py-2 transform -rotate-[15deg] rounded-lg shadow-2xl bg-[#231640]/80`}>
+                  {statusMessage}
+                </div>
+              </div>
+            )}
+
+            <div className={`bg-white p-3 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-opacity ${ticketStatus !== 'VALID' ? 'opacity-30' : 'opacity-100'}`}>
               <QRCodeSVG 
                 value={order.qr_code || order.id?.toString() || "NO_DATA"} 
                 size={140}
@@ -193,8 +240,10 @@ export default function OrderTicketModal({ isOpen, onClose, order, ticketType })
                 includeMargin={true}
               />
             </div>
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest text-center w-3/4">
-              Presenta este código al {showMovie ? 'ingresar a las salas' : 'retirar tu confitería'}
+            <p className={`text-[10px] uppercase tracking-widest text-center w-3/4 ${ticketStatus !== 'VALID' ? 'text-red-400' : 'text-gray-500'}`}>
+              {ticketStatus === 'VALID' 
+                ? `Presenta este código al ${showMovie ? 'ingresar a la sala' : 'retirar tu confitería'}` 
+                : `Este ticket ya no es válido (${statusMessage.toLowerCase()})`}
             </p>
           </div>
 
