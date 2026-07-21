@@ -6,8 +6,12 @@ import PageHeader from '../../../components/ui/PageHeader'
 import QuestionModal from '../../../components/ui/QuestionModal'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import { getMovieSubscriptions, unsubscribeFromMoviesBatch } from '../../../services/subscription.service'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function Subscriptions() {
+  useDocumentTitle('Mis Suscripciones');
+
   const [subscriptions, setSubscriptions] = useState([])
   const [loading, setLoading] = useState(true)
   

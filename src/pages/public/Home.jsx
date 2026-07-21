@@ -15,8 +15,12 @@ import {
 
 import { Movies, NextMovies, Events } from '../../components/ui/IconosProyect' 
 import ChatAssistant from '../../components/ChatAssistant/ChatAssistant'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function Home() {
+  useDocumentTitle('Inicio');
+
   const [releases, setReleases] = useState([])
   const [upcoming, setUpcoming] = useState([])
   const [events, setEvents] = useState([])

@@ -4,8 +4,12 @@ import Footer from '../../components/ui/Footer';
 import PageHeader from '../../components/ui/PageHeader';
 import MovieCard from '../../components/movies/MovieCard'; 
 import { getEvents } from '../../services/events.service'; 
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function Events() {
+  useDocumentTitle('Eventos');
+
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 

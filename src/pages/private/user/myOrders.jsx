@@ -5,8 +5,12 @@ import { fetchAndAttachProductNames } from '../../../services/productCache'
 import PageHeader from '../../../components/ui/PageHeader'
 import Footer from '../../../components/ui/Footer'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 function MyOrders() {
+  useDocumentTitle('Mis Compras');
+
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

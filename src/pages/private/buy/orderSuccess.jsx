@@ -1,8 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useRef, useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function OrderSuccess() {
+  useDocumentTitle('Orden Exitosa');
+
   const { state } = useLocation()
   const navigate = useNavigate()
 

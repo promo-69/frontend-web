@@ -22,6 +22,8 @@ import SeatMap from '../../../components/selectSeats/SeatMap'
 import SeatLegend from '../../../components/selectSeats/SeatLegend'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
 import api from '../../../api/axios'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
 const SEAT_BASE_PRICE = 6
@@ -36,6 +38,8 @@ function mapCategory(catId) {
 }
 
 export default function UnifiedPurchase() {
+  useDocumentTitle('Comprar Boletos');
+
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
 

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function RoomRequest() {
+  useDocumentTitle('Alquiler de Sala');
+
   const [formData, setFormData] = useState({
     eventName: '',
     branch: '',

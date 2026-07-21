@@ -15,6 +15,8 @@ import socketService from '../../../services/socket.service'
 import api from '../../../api/axios'
 import placeholderImg from '../../../assets/images/cinema-stuff-around-popcorn-heart.webp'
 import InputSelect from '../../../components/ui/InputSelect'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 const CATEGORIES = ['Todos', 'Palomitas', 'Bebidas', 'Combos', 'Dulces']
 
@@ -28,6 +30,8 @@ function mapCategory(catId) {
 }
 
 export default function Confectionery() {
+  useDocumentTitle('Confitería');
+
   const navigate = useNavigate()
   const [step, setStep] = useState(1) // 1=products, 2=payment
 

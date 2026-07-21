@@ -6,8 +6,12 @@ import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import SendMailForm from '../../components/forms/forgotPassword/SendMailForm'
 import SendCode from '../../components/forms/forgotPassword/SendCode'
 import NewPasswordForm from '../../components/forms/forgotPassword/NewPasswordForm'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function ForgotPassword() {
+  useDocumentTitle('Recuperar Contraseña');
+
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState(' ')
 

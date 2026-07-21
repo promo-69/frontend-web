@@ -5,8 +5,12 @@ import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import Button from '../../components/ui/Button'
 import { AuthContext } from '../../context/AuthContext'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function VerifyAccount() {
+  useDocumentTitle('Verificación de Cuenta');
+
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { verifyAccount } = useContext(AuthContext)

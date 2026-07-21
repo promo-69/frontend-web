@@ -4,6 +4,8 @@ import { getMyLoyaltyRequest, getMyLoyaltyLedgersRequest } from '../../../servic
 import Footer from '../../../components/ui/Footer' 
 import PageHeader from '../../../components/ui/PageHeader'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 // Definición estática de niveles según backend (solo id -> name, usado como fallback)
 const LOYALTY_LEVELS = [
@@ -14,6 +16,8 @@ const LOYALTY_LEVELS = [
 ]
 
 function Loyalty() {
+  useDocumentTitle('Mi Fidelidad');
+
   const { user } = useContext(AuthContext)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

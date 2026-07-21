@@ -10,6 +10,8 @@ import InputSelect from '../../../components/ui/InputSelect'
 import InputTextArea from '../../../components/ui/InputTextArea'
 import Button from '../../../components/ui/Button'
 import InlineNote from '../../../components/ui/InlineNote'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 const EVENT_TYPES = [
   { id: 1, name: "Corporativo" },
@@ -19,6 +21,8 @@ const EVENT_TYPES = [
 ]
 
 export default function RoomRent() {
+  useDocumentTitle('Mis Alquileres de Sala');
+
   const [viewMode, setViewMode] = useState('list') // 'list' | 'form'
   
   // -- ESTADOS DEL FORMULARIO --

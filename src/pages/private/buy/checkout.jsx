@@ -10,8 +10,12 @@ import {
   getOrderById,
 } from '../../../services/orders.service'
 import socketService from '../../../services/socket.service'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function Checkout() {
+  useDocumentTitle('Pago');
+
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
   const { cart, getTotals, clearCart } = useCart()

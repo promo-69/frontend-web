@@ -3,8 +3,12 @@ import Footer from '../../components/ui/Footer';
 import PageHeader from '../../components/ui/PageHeader';
 import MovieCard from '../../components/movies/MovieCard'; 
 import { getUpcomingMovies } from '../../services/movies.service';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function MoviesUpComing() {
+  useDocumentTitle('Próximamente');
+
   const [billboardMovies, setBillboardMovies] = useState([]);
   const [loading, setLoading] = useState(true);
 
