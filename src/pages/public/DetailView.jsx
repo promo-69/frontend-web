@@ -16,6 +16,8 @@ import SubscribeButton from '../../components/ui/SubscribeButtom'
 
 // Conexión con el Contexto de Autenticación Global
 import { useAuth } from '../../context/AuthContext'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function DetailView() {
   const { movieSlug, eventSlug } = useParams()
@@ -37,6 +39,8 @@ export default function DetailView() {
 
   // Estados unificados
   const [item, setItem] = useState(null)
+  
+  useDocumentTitle(item?.title || (isMovie ? 'Película' : 'Evento'));
   const [cinemas, setCinemas] = useState([])
   const [selectedDate, setSelectedDate] = useState(todayStr)
   const [loading, setLoading] = useState(true)

@@ -4,11 +4,15 @@ import MovieCard from '../../components/movies/MovieCard';
 import PageHeader from '../../components/ui/PageHeader';
 import { getMoviesBillboard } from '../../services/movies.service';
 import { getProjectionTypes, getLanguages } from '../../services/info.service';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function MoviesReleases() {
+  useDocumentTitle('Cartelera');
+
   const [billboardMovies, setBillboardMovies] = useState([]);
   const [projectionTypes, setProjectionTypes] = useState([]);
-  const [languages, setLanguages] = useState([]); 
+  const [languages, setLanguages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeProjection, setActiveProjection] = useState('Todos');
 
@@ -26,7 +30,7 @@ export default function MoviesReleases() {
         setLanguages(languageRes?.data || languageRes || []);
 
         const billboardData = billboardRes?.data || billboardRes || [];
-        
+
         const processedItems = billboardData.map(item => {
           const content = item.movie || item.event || item;
           const isSpecialEvent = item.type === 'special_event' || !!item.event;
@@ -43,19 +47,19 @@ export default function MoviesReleases() {
             ...content,
             title: content.title || content.name, // Fallback de título/nombre
             type: item.type,
-            id: content.id || item.id, 
+            id: content.id || item.id,
             showtimes: item.showtimes || [],
-            availableFormats,   
-            availableLanguages, 
+            availableFormats,
+            availableLanguages,
             isEvent: isSpecialEvent
           };
         });
-        
+
         const uniqueItems = Array.from(
           new Map(processedItems.map(item => [`${item.type}-${item.id}`, item])).values()
         );
 
-        setBillboardMovies(uniqueItems); 
+        setBillboardMovies(uniqueItems);
       } catch (error) {
         console.error("Error inicializando los datos de cartelera o catálogos:", error);
       } finally {
@@ -92,14 +96,14 @@ export default function MoviesReleases() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
-      
+
       {/* Fondos ambientales sutiles */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
 
       <section className={`px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 ${filteredMovies.length === 0 ? 'py-12' : 'py-16'}`}>
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
-          
+
           <PageHeader
             className="border-b border-white/5 pb-6 mb-10"
             titlePrefix="Películas en"
@@ -146,7 +150,7 @@ export default function MoviesReleases() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {filteredMovies.map((movie, index) => (
-                <MovieCard 
+                <MovieCard
                   key={`${movie.type}-${movie.id || index}-${index}`}
                   movie={movie}
                   isEventsPage={movie.isEvent}

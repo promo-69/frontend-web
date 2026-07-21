@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../../components/ui/Footer'
 import { getCinemas } from '../../services/info.service' 
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 // 📝 Helper para formatear la URL de la sucursal de forma limpia
 const convertToSlug = (title) => {
@@ -16,6 +18,8 @@ const convertToSlug = (title) => {
 }
 
 function InfoSucursales() {
+  useDocumentTitle('Sucursales');
+
   const [sucursales, setSucursales] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)

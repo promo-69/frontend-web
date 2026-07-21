@@ -4,9 +4,13 @@ import LoginForm from '../../components/forms/LoginForm'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { resolveAuthRedirect } from '../../utils/authNavigation'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 //[linear-gradient(to_bottom,#231640_0%,#7B1A82_18%,#231640_53%,#420946_79%,#231640_87%)]
 
 function Login() {
+  useDocumentTitle('Iniciar Sesión');
+
   const navigate = useNavigate()
   const location = useLocation()
   const fromRoute = resolveAuthRedirect(location.state?.from, '/')

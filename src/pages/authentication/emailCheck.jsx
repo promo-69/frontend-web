@@ -8,8 +8,12 @@ import { useContext, useEffect, useState } from 'react'
 import { verifyAccountRequest } from '../../services/auth.service'
 import { AuthContext } from '../../context/AuthContext'
 import { resolveAuthRedirect, clearAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function EmailCheck() {
+  useDocumentTitle('Verifica tu correo');
+
   const navigate = useNavigate()
   const location = useLocation()
 

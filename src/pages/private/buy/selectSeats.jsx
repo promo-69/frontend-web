@@ -15,9 +15,13 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 import TicketSelector from '../../../components/selectSeats/TicketSelector'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 
 export default function SelectSeats() {
+  useDocumentTitle('Selección de Asientos');
+
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
 

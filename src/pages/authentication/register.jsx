@@ -3,8 +3,12 @@ import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm from '../../components/forms/RegisterForm'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { resolveAuthRedirect } from '../../utils/authNavigation'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function Register() {
+  useDocumentTitle('Registro');
+
   const navigate = useNavigate()
   const location = useLocation()
   const fromRoute = resolveAuthRedirect(location.state?.from, '/')

@@ -5,8 +5,13 @@ import { fetchAndAttachProductNames } from '../../../services/productCache'
 import PageHeader from '../../../components/ui/PageHeader'
 import Footer from '../../../components/ui/Footer'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import OrderTicketModal from '../../../components/user/OrderTicketModal'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 function MyOrders() {
+  useDocumentTitle('Mis Compras');
+
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -15,6 +20,9 @@ function MyOrders() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const itemsPerPage = 10
+
+  // Estado para el modal de ticket
+  const [selectedOrderForTicket, setSelectedOrderForTicket] = useState(null)
 
   const fetchOrders = async (page) => {
     setLoading(true)
@@ -249,14 +257,24 @@ function MyOrders() {
                         </p>
                       </div>
                       
-                      {(Array.isArray(order._Tickets) && order._Tickets.length > 0) && (
-                        <Link
-                          to={`/mis-compras/${order.id || order.orderId}/ticket`}
-                          className="block w-full text-center px-6 py-3 bg-[#F6AD38] hover:bg-[#d9982f] text-black font-bold rounded-lg transition-colors duration-200"
-                        >
-                          Ver ticket
-                        </Link>
-                      )}
+                      <div className="flex gap-3">
+                        {(Array.isArray(order._Tickets) && order._Tickets.length > 0) && (
+                          <button
+                            onClick={() => setSelectedOrderForTicket({ order, type: 'movie' })}
+                            className="flex-1 text-center px-4 py-3 bg-[#F6AD38] hover:bg-[#d9982f] text-black font-bold rounded-lg transition-colors duration-200 text-sm"
+                          >
+                            Ver ticket de función
+                          </button>
+                        )}
+                        {(Array.isArray(order._OrderLines) && order._OrderLines.length > 0) && (
+                          <button
+                            onClick={() => setSelectedOrderForTicket({ order, type: 'confectionery' })}
+                            className="flex-1 text-center px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors duration-200 text-sm"
+                          >
+                            Ver ticket confitería
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                   </div>
@@ -288,6 +306,12 @@ function MyOrders() {
         )}
       </main>
 
+      <OrderTicketModal 
+        isOpen={!!selectedOrderForTicket} 
+        onClose={() => setSelectedOrderForTicket(null)} 
+        order={selectedOrderForTicket?.order} 
+        ticketType={selectedOrderForTicket?.type}
+      />
       <Footer />
     </div>
   )

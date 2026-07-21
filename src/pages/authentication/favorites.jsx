@@ -3,6 +3,8 @@ import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 const GENRES = [
   'Acción',
@@ -22,6 +24,8 @@ const GENRES = [
 ]
 
 function Favorites() {
+  useDocumentTitle('Mis Funciones Recomendadas');
+
   const navigate = useNavigate()
   const [selectedGenres, setSelectedGenres] = useState([])
 

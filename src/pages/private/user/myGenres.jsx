@@ -1,15 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { FiSliders, FiCalendar } from 'react-icons/fi'
 import Footer from '../../../components/ui/Footer'
-import MovieCard from '../../../components/movies/MovieCard' 
+import MovieCard from '../../../components/movies/MovieCard'
 import { getMoviesByGenres, getMoviesGenres } from '../../../services/movies.service'
-import MyGenresModal from '../../../components/home/MyGenresModal.jsx' 
+import MyGenresModal from '../../../components/home/MyGenresModal.jsx'
 import PageHeader from '../../../components/ui/PageHeader'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function MyGenres() {
+  useDocumentTitle('Mis Recomendados');
+
   const [movies, setMovies] = useState([])
   const [loading, setLoading] = useState(true)
-  
+
   // Estado de control para el modal de configuración de preferencias
   const [showGenresModal, setShowGenresModal] = useState(false)
 
@@ -18,7 +22,7 @@ export default function MyGenres() {
     try {
       setLoading(true)
       const favoriteGenres = await getMoviesGenres()
-      
+
       if (favoriteGenres && favoriteGenres.length > 0) {
         const ids = favoriteGenres.map(genre => genre.id)
         const dataPayload = await getMoviesByGenres(ids)
@@ -53,7 +57,7 @@ export default function MyGenres() {
     if (!dateString) return 'Por anunciar'
     const [year, month, day] = dateString.split('-')
     if (!year || !month || !day) return 'Por anunciar'
-    
+
     const date = new Date(year, month - 1, day)
     return date.toLocaleDateString('es-VE', {
       day: 'numeric',
@@ -78,14 +82,14 @@ export default function MyGenres() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#2A154B] via-[#7B1A82] to-[#231640] text-white justify-between font-['Montserrat'] relative overflow-hidden">
-      
+
       {/* Fondos ambientales sutiles */}
       <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-white/[0.01] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-[30%] right-[-5%] w-[40vw] h-[40vw] bg-white/[0.01] rounded-full blur-[140px] pointer-events-none" />
 
       <section className={`px-4 md:px-8 lg:px-16 w-full flex-grow flex flex-col relative z-10 ${sortedMovies.length === 0 ? 'py-12' : 'py-16'}`}>
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
-          
+
           {/* SECCIÓN CABECERA */}
           <PageHeader
             className="border-b border-white/5 pb-6 mb-10"
@@ -115,12 +119,12 @@ export default function MyGenres() {
                 const isSpecialEvent = movie.type === 'special_event' || !!movie.event
 
                 return (
-                  <MovieCard 
-                    key={movie.id || `genre-movie-${index}`} 
+                  <MovieCard
+                    key={movie.id || `genre-movie-${index}`}
                     movie={{
                       ...movie,
                       isEvent: isSpecialEvent,
-                      genres: movie.genres || [] 
+                      genres: movie.genres || []
                     }}
                     upcoming={true}
                   />

@@ -9,6 +9,7 @@ import InputSelect from '../../../components/ui/InputSelect'
 import Button from '../../../components/ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
 import { FiEdit2, FiX } from 'react-icons/fi'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
 import {
   getCurrentUserRequest,
   updateProfileRequest,
@@ -17,6 +18,8 @@ import {
 } from '../../../services/auth.service'
 
 export default function ProfileSecurity() {
+  useDocumentTitle('Mi Cuenta');
+
   const { user, updateUserState, updateProfileState } = useContext(AuthContext)
 
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false)
