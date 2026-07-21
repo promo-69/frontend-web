@@ -114,7 +114,7 @@ function Header() {
         onClick={() => setIsUserMenuOpen(false)}
         className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight whitespace-nowrap"
       >
-        Alquiler de Salas
+        Mis alquileres de sala
       </Link>
       <button
         onClick={handleLogout}
