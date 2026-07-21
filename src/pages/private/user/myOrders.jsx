@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyOrdersRequest } from '../../../services/users.service'
 import { fetchAndAttachProductNames } from '../../../services/productCache'
+import PageHeader from '../../../components/ui/PageHeader'
 import Footer from '../../../components/ui/Footer'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
@@ -129,14 +130,12 @@ function MyOrders() {
       <main className="flex-grow w-full max-w-7xl mx-auto px-4 md:px-8 pt-28 md:pt-32 pb-12 relative z-10">
         
         {/* Cabecera Principal */}
-        <div className="border-l-4 border-yellow-500 pl-4 mb-10">
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight">
-            Historial de <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Compra</span>
-          </h1>
-          <p className="text-sm text-gray-300 mt-2 max-w-xl">
-            Revisa el detalle de tus tickets, combos y puntos acumulados de tus visitas a Cineflix.
-          </p>
-        </div>
+        <PageHeader 
+          className="mb-10"
+          titlePrefix="Historial de" 
+          titleHighlight="Compra" 
+          subtitle="Revisa el detalle de tus tickets, combos y puntos acumulados de tus visitas a Cineflix." 
+        />
 
         {orders.length === 0 ? (
           <div className="bg-[#231640] border border-white/10 p-8 rounded-2xl text-center shadow-xl">
@@ -197,7 +196,9 @@ function MyOrders() {
                                 <li key={`ticket-${t.id}`} className="flex justify-between items-center gap-2">
                                   <span className="truncate">
                                     <span className="font-bold text-white mr-2">1x</span> 
-                                    Boleto {t._AudienceCategories?.name ? `(${t._AudienceCategories.name})` : ''} - Asiento <span className="font-semibold text-yellow-400">{t._Seats?.name || t.seat_name || `#${t.seat}`}</span>
+                                    Boleto {t._AudienceCategories?.name ? `(${t._AudienceCategories.name})` : ''} 
+                                    <span className="text-gray-400 mx-1">en {t._RoomBookings?._Rooms?.name || 'Sala'}</span>
+                                    - Asiento <span className="font-semibold text-yellow-400">{t._Seats?.name || t.seat_name || `#${t.seat}`}</span>
                                   </span>
                                   <span className="font-mono text-white/80 whitespace-nowrap">${formatNumber(t.price ?? t.original_price ?? t.unit_price)}</span>
                                 </li>
@@ -226,7 +227,7 @@ function MyOrders() {
                           order._OrderPayments.map((p) => (
                             <div key={p.id} className="flex justify-between items-center gap-2">
                               <span className="truncate">
-                                Pago #{p.payment_method} 
+                                Pago con {p._PaymentMethods?.description || p._PaymentMethods?.name || `método #${p.payment_method}`}
                                 {p.reference_number ? <span className="text-gray-500 text-xs ml-1">(ref: {p.reference_number})</span> : ''}
                               </span>
                               <span className="font-mono text-white/80 whitespace-nowrap">${formatNumber(p.amount)}</span>
