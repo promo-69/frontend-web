@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getConcessionProducts,
@@ -55,6 +55,8 @@ export default function Confectionery() {
   const [error, setError] = useState(null)
   const [selectedBank, setSelectedBank] = useState('')
   const [bankAccounts, setBankAccounts] = useState([])
+  const [paymentResult, setPaymentResult] = useState(null)
+  const paidSnapshotRef = useRef(null)
 
   // Load cinemas
   useEffect(() => {
@@ -147,7 +149,7 @@ export default function Confectionery() {
   }))
 
   useEffect(() => {
-    const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5
+    const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5
     const availableBanks = bankAccounts.filter(b => b.payment_method === mId)
     
     if (availableBanks.length > 0) {
@@ -174,22 +176,22 @@ export default function Confectionery() {
       socketService.on('payment_success', (data) => {
         const remaining = Number(data.remaining_balance || 0)
         if (remaining < 0.10) {
-          // Tolerancia de redondeo: completar como éxito
-          navigate(`/order-success?order=${data.orderId}`, { state: { orderId: data.orderId, summary: { total: total, totalBs: total * 600 } } })
+          setPaying(false)
+          setPaymentResult({ success: true, orderId: data.orderId, qrCode: data.qrCode })
         } else {
           setPaying(false)
-          setError(`Pago parcial. Saldo pendiente: $${remaining.toFixed(2)}`)
+          setPaymentResult({ success: true, partial: true, remainingBalance: remaining, message: data.message })
         }
       })
       socketService.off('payment_completed')
       socketService.on('payment_completed', (data) => {
         setPaying(false)
-        navigate(`/order-success?order=${data.orderId}&qr=${encodeURIComponent(data.qrCode || '')}`)
+        setPaymentResult({ success: true, orderId: data.orderId, qrCode: data.qrCode, billing: data.billing_required })
       })
       socketService.off('payment_failed')
       socketService.on('payment_failed', (data) => {
         setPaying(false)
-        setError(data.message || 'El pago no pudo ser procesado.')
+        setPaymentResult({ success: false, message: data.message || 'El pago no pudo ser procesado.' })
       })
 
       // Cargar bancos para el selector de pago
@@ -247,9 +249,16 @@ export default function Confectionery() {
     if (paymentMethod !== 'loyalty' && !referenceNumber.trim()) { setReferenceError('Ingresa la referencia'); return }
     setPaying(true)
     setError(null)
+    setPaymentResult(null)
+    paidSnapshotRef.current = {
+      items: [...cartItems],
+      total,
+      paymentMethod,
+      referenceNumber,
+    }
     try {
       const payload = {
-        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5,
+        payment_method: paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5,
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
       }
@@ -361,6 +370,74 @@ export default function Confectionery() {
                 <h2 className="text-xl font-bold text-yellow-400">Procesando Pago</h2>
                 <p className="text-white/60 text-sm mt-2">Esperando confirmación del sistema...</p>
               </div>
+            ) : paymentResult ? (
+              paymentResult.success ? (
+                paymentResult.partial ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-amber-500 flex items-center justify-center mb-6 text-3xl">$</div>
+                    <h2 className="text-xl font-bold text-amber-400">Pago Parcial</h2>
+                    <p className="text-white/60 text-sm mt-2">{paymentResult.message || 'Pago parcial registrado'}</p>
+                    {paymentResult.remainingBalance != null && (
+                      <p className="text-red-400 font-bold mt-2">Saldo pendiente: ${Number(paymentResult.remainingBalance).toFixed(2)}</p>
+                    )}
+                    <button onClick={() => navigate('/')} className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Volver al inicio</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-4 text-3xl">✓</div>
+                    <h2 className="text-xl font-bold text-green-400">¡Compra Exitosa!</h2>
+
+                    {paidSnapshotRef.current && (
+                      <div className="mt-5 bg-white/10 rounded-2xl p-5 w-full max-w-sm space-y-3 text-left">
+                        <div className="pb-3 border-b border-white/10">
+                          <p className="text-xs font-semibold text-white/70 mb-1">Confitería</p>
+                          {paidSnapshotRef.current.items.map((item, i) => (
+                            <div key={i} className="flex justify-between text-xs text-white/50">
+                              <span>{item.name} ×{item.qty}</span>
+                              <span className="font-medium">${(item.price * item.qty).toFixed(2)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between text-xs text-white/50 mt-1 pt-1 border-t border-white/5">
+                            <span>Subtotal</span>
+                            <span>${paidSnapshotRef.current.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        <div className="pb-3 border-b border-white/10">
+                          <p className="text-xs font-semibold text-white/70 mb-1">Método de Pago</p>
+                          <p className="text-xs text-white/50 capitalize">
+                            {paidSnapshotRef.current.paymentMethod === 'transfer' ? 'Transferencia' : paidSnapshotRef.current.paymentMethod === 'mobile' ? 'Pago Móvil' : 'Puntos'}
+                          </p>
+                          {paidSnapshotRef.current.referenceNumber && <p className="text-xs text-white/50">Ref: {paidSnapshotRef.current.referenceNumber}</p>}
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-white text-sm">Total</span>
+                          <div className="text-right">
+                            <span className="text-yellow-400 font-bold text-lg">
+                              Bs. {parseFloat(amountInput || paidSnapshotRef.current.total).toFixed(2)}
+                            </span>
+                            <span className="text-white/40 text-xs block">≈ ${paidSnapshotRef.current.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentResult.billing && (
+                      <p className="text-amber-400 text-sm mt-2">Recuerda completar la facturación.</p>
+                    )}
+                    
+                    <button onClick={() => navigate('/')} className="mt-3 px-6 py-3 border border-white/20 text-white rounded-xl font-bold">Volver al inicio</button>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-6 text-3xl">✕</div>
+                  <h2 className="text-xl font-bold text-red-400">Error en el Pago</h2>
+                  <p className="text-white/60 text-sm mt-2">{paymentResult.message || 'El pago no pudo ser procesado.'}</p>
+                  <button onClick={() => { setPaymentResult(null); setStep(1); }} className="mt-6 px-6 py-3 bg-yellow-500 text-black rounded-xl font-bold">Volver a intentar</button>
+                </div>
+              )
             ) : (
               <>
                 <h2 className="text-xl font-bold text-yellow-400">Pago</h2>
@@ -396,22 +473,24 @@ export default function Confectionery() {
                   </div>
                   {['transfer', 'mobile'].includes(paymentMethod) && (
                     <div>
-                      <InputSelect
+                      <label className="block text-sm font-medium text-white/70 mb-2">Banco Destino</label>
+                      <select
                         id="bank"
-                        label="Banco Destino"
                         value={selectedBank}
-                        options={bankAccounts
-                          .filter(b => b.payment_method === (paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5))
-                          .map(ba => ({ label: ba.name, value: ba.bank }))}
-                        register={{
-                          onChange: (e) => setSelectedBank(e.target.value)
-                        }}
-                      />
+                        onChange={(e) => setSelectedBank(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
+                        <option value="">Seleccionar banco</option>
+                        {bankAccounts
+                          .filter(b => b.payment_method === (paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5))
+                          .map(ba => (
+                            <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
+                          ))}
+                      </select>
 
                       {/* Detalles de la cuenta bancaria */}
                       {(() => {
                         if (!selectedBank) return null;
-                        const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5;
+                        const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5;
                         const selectedAccount = bankAccounts.find(b => b.bank.toString() === selectedBank.toString() && b.payment_method === mId);
                         
                         if (!selectedAccount) return null;
@@ -446,7 +525,7 @@ export default function Confectionery() {
                   </div>
                   <button type="submit" disabled={paying}
                     className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl text-lg hover:brightness-110 disabled:opacity-50 transition-all">
-                    {paying ? 'Procesando...' : `Pagar $${total.toFixed(2)}`}
+                    {paying ? 'Procesando...' : `Pagar Bs. ${(parseFloat(amountInput) || total).toFixed(2)}`}
                   </button>
                 </form>
                 <button onClick={() => setStep(1)} className="w-full py-3 rounded-xl border border-white/20 text-white/70 hover:bg-white/10 text-sm">← Volver a productos</button>

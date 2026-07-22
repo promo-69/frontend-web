@@ -83,10 +83,6 @@ const connect = () => {
   socket.on('seat_lock_error', (data) => {
     globalToast.error(data?.message || 'Error al reservar el asiento.')
   })
-  
-  socket.on('seat_locked_by_other', (data) => {
-    globalToast.error(data?.message || 'Ese asiento fue tomado por otra persona.')
-  })
 
   socket.on('payment_success', (data) => {
     globalToast.success(data?.message || 'Pago parcial recibido. Saldo restante actualizado.', 6000)

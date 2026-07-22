@@ -627,7 +627,7 @@ export default function UnifiedPurchase() {
     }
     try {
       const payload = {
-        payment_method: paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5,
+        payment_method: paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5,
         amount: parseFloat(amountInput),
         currency: paymentCurrency,
       }
@@ -1009,7 +1009,7 @@ export default function UnifiedPurchase() {
                         className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-yellow-400">
                         <option value="">Seleccionar banco</option>
                         {bankAccounts.filter(b => {
-                          const mId = paymentMethod === 'transfer' ? 3 : paymentMethod === 'mobile' ? 4 : 5
+                          const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5
                           return b.payment_method === mId
                         }).map(ba => (
                           <option key={ba.id} value={ba.bank} className="text-black">{ba.name}</option>
@@ -1019,7 +1019,7 @@ export default function UnifiedPurchase() {
                       {/* Detalles de la cuenta bancaria */}
                       {(() => {
                         if (!selectedBank) return null;
-                        const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : null;
+                        const mId = paymentMethod === 'transfer' ? 4 : paymentMethod === 'mobile' ? 3 : 5;
                         const selectedAccount = bankAccounts.find(b => b.bank.toString() === selectedBank.toString() && b.payment_method === mId);
 
                         if (!selectedAccount) return null;
