@@ -3,7 +3,7 @@ import Header from '../components/ui/Header';
 import Home from '../pages/public/Home';
 import Login from '../pages/authentication/login';
 import Register from '../pages/authentication/register';
-import Profile from '../pages/private/user/profile';
+
 import ForgotPassword from '../pages/authentication/forgotPassword';
 import Register2 from '../pages/authentication/register2';
 import EmailCheck from '../pages/authentication/emailCheck';
@@ -17,6 +17,7 @@ import ViewDetails from '../pages/public/DetailView';
 import CinemaDetails from '../pages/public/CinemaMoviesDetails';
 import Confectionery from '../pages/private/buy/confectionery';
 import Checkout from '../pages/private/buy/checkout';
+import ChatAssistant from '../components/ChatAssistant/ChatAssistant'
 
 const PublicLayout = () => {
   return (
@@ -41,6 +42,7 @@ export const publicRoutes = (
       <Route path="/events" element={<Events />} />
       <Route path="/confectionery" element={<Confectionery />} />
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/chat-assistant" element={<ChatAssistant />} />
       
       {/* Vistas de Detalles Dinámicas */}
       <Route path="/movies/:movieSlug" element={<ViewDetails />} />

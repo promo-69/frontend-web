@@ -6,11 +6,13 @@ import {
   validateLoginPassword,
 } from '../../validators/authValidators'
 import Button from '../ui/Button'
+import FormActions from '../ui/FormActions'
 import { AuthContext } from '../../context/AuthContext'
 import InputPassword from '../ui/InputPassword'
 import InputText from '../ui/InputText'
 import ModalMessage from '../ui/ModalMessage'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { resolveAuthRedirect, clearAuthRedirect } from '../../utils/authNavigation'
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
@@ -23,7 +25,7 @@ function LoginForm() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const fromRoute = location.state?.from || '/'
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
 
   const {
     register,
@@ -56,9 +58,6 @@ function LoginForm() {
         setShowModal(true)
         return
       }
-
-      console.log('DEBUG LOGIN FORM - Respuesta procesada:', res)
-      console.log('LOGIN RESPONSE:', res)
 
       if (!res.success) {
         const lowerMessage = res.message?.toLowerCase() || ''
@@ -120,9 +119,9 @@ function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col items-center justify-center gap-6"
+      className="flex flex-col w-full gap-6"
     >
-      <div className="flex flex-col gap-8 items-center">
+      <div className="flex flex-col gap-8 w-full">
         {/* EMAIL */}
         <InputText
           id="email"
@@ -152,27 +151,16 @@ function LoginForm() {
         {/* LINK OLVIDASTE CONTRASEÑA */}
         <a
           href="/forgot-password"
-          className="text-[#D9982F] text-sm opacity-80 hover:opacity-100"
+          className="text-[#D9982F] text-sm opacity-80 hover:opacity-100 text-center w-full"
         >
           ¿Olvidaste tu contraseña?
         </a>
 
-        {/* BOTONES */}
-        <div className="w-full flex items-center justify-center gap-3 pt-4">
-          <Button
-            text="Cancelar"
-            type="button"
-            className="bg-gray-500 text-white"
-            onClick={() => window.history.back()}
-          />
-          <Button
-            text={isLoading ? 'Iniciando...' : 'Iniciar sesión'}
-            type="submit"
-            disabled={isLoading}
-            isLoading={isLoading}
-            className="text-lg font-montserrat font-semibold"
-          />
-        </div>
+        <FormActions
+          isLoading={isLoading}
+          loadingText="Iniciando..."
+          submitText="Iniciar sesión"
+        />
       </div>
       {showModal && (
         <ModalMessage
@@ -188,14 +176,16 @@ function LoginForm() {
               navigate('/email-check', {
                 state: {
                   email: submittedEmailRef.current,
+                  from: fromRoute,
                 },
               })
               return
             }
 
             if (modalType === 'success') {
-                navigate(fromRoute, { replace: true })
-            } 
+              clearAuthRedirect()
+              navigate(fromRoute, { replace: true })
+            }
           }}
         />
       )}

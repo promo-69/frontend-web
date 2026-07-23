@@ -20,7 +20,7 @@ export default function SubscribeButton({ movieId, initialIsSubscribed = false, 
 
     setLoading(true)
     try {
-      // Forzamos el ID de la entidad a número/string limpio según corresponda
+
       const targetId = Number(movieId)
 
       if (isSubscribed) {

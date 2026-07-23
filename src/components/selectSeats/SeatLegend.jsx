@@ -1,6 +1,6 @@
 export default function SeatLegend() {
   return (
-    <div className="flex gap-6 text-sm text-gray-300">
+    <div className="flex gap-6 text-sm text-gray-300 mt-5">
       <div className="flex items-center gap-2">
         <span className="w-4 h-4 bg-[#713182] rounded-sm" />
         Disponible
@@ -12,7 +12,7 @@ export default function SeatLegend() {
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="w-4 h-4 bg-gray-600 rounded-sm" />
+        <span className="w-4 h-4 bg-[#9ca3af] rounded-sm" />
         Ocupado
       </div>
     </div>

@@ -2,11 +2,16 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { FiTrash2, FiCheckSquare, FiSquare, FiCalendar } from 'react-icons/fi'
 import Footer from '../../../components/ui/Footer'
 import MovieCard from '../../../components/movies/MovieCard' 
+import PageHeader from '../../../components/ui/PageHeader'
 import QuestionModal from '../../../components/ui/QuestionModal'
 import SuccessModal from '../../../components/ui/SuccessModal'
 import { getMovieSubscriptions, unsubscribeFromMoviesBatch } from '../../../services/subscription.service'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function Subscriptions() {
+  useDocumentTitle('Mis Suscripciones');
+
   const [subscriptions, setSubscriptions] = useState([])
   const [loading, setLoading] = useState(true)
   
@@ -133,57 +138,53 @@ export default function Subscriptions() {
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           {/* SECCIÓN CABECERA */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between border-b border-white/5 pb-6 mb-10 gap-6">
-            <div className="border-l-4 border-yellow-500 pl-4 text-left">
-              <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-                Mis Películas <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Suscritas</span>
-              </h3>
-              <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
-                Aquí puedes observar y gestionar todos los próximos estrenos a los que te has suscrito para recibir notificaciones personalizadas.
-              </p>
-            </div>
-
-            {/* BOTONES DE CONTROL DE LOTE */}
-            {sortedSubscriptions.length > 0 && (
-              <div className="flex items-center gap-3 self-start lg:self-end">
-                {!isBatchMode ? (
-                  <button
-                    onClick={() => setIsBatchMode(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
-                  >
-                    Desubscipción en lote
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2 flex-wrap">
+          <PageHeader
+            className="border-b border-white/5 pb-6 mb-10"
+            titlePrefix="Mis Películas"
+            titleHighlight="Suscritas"
+            subtitle="Aquí puedes observar y gestionar todos los próximos estrenos a los que te has suscrito para recibir notificaciones personalizadas."
+            rightContent={
+              sortedSubscriptions.length > 0 && (
+                <div className="flex items-center gap-3">
+                  {!isBatchMode ? (
                     <button
-                      onClick={handleToggleSelectAll}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-purple-600/30 transition-all"
+                      onClick={() => setIsBatchMode(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
                     >
-                      {selectedSubIds.length === sortedSubscriptions.map(sub => sub._Movies?.id).filter(Boolean).length ? <FiCheckSquare /> : <FiSquare />}
-                      {selectedSubIds.length === sortedSubscriptions.map(sub => sub._Movies?.id).filter(Boolean).length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
+                      Desubscipción en lote
                     </button>
-                    <button
-                      onClick={() => setShowConfirmModal(true)}
-                      disabled={selectedSubIds.length === 0 || isDeleting}
-                      className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
-                        selectedSubIds.length === 0
-                          ? 'bg-red-500/10 border border-red-500/20 text-red-500/40 cursor-not-allowed'
-                          : 'bg-red-600 border border-red-500 text-white hover:bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
-                      }`}
-                    >
-                      <FiTrash2 /> Eliminar Subscripción ({selectedSubIds.length})
-                    </button>
-                    <button
-                      onClick={handleCancelBatchMode}
-                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      <button
+                        onClick={handleToggleSelectAll}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-purple-600/30 transition-all"
+                      >
+                        {selectedSubIds.length === sortedSubscriptions.map(sub => sub._Movies?.id).filter(Boolean).length ? <FiCheckSquare /> : <FiSquare />}
+                        {selectedSubIds.length === sortedSubscriptions.map(sub => sub._Movies?.id).filter(Boolean).length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
+                      </button>
+                      <button
+                        onClick={() => setShowConfirmModal(true)}
+                        disabled={selectedSubIds.length === 0 || isDeleting}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                          selectedSubIds.length === 0
+                            ? 'bg-red-500/10 border border-red-500/20 text-red-500/40 cursor-not-allowed'
+                            : 'bg-red-600 border border-red-500 text-white hover:bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.2)]'
+                        }`}
+                      >
+                        <FiTrash2 /> Eliminar ({selectedSubIds.length})
+                      </button>
+                      <button
+                        onClick={handleCancelBatchMode}
+                        className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+          />
 
           {/* RENDERIZADO DE CARDS EN CUADRÍCULA */}
           {sortedSubscriptions.length === 0 ? (
@@ -193,7 +194,7 @@ export default function Subscriptions() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {sortedSubscriptions.map((sub, index) => {
                 const movieData = sub._Movies
                 if (!movieData) return null
@@ -214,7 +215,7 @@ export default function Subscriptions() {
                       className={`relative rounded-2xl transition-all duration-300 ${
                         isBatchMode 
                           ? 'cursor-pointer select-none active:scale-[0.98]' 
-                          : 'hover:translate-y-[-4px]'
+                          : ''
                       } ${
                         isSelected 
                           ? 'border-2 border-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] bg-yellow-500/5 rounded-2xl' 
@@ -254,23 +255,6 @@ export default function Subscriptions() {
                           upcoming={true}
                         />
                       </div>
-                    </div>
-
-                    {/* ETIQUETA EXTERNA DE LA FECHA DE ESTRENO */}
-                    <div 
-                      className={`mt-1 transition-opacity duration-300 pl-1 relative ${
-                        isBatchMode ? 'z-40 cursor-pointer' : ''
-                      } ${
-                        isBatchMode && !isSelected ? 'opacity-40' : 'opacity-100'
-                      }`}
-                      onClick={() => {
-                        if (isBatchMode) handleToggleSelect(movieData.id)
-                      }}
-                    >
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-sm">
-                        <FiCalendar className="text-xs" />
-                        Estreno: {formatDate(movieData.release_date)}
-                      </span>
                     </div>
                   </div>
                 )

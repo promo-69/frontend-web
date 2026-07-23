@@ -2,21 +2,33 @@ import registerImage from '../../assets/images/register.png'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from '../../components/ui/Button'
-import { useEffect, useState } from 'react'
+import InputCode from '../../components/ui/InputCode'
+import FormActions from '../../components/ui/FormActions'
+import { useContext, useEffect, useState } from 'react'
 import { verifyAccountRequest } from '../../services/auth.service'
+import { AuthContext } from '../../context/AuthContext'
+import { resolveAuthRedirect, clearAuthRedirect, saveAuthRedirect } from '../../utils/authNavigation'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function EmailCheck() {
+  useDocumentTitle('Verifica tu correo');
+
   const navigate = useNavigate()
   const location = useLocation()
-  console.log('¿Qué viene exactamente en el state?:', location.state)
 
-  // Guardar y mantener el email a salvo si se recarga la página
   const [email] = useState(() => {
     if (location.state?.email) {
       sessionStorage.setItem('pending_email', location.state.email)
       return location.state.email
     }
     return sessionStorage.getItem('pending_email') || ''
+  })
+
+  const { login } = useContext(AuthContext)
+  const [fromRoute] = useState(() => resolveAuthRedirect(location.state?.from, '/'))
+  const [pendingPassword] = useState(() => {
+    return sessionStorage.getItem('pending_password') || ''
   })
 
   const [code, setCode] = useState('')
@@ -37,11 +49,30 @@ function EmailCheck() {
     setMessage(null)
 
     try {
-      console.log('DATOS ENVIADOS:', { email, code: code.trim() })
       const res = await verifyAccountRequest({ email, code: code.trim() })
       setMessage('Cuenta verificada correctamente. Redirigiendo...')
 
-      setTimeout(() => navigate('/login'), 2000)
+      if (pendingPassword) {
+        try {
+          const loginResult = await login({ email, password: pendingPassword })
+          if (loginResult?.success) {
+            setTimeout(() => {
+              sessionStorage.removeItem('pending_email')
+              sessionStorage.removeItem('pending_password')
+              clearAuthRedirect()
+              navigate(fromRoute, { replace: true })
+            }, 1200)
+            return
+          }
+        } catch (loginError) {
+          console.error('Error auto-login tras verificación:', loginError)
+        }
+      }
+
+      setTimeout(() => {
+        clearAuthRedirect()
+        navigate('/login', { state: { from: fromRoute } })
+      }, 2000)
     } catch (err) {
       setError('Código incorrecto o expirado.')
     } finally {
@@ -74,36 +105,29 @@ function EmailCheck() {
             ¡Revisa tu bandeja de entrada!
           </h1>
 
-          <p className="text-center text-white text-lg leading-relaxed font-montserrat max-w-md">
+          <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md">
             Te enviamos un código para validar tu cuenta. Ingresa el código que
             recibiste por correo.
           </p>
 
           {/* INPUT DEL CÓDIGO */}
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Ingresa el código"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-lg focus:outline-none focus:border-[#D9982F]"
+          <InputCode
+            id="code"
+            length={4}
+            onChange={(val) => setCode(val)}
           />
 
           {/* MENSAJES */}
           {error && <p className="text-red-400">{error}</p>}
           {message && <p className="text-green-400">{message}</p>}
 
-          {/* BOTÓN VALIDAR */}
-          <Button
-            text={loading ? 'Validando...' : 'Validar cuenta'}
-            onClick={handleVerify}
-            className="text-lg font-montserrat font-semibold w-full"
-          />
-
-          {/* BOTÓN IR AL LOGIN */}
-          <Button
-            text="Volver al inicio"
-            onClick={() => navigate('/login')}
-            className="text-lg font-montserrat font-semibold w-full bg-white/20"
+          <FormActions
+            onCancel={() => navigate('/login', { state: { from: fromRoute } })}
+            onSubmit={handleVerify}
+            cancelText="Volver al inicio"
+            submitText="Validar cuenta"
+            isLoading={loading}
+            loadingText="Validando..."
           />
         </div>
       </div>

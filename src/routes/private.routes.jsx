@@ -1,20 +1,29 @@
-import { Route, Navigate, Outlet } from 'react-router-dom'
+import { Route, Navigate, Outlet, useParams, useLocation } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import Header from '../components/ui/Header'
+import { saveAuthRedirect } from '../utils/authNavigation'
 import Favorites from '../pages/authentication/favorites'
-import Profile from '../pages/private/user/profile'
+import ProfileSecurity from '../pages/private/user/ProfileSecurity'
 import Loyalty from '../pages/private/user/loyalty'
 import MyOrders from '../pages/private/user/myOrders'
 import OrderTicket from '../pages/private/user/orderTicket'
-import SelectSeats from '../pages/private/buy/selectSeats'
 import Confectionery from '../pages/private/buy/confectionery'
-import Checkout from '../pages/private/buy/checkout'
+import UnifiedPurchase from '../pages/private/buy/UnifiedPurchase'
 import OrderSuccess from '../pages/private/buy/orderSuccess'
 import Subscriptions from '../pages/private/user/subscriptions'
+import MoviesGenres from '../pages/private/user/myGenres'
+import RoomRent from '../pages/private/user/roomRent'
+function NavigateToBuy() {
+  const { movieId, showtimeId } = useParams()
+  return <Navigate to={`/buy/${movieId}/${showtimeId}`} replace />
+}
 
 const PrivateLayout = () => {
   const { user, initializing } = useContext(AuthContext)
+  const location = useLocation()
+  const redirectFrom = location.pathname + location.search
+
   if (initializing) {
     return (
       <div className="flex flex-col min-h-screen bg-[#231640] text-white items-center justify-center font-['Montserrat']">
@@ -26,7 +35,8 @@ const PrivateLayout = () => {
   }
   
   if (!user) {
-    return <Navigate to="/login" replace />
+    saveAuthRedirect(redirectFrom)
+    return <Navigate to="/login" state={{ from: redirectFrom }} replace />
   }
 
   return (
@@ -39,41 +49,30 @@ const PrivateLayout = () => {
   )
 }
 
-// rutas organizadas usando Layout
 export const privateRoutes = (
   <>
     <Route element={<PrivateLayout />}>
-      {/* Rutas del header privadas */}
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/fidelity" element={<Loyalty />} />
-      <Route path="/subscription" element={<Subscriptions />} />
+      <Route path="/profile" element={<ProfileSecurity />} />
+      <Route path="/my-fidelity" element={<Loyalty />} />
+      <Route path="/showtime-subscriptions" element={<Subscriptions />} />
+      <Route path="/showtime-recommendations" element={<MoviesGenres />} />
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/my-orders/:orderId/ticket" element={<OrderTicket />} />
-  {/* <Route path="/loyalty-prices" element={<LoyaltyList />} /> */}
-  {/* <Route path="/room-rent" element={<RoomRent />} /> */}
-      
-      
+      <Route path="/room-rents" element={<RoomRent />} />
       <Route path="/favorites" element={<Favorites />} />
 
-      
-      
+      {/* Flujo de compra unificado */}
+      <Route path="/buy/:movieId/:showtimeId" element={<UnifiedPurchase />} />
 
+      {/* Standalone confitería */}
+      <Route path="/confectionery" element={<Confectionery />} />
 
-      {/* Flujo de compra completo protegido */}
-      <Route
-        path="/selectSeats/:movieId/:showtimeId"
-        element={<SelectSeats />}
-      />
-      <Route
-        path="/buy/:movieId/:showtimeId/confectionery"
-        element={<Confectionery />}
-      />
-      <Route
-        path="/buy/:movieId/:showtimeId/checkout"
-        element={<Checkout />}
-      />
+      {/* Redirecciones legacy al nuevo flujo */}
+      <Route path="/selectSeats/:movieId/:showtimeId" element={<NavigateToBuy />} />
+      <Route path="/buy/:movieId/:showtimeId/confectionery" element={<NavigateToBuy />} />
+      <Route path="/buy/:movieId/:showtimeId/checkout" element={<NavigateToBuy />} />
+
       <Route path="/order-success" element={<OrderSuccess />} />
-      
     </Route>
   </>
 )

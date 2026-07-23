@@ -15,9 +15,13 @@ import OrderSummary from '../../../components/selectSeats/OrderSummary'
 import { usePurchase } from '../../../context/PurchaseContext'
 import { useCart } from '../../../context/CartContext'
 import TicketSelector from '../../../components/selectSeats/TicketSelector'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 
 export default function SelectSeats() {
+  useDocumentTitle('Selección de Asientos');
+
   const { movieId, showtimeId } = useParams()
   const navigate = useNavigate()
 
@@ -25,7 +29,9 @@ export default function SelectSeats() {
   // Obtener cinemaId desde navegación
   // ============================
   const locationState = useLocation().state || {}
-  const cinemaId = locationState.cinemaId || null
+  const [resolvedCinemaId, setResolvedCinemaId] = useState(
+    locationState.cinemaId || null,
+  )
 
   const {
     setCinemaId: setPurchaseCinema,
@@ -47,6 +53,7 @@ export default function SelectSeats() {
   const [loading, setLoading] = useState(true)
   const [quoteReady, setQuoteReady] = useState(false)
   const [quoteError, setQuoteError] = useState(null)
+  const [retryingQuote, setRetryingQuote] = useState(false)
 
   // ========================================================
   // Contadores independientes para tipos de boletos
@@ -87,11 +94,25 @@ export default function SelectSeats() {
   useEffect(() => {
     async function load() {
       try {
-        const st = await getShowtimeById(cinemaId, showtimeId)
-        const map = await getSeatMap(cinemaId, showtimeId)
+        const st = await getShowtimeById(
+          resolvedCinemaId || showtimeId,
+          resolvedCinemaId ? showtimeId : undefined,
+        )
+        const map = await getSeatMap(
+          resolvedCinemaId || showtimeId,
+          resolvedCinemaId ? showtimeId : undefined,
+        )
 
         setShowtime(st)
         setSeats(map.seats || [])
+
+        if (!resolvedCinemaId) {
+          const inferredCinemaId =
+            st?.cinema?.id || st?.cinemaId || st?.cinema_id || null
+          if (inferredCinemaId) {
+            setResolvedCinemaId(inferredCinemaId)
+          }
+        }
       } catch (err) {
         console.error('Error cargando SelectSeats:', err)
       } finally {
@@ -99,51 +120,48 @@ export default function SelectSeats() {
       }
     }
 
-    if (cinemaId) load()
-  }, [cinemaId, showtimeId])
+    if (showtimeId) load()
+  }, [resolvedCinemaId, showtimeId])
 
   // ============================
   // Inicializar Quote + Socket
   // ============================
-  useEffect(() => {
-    if (!cinemaId || !showtimeId) return
+  // Exponer función reusable para iniciar la cotización.
+  const initPurchaseSession = async () => {
+    try {
+      setQuoteReady(false)
+      setQuoteError(null)
 
-    let mounted = true
+      // Sincronizar estados base de forma síncrona
+      setIsSeatFlow(true)
+      setPurchaseCinema(resolvedCinemaId)
+      setPurchaseShowtime(showtimeId)
 
-    const initPurchaseSession = async () => {
-      try {
-        setQuoteReady(false)
-        setQuoteError(null)
-
-        // Sincronizar estados base de forma síncrona
-        setIsSeatFlow(true)
-        setPurchaseCinema(cinemaId)
-        setPurchaseShowtime(showtimeId)
-
-        // Ejecutar y esperar la cotización del Backend
-        const res = await startQuote(cinemaId)
-        if (!mounted) return
-
-        if (!res) {
-          setQuoteError('No se pudo iniciar la sesión de compra')
-          return
-        }
-
-        // Si la cotización fue exitosa, levantamos el canal físico
-        connectSocket()
-        setQuoteReady(true)
-      } catch (err) {
-        console.error('Error en proceso initPurchaseSession:', err)
-        if (mounted) setQuoteError('Error crítico al preparar la orden')
+      // Ejecutar y esperar la cotización del Backend.
+      const res = await startQuote(resolvedCinemaId, showtimeId)
+      if (!res) {
+        setQuoteError('No se pudo iniciar la sesión de compra')
+        return false
       }
+
+      connectSocket()
+      setQuoteReady(true)
+      return true
+    } catch (err) {
+      console.error('Error en proceso initPurchaseSession:', err)
+      setQuoteError('Error crítico al preparar la orden')
+      return false
     }
+  }
 
-    initPurchaseSession()
-
+  useEffect(() => {
+    if (!resolvedCinemaId || !showtimeId) return
+    let mounted = true
+    initPurchaseSession().then(() => mounted && null)
     return () => {
       mounted = false
     }
-  }, [cinemaId, showtimeId])
+  }, [resolvedCinemaId, showtimeId])
 
   // ============================
   // Unirse a la sala y escuchar eventos
@@ -151,25 +169,50 @@ export default function SelectSeats() {
   useEffect(() => {
     if (!quoteReady || !showtimeId) return
 
-    const socket = socketService.getSocket()
+    let socket = socketService.getSocket()
     if (!socket) {
       console.warn(
-        'SelectSeats: No se detectó un socket instanciado para colgar listeners',
+        'SelectSeats: No se detectó un socket instanciado, conectando ahora...',
       )
-      return
+      socketService.connect()
+      socket = socketService.getSocket()
     }
 
-    console.log('--- COLGANDO LISTENERS DEL SOCKET ---')
-    
-    const onJoinSuccess = () => console.log('Entraste a la sala correctamente')
+    let joinErrorTimers = []
+    let mounted = true
+
+    const onJoinSuccess = ({ showtimeId: joinedId }) => {
+      if (Number(joinedId) === Number(showtimeId)) {
+        setQuoteError(null)
+      }
+    }
 
     const onJoinError = ({ message }) => {
-      alert(message)
-      navigate('/')
+      console.warn('[Socket] join_error:', message)
+      if (!message || !mounted) return
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (socketService.getSocket()?.connected) {
+
+          socketService.joinShowtime(showtimeId, true)
+        }
+      }, 800))
+      joinErrorTimers.push(setTimeout(() => {
+        if (!mounted) return
+        if (quoteError) return
+        setQuoteError(message)
+        cancelPurchase('join_error')
+      }, 2500))
+      socketService.on('join_success', () => {
+        joinErrorTimers.forEach(clearTimeout)
+        joinErrorTimers = []
+        setQuoteError(null)
+      })
     }
 
     const onSeatLockSuccess = ({ seatId }) => {
-      console.log('✅ [Socket] Asiento bloqueado con éxito:', seatId)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'selected' } : s)),
       )
@@ -177,8 +220,7 @@ export default function SelectSeats() {
     }
 
     const onSeatLockError = ({ seatId, message }) => {
-      console.error('❌ [Socket] Error bloqueando asiento:', message)
-      alert(message)
+      if (message) setQuoteError(message)
       setSeats((prev) =>
         prev.map((s) => (s.id === seatId ? { ...s, status: 'available' } : s)),
       )
@@ -199,7 +241,6 @@ export default function SelectSeats() {
     }
 
     const onSeatsUnlockedBulk = ({ seatIds }) => {
-      console.log('🔓 [Socket] Asientos liberados bulk')
       setSeats((prev) =>
         prev.map((s) =>
           seatIds.includes(s.id) ? { ...s, status: 'available' } : s,
@@ -223,16 +264,7 @@ export default function SelectSeats() {
       navigate('/')
     }
 
-    //reconectar
-    const handleReconnectedEmit = () => {
-      console.log(
-        '[Socket] Reactivación de red detectada, re-uniéndose a la sala...',
-      )
-      socketService.joinShowtime(showtimeId)
-    }
-
     // Acoplar receptores
-    socketService.on('connect', handleReconnectedEmit)
     socketService.on('join_success', onJoinSuccess)
     socketService.on('join_error', onJoinError)
     socketService.on('seat_lock_success', onSeatLockSuccess)
@@ -243,13 +275,12 @@ export default function SelectSeats() {
     socketService.on('seats_sold_final', onSeatsSoldFinal)
     socketService.on('quote_expired', onQuoteExpired)
 
-    // Emitir la entrada
-    console.log(' Emitiendo joinShowtime para:', showtimeId)
     socketService.joinShowtime(showtimeId)
 
     return () => {
-      console.log(' Limpiando listeners del showtime:', showtimeId)
-      socketService.off('connect', handleReconnectedEmit)
+      mounted = false
+      joinErrorTimers.forEach(clearTimeout)
+      joinErrorTimers = []
       socketService.off('join_success', onJoinSuccess)
       socketService.off('join_error', onJoinError)
       socketService.off('seat_lock_success', onSeatLockSuccess)
@@ -286,6 +317,11 @@ export default function SelectSeats() {
       return {
         ...seat,
         seatId: seat.id, // coincida con lo que espera el carrito
+        bookingId:
+          showtime?.booking?.id ||
+          showtime?.booking?.booking_id ||
+          showtime?.booking?.bookingId ||
+          null,
         label: seat.label || `${seat.row}${seat.column}`,
         price: seat.price || 6.0, // Fallback si el mapa no trae costo base
         assignedAudienceId: categoryId,
@@ -298,15 +334,6 @@ export default function SelectSeats() {
   // Sincronización Automática con el CartContext
   // ========================================================
   useEffect(() => {
-    console.log('=== [SelectSeats EFFECT] Evaluando asientos ===')
-    console.log(
-      'Asientos calculados en el mapa (fullSelectedSeatsObjects):',
-      fullSelectedSeatsObjects,
-    )
-    console.log(
-      'Tickets actualmente guardados en el Cart Global:',
-      cart.tickets,
-    )
     if (fullSelectedSeatsObjects.length === 0) {
       if (cart.tickets.length > 0) {
         cart.tickets.forEach((cartTicket) => removeTicket(cartTicket.seatId))
@@ -315,9 +342,6 @@ export default function SelectSeats() {
     }
 
     fullSelectedSeatsObjects.forEach((ticket) => {
-      console.log(
-        `-> Sincronizando asiento ${ticket.seatId} hacia el CartContext`,
-      )
       addTicket(ticket)
     })
 
@@ -375,12 +399,14 @@ export default function SelectSeats() {
   // ========================================================
   const handleNext = () => {
     navigate(`/buy/${movieId}/${showtimeId}/confectionery`, {
-      state: { cinemaId },
+      state: { cinemaId: resolvedCinemaId },
     })
   }
 
   const handleDirectCheckout = () => {
-    navigate(`/buy/${movieId}/${showtimeId}/checkout`, { state: { cinemaId } })
+    navigate(`/buy/${movieId}/${showtimeId}/checkout`, {
+      state: { cinemaId: resolvedCinemaId },
+    })
   }
 
   if (loading) {
@@ -401,12 +427,25 @@ export default function SelectSeats() {
           Ocurrió un problema al preparar tu compra. Intenta recargar la página
           o regresa al listado de funciones.
         </p>
-        <button
-          onClick={() => navigate('/')}
-          className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
-        >
-          Volver al inicio
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/')}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black px-5 py-3 rounded-xl font-semibold transition"
+          >
+            Volver al inicio
+          </button>
+          <button
+            onClick={async () => {
+              setRetryingQuote(true)
+              await initPurchaseSession()
+              setRetryingQuote(false)
+            }}
+            disabled={retryingQuote}
+            className={`px-5 py-3 rounded-xl font-semibold transition ${retryingQuote ? 'bg-gray-600 text-gray-300' : 'bg-green-500 hover:bg-green-600 text-black'}`}
+          >
+            {retryingQuote ? 'Reintentando...' : 'Reintentar cotización'}
+          </button>
+        </div>
       </div>
     )
   }

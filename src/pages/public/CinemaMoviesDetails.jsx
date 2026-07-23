@@ -6,6 +6,8 @@ import { getCinemas, getMoviesShowtimebyDateCinema } from '../../services/info.s
 // Componentes Compartidos
 import ShowtimeCard from '../../components/showtimesMovie/ShowtimeCard'
 import DateCarousel from '../../components/ui/DateCarroussel'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 // Utilidad para formatear Slugs de forma consistente
 const convertToSlug = (title) => {
@@ -33,6 +35,8 @@ export default function CinemaMovieDetails() {
 
   // Estados
   const [cinema, setCinema] = useState(null)
+  
+  useDocumentTitle(cinema?.name || 'Sucursal');
   const [billboard, setBillboard] = useState([]) 
   const [selectedDate, setSelectedDate] = useState(todayStr)
   
@@ -280,6 +284,7 @@ export default function CinemaMovieDetails() {
                             key={showtime.id} 
                             showtime={showtime} 
                             movieId={entityData.id} 
+                            cinemaId={cinema.id}
                           />
                         ))}
                       </div>

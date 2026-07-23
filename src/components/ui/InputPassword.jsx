@@ -2,41 +2,68 @@ import React from 'react'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { useState } from 'react'
 
-export default function InputPassword({ id, label, register, error, value }) {
+export default function InputPassword({ id, label, register, error, value, disabled = false }) {
   const [showPassword, setShowPassword] = useState(false)
+  const isDisabled = disabled || (register && register.disabled)
+  const handleBlur = (e) => {
+    const val = e.target.value;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      
+      e.target.value = '';
+      e.target.value = trimmed;
+
+      if (register?.onChange) {
+        register.onChange({
+          ...e,
+          target: {
+            ...e.target,
+            value: trimmed,
+            name: e.target.name || id
+          }
+        });
+      }
+    }
+    if (register?.onBlur) {
+      register.onBlur(e);
+    }
+  }
 
   return (
-    <div className="relative w-full">
-      <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-        <input
-          id={id}
-          type={showPassword ? 'text' : 'password'}
-          {...register}
-          placeholder=" "
-          className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
-        />
+    <div className="flex flex-col gap-1.5 w-full">
+      {label && <label className="text-[10px] uppercase font-bold text-yellow-500 ml-1">{label}</label>}
+      
+      <div className="relative flex items-center w-full">
+        {isDisabled ? (
+          <div className="bg-white/5 w-full text-white/70 py-3 px-4 text-sm rounded-xl border border-transparent truncate pr-12">
+            {value ? '••••••••' : ''}
+          </div>
+        ) : (
+          <input
+            id={id}
+            type={showPassword ? 'text' : 'password'}
+            {...register}
+            onBlur={handleBlur}
+            disabled={isDisabled}
+            placeholder=" "
+            className={`bg-white/10 w-full text-white outline-none py-3 px-4 pr-12 text-sm rounded-xl border transition-all placeholder:text-white/30
+              ${error ? 'border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400'}`}
+          />
+        )}
 
-        <label
-          htmlFor={id}
-          className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
-            peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-            ${value ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}
-          `}
-        >
-          {label}
-        </label>
-
-        <button
-          type="button"
-          onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-        >
-          {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-        </button>
+        {!isDisabled && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-4 text-white/50 hover:text-white transition-colors focus:outline-none"
+          >
+            {showPassword ? <AiFillEyeInvisible size={18} /> : <AiFillEye size={18} />}
+          </button>
+        )}
       </div>
 
       {error && (
-        <p className="absolute left-0 -bottom-5 text-red-500 text-sm">
+        <p className="text-red-400 text-xs font-medium ml-1 mt-1">
           {error}
         </p>
       )}

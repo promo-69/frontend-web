@@ -22,7 +22,7 @@ export function PurchaseProvider({ children }) {
   // =====================================================
   // 1) Inicializar o recuperar sesión de compra (quote)
   // =====================================================
-  const startQuote = async (targetCinemaId) => {
+  const startQuote = async (targetCinemaId, targetShowtimeId = null) => {
     if (!targetCinemaId) return false
 
     // Si ya fue inicializada con éxito por este contexto en este ciclo, evitamos re-peticiones
@@ -30,17 +30,18 @@ export function PurchaseProvider({ children }) {
     quoteInitializedRef.current = true
 
     try {
-      console.log('[PurchaseContext] Intentando crear la cotización primero en el servidor...')
-      
-      const resp = await initializeOrderQuote({
-        cinema: Number(targetCinemaId)
-      })
+
+
+      const payload = { cinema: Number(targetCinemaId) }
+
+      const resp = await initializeOrderQuote(payload)
 
       // Si se crea con éxito, extraemos y configuramos los tiempos de Redis
       const expires = resp?.data?.expires_in || resp?.expires_in || 300
       setExpiresAt(Date.now() + expires * 1000)
       setTimeLeft(expires)
       setCinemaId(targetCinemaId)
+      setShowtimeId(targetShowtimeId)
 
       return true
     } catch (err) {
@@ -55,9 +56,10 @@ export function PurchaseProvider({ children }) {
           }
 
           const activeSession = existingSession.data.session
-          console.log('[PurchaseContext] Sesión concurrente (409) recuperada exitosamente:', activeSession)
+
 
           setCinemaId(activeSession.cinemaId || targetCinemaId)
+          setShowtimeId(targetShowtimeId)
           
           const expires = existingSession.data.expires_in || 300
           setExpiresAt(Date.now() + expires * 1000)
@@ -77,9 +79,10 @@ export function PurchaseProvider({ children }) {
           }
 
           const activeSession = existingSession.data.session
-          console.log('[PurchaseContext] Sesión alternativa recuperada exitosamente tras error:', activeSession)
+
 
           setCinemaId(activeSession.cinemaId || targetCinemaId)
+          setShowtimeId(targetShowtimeId)
           
           const expires = existingSession.data.expires_in || 300
           setExpiresAt(Date.now() + expires * 1000)
@@ -134,7 +137,7 @@ export function PurchaseProvider({ children }) {
   // =====================================================
   // 4) Cancelar compra
   // =====================================================
-  const cancelPurchase = async () => {
+  const cancelPurchase = async (reason = 'manual') => {
     try {
       await deleteOrderSessionWithRetries()
     } catch (err) {
@@ -164,7 +167,8 @@ export function PurchaseProvider({ children }) {
     socketService.on('quote_expired', handleQuoteExpired)
 
     socketService.on('payment_success', ({ orderId, qrCode }) => {
-      window.location.href = `/success?order=${orderId}&qr=${qrCode}`
+      // Redirigir a la pantalla de éxito unificada
+      window.location.href = `/order-success?order=${orderId}&qr=${encodeURIComponent(qrCode)}`
     })
   }
 

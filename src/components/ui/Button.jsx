@@ -7,10 +7,8 @@ function Button({ text, onClick, type = 'button', className = '', disabled = fal
       type={type}
       onClick={onClick}
       disabled={disabled || isLoading}
-      className={`bg-[#D9982F] text-white px-5 py-2.5 rounded-full 
-                  text-sm font-montserrat font-medium
-                  hover:opacity-80 transition ${className}
-                  ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`bg-[#D9982F] text-[#231640] font-bold rounded-full py-3 px-8 text-[13px] uppercase tracking-wider transition-all hover:bg-[#c28621] hover:scale-[1.02] active:scale-95 shadow-lg border border-transparent
+                  ${disabled || isLoading ? 'opacity-60 cursor-not-allowed hover:scale-100' : ''} ${className}`}
     >
       {isLoading && <AiOutlineLoading3Quarters className="animate-spin inline mr-2" />}
       {text}

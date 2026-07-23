@@ -3,8 +3,12 @@ import { useRef } from 'react'
 import QRCode from 'react-qr-code'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function SuccessQR() {
+  useDocumentTitle('Ticket QR');
+
   const location = useLocation()
   const navigate = useNavigate()
   const { clearCart } = useCart()

@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Footer from '../../components/ui/Footer';
+import PageHeader from '../../components/ui/PageHeader';
 import MovieCard from '../../components/movies/MovieCard'; 
 import { getUpcomingMovies } from '../../services/movies.service';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 export default function MoviesUpComing() {
+  useDocumentTitle('Próximamente');
+
   const [billboardMovies, setBillboardMovies] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,14 +118,12 @@ export default function MoviesUpComing() {
         <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
           
           {/* Encabezado Unificado */}
-          <div className="border-l-4 border-yellow-500 pl-4 text-left pb-6 mb-10">
-            <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-white leading-none">
-              Próximos <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">Estrenos</span>
-            </h3>
-            <p className="text-xs md:text-sm text-gray-400 mt-3 tracking-wide font-medium max-w-xl leading-relaxed">
-              Explora los títulos más esperados que llegarán muy pronto a las salas de Cineflix. ¡Prepara tu agenda cinéfila!
-            </p>
-          </div>
+          <PageHeader
+            className="pb-6 mb-10"
+            titlePrefix="Próximos"
+            titleHighlight="Estrenos"
+            subtitle="Explora los títulos más esperados que llegarán muy pronto a las salas de Cineflix. ¡Prepara tu agenda cinéfila!"
+          />
 
           {/* Condicional de renderizado */}
           {monthsOrder.length === 0 ? (
@@ -143,7 +146,7 @@ export default function MoviesUpComing() {
                   </div>
 
                   {/* Grid de Películas Unificado */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
                     {groupedMovies[month].map((movie, index) => {
                       const isSpecialEvent = movie.type === 'special_event' || !!movie.event;
                       

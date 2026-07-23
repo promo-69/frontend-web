@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getMyOrderTicketRequest } from '../../../services/users.service'
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 function OrderTicket() {
   const { orderId } = useParams()
+  useDocumentTitle(orderId ? `Ticket de Orden #${orderId}` : 'Ticket de Orden');
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

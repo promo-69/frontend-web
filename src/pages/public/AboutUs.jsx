@@ -3,8 +3,12 @@ import Footer from '../../components/ui/Footer'
 import { InfoTabs } from '../../components/ui/InfoTabs'
 import groupPeopleCinema from '../../assets/images/group-people-cinema.webp'
 import cinemaStuffPopcorn from '../../assets/images/cinema-stuff-around-popcorn-heart.webp'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function AboutUs() {
+  useDocumentTitle('Sobre Nosotros');
+
   const empresaTabs = [
     {
       id: 'sobre-nosotros',

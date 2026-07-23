@@ -8,19 +8,23 @@ export const getShowtimesByMovieAndCinema = async (cinemaId, movieId) => {
   return res.data.data
 }
 
-// ⭐ 2) Detalle de función por sucursal
-export const getShowtimeById = async (cinemaId, showtimeId) => {
-  const res = await api.get(
-    `/cinemas/${cinemaId}/showtimes/${showtimeId}`,
-  )
+// ⭐ 2) Detalle de función por sucursal o por showtime solo
+export const getShowtimeById = async (cinemaIdOrShowtimeId, showtimeId) => {
+  const url = showtimeId
+    ? `/cinemas/${cinemaIdOrShowtimeId}/showtimes/${showtimeId}`
+    : `/showtimes/${cinemaIdOrShowtimeId}`
+
+  const res = await api.get(url)
   return res.data.data
 }
 
-// ⭐ 3) Mapa de asientos por sucursal
-export const getSeatMap = async (cinemaId, showtimeId) => {
-  const res = await api.get(
-    `/cinemas/${cinemaId}/showtimes/${showtimeId}/seat-map`,
-  )
+// ⭐ 3) Mapa de asientos por sucursal o por showtime solo
+export const getSeatMap = async (cinemaIdOrShowtimeId, showtimeId) => {
+  const url = showtimeId
+    ? `/cinemas/${cinemaIdOrShowtimeId}/showtimes/${showtimeId}/seat-map`
+    : `/showtimes/${cinemaIdOrShowtimeId}/seat-map`
+
+  const res = await api.get(url)
   return res.data.data
 }
 

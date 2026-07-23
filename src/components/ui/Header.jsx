@@ -1,9 +1,8 @@
 import React, { useState } from 'react'
-import { FiShoppingCart, FiChevronDown, FiLogOut } from 'react-icons/fi'
+import { FiChevronDown, FiLogOut } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useCart } from '../../context/CartContext'
 
 // Assets e Iconos
 import logoCineflix from '../../assets/images/logotype/logoCineflix.png'
@@ -18,12 +17,10 @@ const NAV_LINKS = [
 function Header() {
   const navigate = useNavigate()
   const { user, logout, initializing } = useAuth()
-  const { cart } = useCart()
 
   // MENÚS DESPLEGABLES
   const [isCarteleraOpen, setIsCarteleraOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isCartOpen, setIsCartOpen] = useState(false)
 
   const isLoggedIn = !!user
   const displayName = user?.firstName || user?.name || user?.email?.split('@')[0]
@@ -71,78 +68,68 @@ function Header() {
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      className="absolute top-full mt-2 right-0 w-52 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
+      className="absolute top-full mt-2 right-0 w-64 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10"
     >
-      <div className="px-4 py-3 border-b border-[#F6AD38]/50 mb-1">
-        <p className="font-bold uppercase text-[10px] text-[#F6AD38]/80 leading-none">Menú</p>
+      <div className="px-4 py-3 border-b border-[#F6AD38]/50">
+        <p className="font-bold uppercase text-[10px] text-[#F6AD38]/80 leading-none">Menú del Usuario</p>
       </div>
 
       <Link
         to="/profile"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Perfil
+        Mi cuenta
       </Link>
       <Link
-        to="/fidelity"
+        to="/my-fidelity"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Fidelidad
+        Mi fidelidad
       </Link>
       <Link
-        to="/subscription"
+        to="/showtime-subscriptions"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Subscripciones de Peliculas
+        Mis subscripciones
+      </Link>
+      <Link
+        to="/showtime-recommendations"
+        onClick={() => setIsUserMenuOpen(false)}
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
+      >
+        Mis funciones recomendadas
       </Link>
       <Link
         to="/my-orders"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors border-b border-[#F6AD38]/30 font-bold tracking-tight whitespace-nowrap"
       >
-        Historial de Compra
+        Mis compras
       </Link>
       <Link
-        to="/room-rent"
+        to="/room-rents"
         onClick={() => setIsUserMenuOpen(false)}
-        className="block px-4 py-3 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight"
+        className="flex items-center h-12 px-4 text-sm text-white hover:bg-[#7B1A82]/50 transition-colors font-bold tracking-tight whitespace-nowrap"
       >
-        Alquiler de Salas
+        Mis alquileres de sala
       </Link>
       <button
         onClick={handleLogout}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-[#8F2925] hover:bg-red-500/10 transition-colors mt-2 border-t border-[#F6AD38]/50 font-bold tracking-tight"
+        className="w-full flex items-center justify-start gap-3 px-4 h-12 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-[#F6AD38]/50 font-bold tracking-tight whitespace-nowrap"
       >
-        <span>Cerrar Sesión</span> <FiLogOut />
+        <FiLogOut className="text-lg" /> <span>Cerrar Sesión</span>
       </button>
     </motion.div>
   )
 
-  const CartDropdown = () => (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      className="absolute top-full mt-2 right-0 w-64 bg-[#2A154B] rounded-2xl overflow-hidden shadow-2xl z-[70] border border-white/10 p-4"
-    >
-      <p className="text-sm text-white font-bold mb-2">Carrito</p>
-      <p className="text-sm text-gray-300">Boletos: {cart.tickets.length}</p>
-      <p className="text-sm text-gray-300">Productos: {cart.products.length}</p>
-      <div className="mt-3 flex gap-2">
-        <button onClick={() => navigate('/cart')} className="flex-1 bg-[#F6AD38] text-[#231640] font-bold py-2 rounded-md">Ver carrito</button>
-        <button onClick={() => navigate('/checkout')} className="flex-1 bg-transparent border border-white/10 text-white font-bold py-2 rounded-md">Pagar</button>
-      </div>
-    </motion.div>
-  )
-
   return (
-    <header className="sticky top-0 bg-[#2A154B] text-white z-50 shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
+    <header className="sticky top-0 bg-[#2A154B] text-white z-[100] shadow-lg font-['Montserrat'] border-b-2 border-[#7B1A82]">
       {/* OVERLAY */}
       <AnimatePresence>
-        {(isCarteleraOpen || isUserMenuOpen || isCartOpen) && (
+        {(isCarteleraOpen || isUserMenuOpen) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -226,25 +213,6 @@ function Header() {
             </button>
           ) : (
             <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink-0 animate-fadeIn">
-              {/* CARRITO */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsCartOpen(!isCartOpen)}
-                  className="relative hover:text-[#F6AD38]"
-                >
-                  <FiShoppingCart size={22} />
-                  {cart.tickets.length + cart.products.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-[#F6AD38] text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                      {cart.tickets.length + cart.products.length}
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {isCartOpen && <CartDropdown />}
-                </AnimatePresence>
-              </div>
-
               {/* PERFIL */}
               <div className="relative">
                 <button

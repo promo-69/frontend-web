@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import useDocumentTitle from '../../../hooks/useDocumentTitle';
+
 
 export default function RoomRequest() {
+  useDocumentTitle('Alquiler de Sala');
+
   const [formData, setFormData] = useState({
     eventName: '',
     branch: '',
@@ -25,7 +29,7 @@ export default function RoomRequest() {
     setIsSubmitting(true);
     
     // Aquí irá la lógica de conexión con tu backend (room.service / reservation.service)
-    console.log("Datos de solicitud a enviar (Formato 24h garantizado):", formData);
+
     
     setTimeout(() => {
       setIsSubmitting(false);

@@ -3,14 +3,14 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import Button from '../../ui/Button'
 import { AuthContext } from '../../../context/AuthContext'
-import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import { validatePassword } from '../../../validators/authValidators'
 import ModalMessage from '../../ui/ModalMessage'
+import InputPassword from '../../ui/InputPassword'
+import FormActions from '../../ui/FormActions'
 
 function NewPasswordForm({ email, resetToken }) {
   const navigate = useNavigate()
-  const { resetPassword } = useContext(AuthContext)
-  const [showPassword, setShowPassword] = useState(false)
+  const { resetPassword, login } = useContext(AuthContext)
   const [isLoading, setIsLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [modalMessage, setModalMessage] = useState('')
@@ -29,15 +29,10 @@ function NewPasswordForm({ email, resetToken }) {
 
   const onSubmit = async (data) => {
     setIsLoading(true)
-    
-    console.log('Datos enviados al servicio auth:', {
-      email,
-      password: data.password,
-      resetToken,
-    })
+    const newPassword = data.password.trim()
 
     try {
-      const res = await resetPassword({ email, newPassword: data.password.trim(), resetToken })
+      const res = await resetPassword({ email, newPassword, resetToken })
 
       if (!res.success) {
         setModalType('error')
@@ -47,8 +42,23 @@ function NewPasswordForm({ email, resetToken }) {
       }
 
       setModalType('success')
-      setModalMessage('Contraseña actualizada exitosamente')
+      setModalMessage('Contraseña actualizada. Iniciando sesión...')
       setShowModal(true)
+      
+      // Intentar iniciar sesión automáticamente
+      try {
+        const loginRes = await login({ email, password: newPassword })
+        if (loginRes?.success) {
+          // Redirigir al home automáticamente después de 1.5s
+          setTimeout(() => {
+            navigate('/', { replace: true })
+          }, 1500)
+          return
+        }
+      } catch (loginError) {
+        console.error('Error en auto-login:', loginError)
+      }
+
     } catch (error) {
       setModalType('error')
       setModalMessage('Error al conectar con el servidor')
@@ -61,109 +71,47 @@ function NewPasswordForm({ email, resetToken }) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col items-center justify-center gap-10"
+      className="flex flex-col w-full gap-6"
     >
-      <div className="flex flex-col gap-12 items-center">
+      <div className="flex flex-col gap-8 w-full">
         <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
           Cambia tu contraseña
         </h1>
-        <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
+        <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md mx-auto">
           Identidad confirmada. Crea tu nueva contraseña.
         </p>
 
-        <div className="w-80 flex flex-col gap-6">
-          {/* Contraseña */}
-          <div className="relative w-full">
-                    <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-                      <input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        {...register('password', {
-                          validate: (value) =>
-                            validatePassword(value) === true || validatePassword(value),
-                        })}
-                        placeholder=" "
-                        className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
-                      />
-                      <label
-                        htmlFor="password"
-                        className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
-                  peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-                  ${passwordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-                      >
-                        Contraseña
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-                      >
-                        {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-                      </button>
-                    </div>
-                    {errors.password && (
-                      <p className="absolute left-0 -bottom-5 text-red-500">
-                        {errors.password.message}
-                      </p>
-                    )}
-                  </div>
-          
-                  {/* Confirmación */}
-                  <div className="relative w-full mt-2">
-                    <div className="flex items-center gap-2 border-b-2 border-white focus-within:border-[#D9982F] transition-colors py-2">
-                      <input
-                        id="confirmPassword"
-                        type={showPassword ? 'text' : 'password'}
-                        {...register('confirmPassword', {
-                          validate: (value) => {
-                            const password = getValues('password')
-                            if (!value) return 'Confirmación requerida'
-                            if (value !== password) return 'No coinciden'
-                            return true
-                          },
-                        })}
-                        placeholder=" "
-                        className="peer w-full bg-transparent border-none text-white focus:ring-0 focus:outline-none font-montserrat py-1 text-base pr-10"
-                      />
-                      <label
-                        htmlFor="confirmPassword"
-                        className={`absolute left-0 text-white transition-all duration-300 pointer-events-none font-montserrat
-                  peer-focus:-top-5 peer-focus:text-sm peer-focus:text-[#D9982F]
-                  ${confirmPasswordValue ? '-top-5 text-sm text-[#D9982F]' : 'top-2 text-base opacity-70'}`}
-                      >
-                        Confirmar contraseña
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 text-white text-xl opacity-80 hover:opacity-100"
-                      >
-                        {showPassword ? <AiFillEyeInvisible /> : <AiFillEye />}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="absolute left-0 -bottom-5 text-red-500">
-                        {errors.confirmPassword.message}
-                      </p>
-                    )}
-          </div>
-        </div>
+        <InputPassword
+          id="password"
+          label="Contraseña"
+          register={register('password', {
+            validate: (value) =>
+              validatePassword(value) === true || validatePassword(value),
+          })}
+          error={errors.password?.message}
+          value={passwordValue}
+        />
 
-        <div className="w-full flex items-center justify-center gap-8 pt-6">
-          <Button
-            text="Cancelar"
-            type="button"
-            className="bg-gray-500 text-white"
-            onClick={() => window.history.back()}
-          />
-          <Button
-            text={isLoading ? 'Guardando...' : 'Guardar'}
-            type="submit"
-            disabled={isLoading}
-            isLoading={isLoading}
-            className="text-lg font-montserrat font-semibold"
-          />
-        </div>
+        <InputPassword
+          id="confirmPassword"
+          label="Confirmar contraseña"
+          register={register('confirmPassword', {
+            validate: (value) => {
+              const password = getValues('password')
+              if (!value) return 'Confirmación requerida'
+              if (value !== password) return 'No coinciden'
+              return true
+            },
+          })}
+          error={errors.confirmPassword?.message}
+          value={confirmPasswordValue}
+        />
+
+        <FormActions
+          isLoading={isLoading}
+          loadingText="Guardando..."
+          submitText="Guardar"
+        />
       </div>
       {showModal && (
         <ModalMessage
@@ -172,7 +120,7 @@ function NewPasswordForm({ email, resetToken }) {
           onClose={() => {
             setShowModal(false)
             if (modalType === 'success') {
-              navigate('/login')
+              navigate('/', { replace: true })
             }
           }}
         />

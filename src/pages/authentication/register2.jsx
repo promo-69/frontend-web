@@ -1,11 +1,17 @@
 import registerImage from '../../assets/images/RegisterHD.webp'
 import logotipo from '../../assets/images/logotype/logoCiineflix.png'
 import RegisterForm2 from '../../components/forms/RegisterForm2'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { resolveAuthRedirect } from '../../utils/authNavigation'
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+
 
 function Register2() {
+  useDocumentTitle('Registro');
+
   const navigate = useNavigate()
-  console.log(123123)
+  const location = useLocation()
+  const fromRoute = resolveAuthRedirect(location.state?.from, '/')
   return (
     <>
       <div className="bg-[linear-gradient(to_bottom,#231640_0%,#7B1A82_50%,#231640_100%)] min-h-screen flex">
@@ -27,15 +33,15 @@ function Register2() {
             <h1 className="text-center text-[#D9982F] text-4xl leading-tight font-montserrat font-bold">
               Registro
             </h1>
-            <p className="text-center text-white text-4lg leading-relaxed font-montserrat max-w-md">
+            <p className="text-center text-white/70 text-sm leading-relaxed font-montserrat max-w-md">
               Crea tu cuenta para acceder a todas las funciones y el mejor
               contenido.
             </p>
             <RegisterForm2 />
             <p className="text-[#D9982F] text-base opacity-80 hover:opacity-100 pt-5">
-              <a href="/login" className="text-[#D9982F] underline">
+              <Link to="/login" state={{ from: fromRoute }} className="text-[#D9982F] underline">
                  ¿Ya tienes cuenta? Inicia sesión
-              </a>
+              </Link>
             </p>
             <p className="text-[#D9982F] text-sm opacity-80 hover:opacity-100">
               2026. Todos los derechos reservados. Compañia Cineflix.
